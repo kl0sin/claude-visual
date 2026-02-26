@@ -1,5 +1,7 @@
 # Claude Visual
 
+![Claude Visual](./assets/claude-visual.jpg)
+
 Real-time neural monitor for Claude Code agent activity. Tracks events, tool usage, subagent processes, and token consumption with cost estimation — all through a cyberpunk-themed dashboard.
 
 ![Claude Visual Dashboard](https://img.shields.io/badge/status-active-00f0ff?style=flat-square) ![Bun](https://img.shields.io/badge/runtime-Bun-f472b6?style=flat-square) ![License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)

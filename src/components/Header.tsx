@@ -19,6 +19,7 @@ function formatTokens(n: number): string {
 export function Header({ connected, totalEvents, totalTokens, pendingTools, onClear }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [bannerVisible, setBannerVisible] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -31,11 +32,22 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, onCl
     };
   }, []);
 
+  // Only show the attention banner if tools have been pending for >2s.
+  // This prevents a flash during fast automated tool calls.
+  useEffect(() => {
+    if (pendingTools.length === 0) {
+      setBannerVisible(false);
+      return;
+    }
+    const timer = setTimeout(() => setBannerVisible(true), 2000);
+    return () => clearTimeout(timer);
+  }, [pendingTools.length]);
+
   const toolNames = pendingTools.map((p) => p.tool).join(", ");
 
   return (
     <header className="header">
-      {pendingTools.length > 0 && (
+      {bannerVisible && pendingTools.length > 0 && (
         <div className="attention-banner">
           <span className="attention-icon">&#9888;</span>
           <span className="attention-text">

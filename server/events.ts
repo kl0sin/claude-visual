@@ -43,6 +43,11 @@ export class EventStore {
         existing.eventCount++;
         if (eventType === "SessionEnd") {
           existing.status = "ended";
+          existing.isProcessing = false;
+        } else if (eventType === "UserPromptSubmit") {
+          existing.isProcessing = true;
+        } else if (eventType === "Stop") {
+          existing.isProcessing = false;
         }
       } else {
         this.sessions.set(sessionId, {
@@ -51,6 +56,7 @@ export class EventStore {
           lastEvent: event.timestamp,
           eventCount: 1,
           status: eventType === "SessionEnd" ? "ended" : "active",
+          isProcessing: eventType === "UserPromptSubmit",
         });
       }
     } else if (eventType === "SessionEnd") {
@@ -63,6 +69,7 @@ export class EventStore {
       }
       if (latest) {
         latest.status = "ended";
+        latest.isProcessing = false;
         latest.lastEvent = event.timestamp;
         latest.eventCount++;
         event.sessionId = latest.id;

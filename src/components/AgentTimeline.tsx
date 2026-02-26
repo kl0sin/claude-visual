@@ -44,7 +44,7 @@ export function AgentTimeline({ agents }: AgentTimelineProps) {
   return (
     <div className="panel agent-timeline">
       <div className="panel-header">
-        <div>
+        <div className="flex gap-2 items-center">
           <span className="panel-icon">◈</span>
           AGENT PROCESSES
           {totalCount > 0 && (

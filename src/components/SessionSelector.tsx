@@ -7,14 +7,17 @@ interface SessionSelectorProps {
   onSelect: (id: string | null) => void;
 }
 
-/** Threshold in ms — session is "processing" if last event was within this window */
-const PROCESSING_THRESHOLD = 10_000;
+/** Fallback threshold in ms — treat session as processing if very recent events arrived */
+const RECENT_EVENT_THRESHOLD = 5_000;
 
 type SessionState = "processing" | "idle" | "ended";
 
 function getSessionState(session: SessionInfo, now: number): SessionState {
   if (session.status === "ended") return "ended";
-  if (now - session.lastEvent < PROCESSING_THRESHOLD) return "processing";
+  // Primary signal: server tracks whether Claude is actively handling a request
+  if (session.isProcessing) return "processing";
+  // Fallback: very recent events (e.g. hook fired but UserPromptSubmit not yet received)
+  if (now - session.lastEvent < RECENT_EVENT_THRESHOLD) return "processing";
   return "idle";
 }
 
