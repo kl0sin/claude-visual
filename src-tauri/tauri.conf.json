@@ -1,0 +1,35 @@
+{
+  "productName": "Claude Visual",
+  "version": "0.1.0",
+  "identifier": "dev.claude-visual.app",
+  "build": {
+    "beforeDevCommand": "bun dev.ts",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "bun run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "CLAUDE VISUAL // Neural Monitor",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' tauri: asset: https://asset.localhost; connect-src http://localhost:3200 ws://localhost:3200; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.ico",
+      "icons/128x128.png",
+      "icons/128x128@2x.png"
+    ],
+    "externalBin": ["binaries/server"]
+  }
+}

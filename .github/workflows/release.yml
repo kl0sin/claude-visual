@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install JS dependencies
+        run: bun install
+
+      - name: Build sidecar (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: bun build --compile --outfile src-tauri/binaries/server-x86_64-unknown-linux-gnu server/index.ts
+
+      - name: Build sidecar (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: bun build --compile --outfile src-tauri/binaries/server-x86_64-pc-windows-msvc server/index.ts
+
+      - name: Build sidecar (macOS ARM)
+        if: matrix.platform == 'macos-latest' && matrix.args == '--target aarch64-apple-darwin'
+        run: bun build --compile --target=bun-darwin-arm64 --outfile src-tauri/binaries/server-aarch64-apple-darwin server/index.ts
+
+      - name: Build sidecar (macOS Intel)
+        if: matrix.platform == 'macos-latest' && matrix.args == '--target x86_64-apple-darwin'
+        run: bun build --compile --target=bun-darwin-x64 --outfile src-tauri/binaries/server-x86_64-apple-darwin server/index.ts
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Claude Visual ${{ github.ref_name }}'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

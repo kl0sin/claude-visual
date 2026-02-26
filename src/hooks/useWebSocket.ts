@@ -23,6 +23,8 @@ const DEFAULT_STATS: SessionStats = {
   pendingTools: [],
 };
 
+const API_BASE = (window as any).__TAURI__ ? 'http://localhost:3200' : '';
+
 export function useWebSocket(url: string): UseWebSocketReturn {
   const [allEvents, setAllEvents] = useState<ClaudeEvent[]>([]);
   const [globalStats, setGlobalStats] = useState<SessionStats | null>(null);
@@ -105,14 +107,14 @@ export function useWebSocket(url: string): UseWebSocketReturn {
       setSessionTokens(null);
       return;
     }
-    fetch(`/api/stats?session=${encodeURIComponent(selectedSession)}`)
+    fetch(`${API_BASE}/api/stats?session=${encodeURIComponent(selectedSession)}`)
       .then((r) => r.json())
       .then((data: SessionStats) => setSessionTokens(data.tokens))
       .catch(() => setSessionTokens(null));
   }, [selectedSession, globalStats]);
 
   const clearEvents = useCallback(() => {
-    fetch("/api/clear", { method: "POST" }).catch((err) => {
+    fetch(`${API_BASE}/api/clear`, { method: "POST" }).catch((err) => {
       console.error("[NEURAL LINK] Clear failed:", err);
     });
   }, []);

@@ -8,10 +8,14 @@
     "dev:server": "bun --watch server/index.ts",
     "dev:client": "bunx vite",
     "build": "bunx vite build",
-    "start": "NODE_ENV=production bun server/index.ts"
+    "start": "NODE_ENV=production bun server/index.ts",
+    "tauri:sidecar": "bun build --compile --outfile src-tauri/binaries/server-x86_64-unknown-linux-gnu server/index.ts",
+    "tauri:dev": "bunx tauri dev",
+    "tauri:build": "bun run tauri:sidecar && bunx tauri build"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
+    "@tauri-apps/cli": "^2",
     "@types/bun": "latest",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -23,6 +27,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2",
     "hono": "^4.12.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
