@@ -131,7 +131,10 @@ export class EventStore {
       const pending = this.pendingTools.get(pendingKey);
       if (pending) {
         const idx = pending.findIndex((p) => p.tool === raw.tool_name);
-        if (idx >= 0) pending.splice(idx, 1);
+        if (idx >= 0) {
+          event.duration = event.timestamp - pending[idx]!.since;
+          pending.splice(idx, 1);
+        }
         if (pending.length === 0) this.pendingTools.delete(pendingKey);
       }
     } else if (eventType === "Stop" || eventType === "SessionEnd") {
@@ -191,12 +194,16 @@ export class EventStore {
       : this.events;
 
     const toolCounts: Record<string, number> = {};
+    const toolFailCounts: Record<string, number> = {};
     const agentCounts: Record<string, number> = {};
     const eventTypeCounts: Record<string, number> = {};
 
     for (const event of events) {
       if (event.toolName) {
         toolCounts[event.toolName] = (toolCounts[event.toolName] || 0) + 1;
+        if (event.type === "PostToolUseFailure") {
+          toolFailCounts[event.toolName] = (toolFailCounts[event.toolName] || 0) + 1;
+        }
       }
       if (event.agentType) {
         agentCounts[event.agentType] =
@@ -223,6 +230,7 @@ export class EventStore {
     return {
       totalEvents: events.length,
       toolCounts,
+      toolFailCounts,
       agentCounts,
       eventTypeCounts,
       activeAgents: agents,

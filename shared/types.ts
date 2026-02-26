@@ -44,6 +44,7 @@ export interface PendingTool {
 export interface SessionStats {
   totalEvents: number;
   toolCounts: Record<string, number>;
+  toolFailCounts: Record<string, number>;
   agentCounts: Record<string, number>;
   eventTypeCounts: Record<string, number>;
   activeAgents: AgentProcess[];

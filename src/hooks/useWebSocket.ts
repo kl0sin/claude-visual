@@ -16,6 +16,7 @@ interface UseWebSocketReturn {
 const DEFAULT_STATS: SessionStats = {
   totalEvents: 0,
   toolCounts: {},
+  toolFailCounts: {},
   agentCounts: {},
   eventTypeCounts: {},
   activeAgents: [],
@@ -129,12 +130,16 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     if (!selectedSession) return globalStats;
 
     const toolCounts: Record<string, number> = {};
+    const toolFailCounts: Record<string, number> = {};
     const agentCounts: Record<string, number> = {};
     const eventTypeCounts: Record<string, number> = {};
 
     for (const evt of events) {
       if (evt.toolName) {
         toolCounts[evt.toolName] = (toolCounts[evt.toolName] || 0) + 1;
+        if (evt.type === "PostToolUseFailure") {
+          toolFailCounts[evt.toolName] = (toolFailCounts[evt.toolName] || 0) + 1;
+        }
       }
       if (evt.agentType) {
         agentCounts[evt.agentType] = (agentCounts[evt.agentType] || 0) + 1;
@@ -145,6 +150,7 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     return {
       totalEvents: events.length,
       toolCounts,
+      toolFailCounts,
       agentCounts,
       eventTypeCounts,
       activeAgents: globalStats?.activeAgents.filter((a) => a.sessionId === selectedSession) || [],

@@ -25,11 +25,6 @@
 
 /* ── BASE ─────────────────────────────────────────────── */
 
-@font-face {
-  font-family: "JetBrains Mono";
-  src: url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap");
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -376,6 +371,64 @@ body {
   color: var(--color-cyber-red);
 }
 
+/* ── AGENT STATUS ────────────────────────────────────── */
+
+.agent-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-cyber-border);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
+
+.agent-status.processing {
+  border-color: var(--color-cyber-cyan);
+  background: rgba(0, 240, 255, 0.05);
+}
+
+.agent-status.idle {
+  border-color: var(--color-cyber-text-dim);
+}
+
+.agent-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.agent-status.processing .agent-status-dot {
+  background: var(--color-cyber-cyan);
+  box-shadow: 0 0 8px var(--color-cyber-cyan);
+  animation: pulse-dot-cyan 1.5s ease-in-out infinite;
+}
+
+.agent-status.idle .agent-status-dot {
+  background: var(--color-cyber-text-dim);
+}
+
+.agent-status.processing .agent-status-text {
+  color: var(--color-cyber-cyan);
+  text-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+}
+
+.agent-status.idle .agent-status-text {
+  color: var(--color-cyber-text-dim);
+}
+
+@keyframes pulse-dot-cyan {
+  0%,
+  100% {
+    box-shadow: 0 0 4px var(--color-cyber-cyan);
+  }
+  50% {
+    box-shadow:
+      0 0 12px var(--color-cyber-cyan),
+      0 0 20px rgba(0, 240, 255, 0.3);
+  }
+}
+
 /* ── GLITCH EFFECT ────────────────────────────────────── */
 
 .glitch {
@@ -507,6 +560,13 @@ body {
   color: var(--color-cyber-text-dim);
   font-variant-numeric: tabular-nums;
   opacity: 0.7;
+}
+
+.session-tab-duration {
+  font-size: 9px;
+  color: var(--color-cyber-text-dim);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
 }
 
 .session-tab-count {
@@ -687,6 +747,85 @@ body {
   overflow: hidden;
 }
 
+/* ── Event filter bar ─────────────────────────────── */
+
+.event-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-cyber-border);
+  background: rgba(13, 21, 37, 0.5);
+  flex-shrink: 0;
+  min-height: 32px;
+}
+
+.event-filter-pills {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.event-filter-pill {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border: 1px solid color-mix(in srgb, var(--pill-color) 30%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, var(--pill-color) 70%, var(--color-cyber-text));
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.event-filter-pill:hover {
+  background: color-mix(in srgb, var(--pill-color) 10%, transparent);
+  border-color: color-mix(in srgb, var(--pill-color) 50%, transparent);
+}
+
+.event-filter-pill.active {
+  background: color-mix(in srgb, var(--pill-color) 15%, transparent);
+  border-color: var(--pill-color);
+  color: var(--pill-color);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--pill-color) 30%, transparent);
+}
+
+.event-filter-pill-count {
+  font-size: 8px;
+  font-weight: 400;
+  opacity: 0.6;
+  margin-left: 3px;
+}
+
+.event-search-input {
+  font-family: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid var(--color-cyber-border);
+  background: rgba(10, 14, 23, 0.8);
+  color: var(--color-cyber-text-bright);
+  width: 120px;
+  flex-shrink: 0;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.event-search-input::placeholder {
+  color: var(--color-cyber-text-dim);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+.event-search-input:focus {
+  border-color: var(--color-cyber-cyan);
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.15);
+}
+
 .event-feed-list {
   flex: 1;
   overflow-y: scroll;
@@ -790,6 +929,61 @@ body {
   color: var(--color-cyber-text-bright);
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+/* ── Output block styling ────────────────────────── */
+
+.detail-output-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-output-pre {
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-cyber-border);
+  border-radius: 2px;
+  color: var(--color-cyber-text-bright);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.detail-output-pre::-webkit-scrollbar {
+  width: 3px;
+}
+
+.detail-output-pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.detail-output-pre::-webkit-scrollbar-thumb {
+  background: var(--color-cyber-border-bright);
+  border-radius: 2px;
+}
+
+/* ── Error detail styling ────────────────────────── */
+
+.event-detail-error {
+  background: rgba(255, 0, 64, 0.06);
+  border: 1px solid rgba(255, 0, 64, 0.2);
+  border-radius: 2px;
+  padding: 6px 8px;
+}
+
+.detail-field-error {
+  color: var(--color-cyber-red);
+}
+
+.detail-field-label-error {
+  background: rgba(255, 0, 64, 0.15);
+  color: var(--color-cyber-red);
 }
 
 /* ── JSON syntax highlighting ─────────────────────── */
@@ -1095,6 +1289,16 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.tool-fail-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-cyber-red);
+  flex-shrink: 0;
+  width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .tool-empty {
   display: flex;
   align-items: center;
@@ -1161,6 +1365,26 @@ body {
   color: var(--color-cyber-text-dim);
   letter-spacing: 2px;
   font-weight: 500;
+}
+
+/* ── Sparkline ────────────────────────────────────── */
+
+.sparkline-container {
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-cyber-border);
+}
+
+.sparkline-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--color-cyber-text-dim);
+  margin-bottom: 4px;
+}
+
+.sparkline-svg {
+  width: 100%;
+  height: 28px;
+  display: block;
 }
 
 .event-type-breakdown {

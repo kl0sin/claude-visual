@@ -34,6 +34,17 @@ function shortId(id: string): string {
   return id.slice(0, 6) + "..." + id.slice(-4);
 }
 
+function formatDuration(from: number, to: number): string {
+  const ms = to - from;
+  if (ms < 0) return "0s";
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}h${m % 60}m`;
+  if (m > 0) return `${m}m${s % 60}s`;
+  return `${s}s`;
+}
+
 export function SessionSelector({ sessions, selectedSession, onSelect }: SessionSelectorProps) {
   const [now, setNow] = useState(Date.now());
 
@@ -75,6 +86,9 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
               <span className={`session-status-dot ${state}`} />
               <span className="session-tab-label">{shortId(session.id)}</span>
               <span className="session-tab-time">{formatTime(session.firstEvent)}</span>
+              <span className="session-tab-duration">
+                {formatDuration(session.firstEvent, state === "ended" ? session.lastEvent : now)}
+              </span>
               <span className="session-tab-count">{session.eventCount}</span>
             </button>
           );

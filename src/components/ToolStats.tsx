@@ -1,5 +1,6 @@
 interface ToolStatsProps {
   toolCounts: Record<string, number>;
+  toolFailCounts?: Record<string, number>;
 }
 
 const TOOL_COLORS: Record<string, string> = {
@@ -10,12 +11,14 @@ const TOOL_COLORS: Record<string, string> = {
   Glob: "#8b5cf6",
   Grep: "#06b6d4",
   Task: "#ffaa00",
+  TaskUpdate: "#ff6b00",
+  TaskCreate: "#ff6b00",
   TodoWrite: "#ff6b00",
   WebSearch: "#ff0040",
   WebFetch: "#ff0040",
 };
 
-export function ToolStats({ toolCounts }: ToolStatsProps) {
+export function ToolStats({ toolCounts, toolFailCounts = {} }: ToolStatsProps) {
   const sorted = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]);
   const max = sorted[0]?.[1] || 1;
 
@@ -31,6 +34,7 @@ export function ToolStats({ toolCounts }: ToolStatsProps) {
         ) : (
           sorted.map(([tool, count]) => {
             const color = TOOL_COLORS[tool] || "#8892a8";
+            const fails = toolFailCounts[tool] || 0;
             const pct = (count / max) * 100;
 
             return (
@@ -51,6 +55,11 @@ export function ToolStats({ toolCounts }: ToolStatsProps) {
                 <span className="tool-count" style={{ color }}>
                   {count}
                 </span>
+                {fails > 0 && (
+                  <span className="tool-fail-count" title={`${fails} failed`}>
+                    {fails}✗
+                  </span>
+                )}
               </div>
             );
           })

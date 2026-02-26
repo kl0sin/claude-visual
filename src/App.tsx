@@ -7,7 +7,9 @@ import { TokenPanel } from "./components/TokenPanel";
 import { SessionSelector } from "./components/SessionSelector";
 import { useWebSocket } from "./hooks/useWebSocket";
 
-const WS_URL = `ws://${window.location.hostname}:3200/ws`;
+const WS_URL = (window as any).__TAURI__
+  ? "ws://localhost:3200/ws"
+  : `ws://${window.location.host}/ws`;
 
 const DEFAULT_TOKENS = {
   inputTokens: 0,
@@ -38,6 +40,7 @@ export default function App() {
         totalEvents={globalStats?.totalEvents || 0}
         totalTokens={globalStats?.tokens.totalTokens || 0}
         pendingTools={globalStats?.pendingTools || []}
+        isProcessing={sessions.some((s) => s.isProcessing)}
         onClear={clearEvents}
       />
 
@@ -52,7 +55,7 @@ export default function App() {
       <main className="dashboard">
         <div className="dashboard-left">
           <AgentTimeline agents={stats?.activeAgents || []} />
-          <ToolStats toolCounts={stats?.toolCounts || {}} />
+          <ToolStats toolCounts={stats?.toolCounts || {}} toolFailCounts={stats?.toolFailCounts || {}} />
         </div>
 
         <div className="dashboard-center">
@@ -61,7 +64,7 @@ export default function App() {
 
         <div className="dashboard-right">
           <TokenPanel tokens={stats?.tokens || DEFAULT_TOKENS} />
-          <StatsPanel stats={stats} />
+          <StatsPanel stats={stats} events={events} />
         </div>
       </main>
 

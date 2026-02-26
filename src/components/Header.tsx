@@ -6,6 +6,7 @@ interface HeaderProps {
   totalEvents: number;
   totalTokens: number;
   pendingTools: PendingTool[];
+  isProcessing: boolean;
   onClear: () => void;
 }
 
@@ -16,7 +17,7 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
-export function Header({ connected, totalEvents, totalTokens, pendingTools, onClear }: HeaderProps) {
+export function Header({ connected, totalEvents, totalTokens, pendingTools, isProcessing, onClear }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [bannerVisible, setBannerVisible] = useState(false);
@@ -32,16 +33,24 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, onCl
     };
   }, []);
 
-  // Only show the attention banner if tools have been pending for >2s.
-  // This prevents a flash during fast automated tool calls.
+  // Only show the attention banner when a tool has been pending for a long time
+  // (>15s), indicating the user likely needs to approve a permission prompt.
+  // Normal tool execution (Bash, Task, etc.) won't trigger this.
   useEffect(() => {
     if (pendingTools.length === 0) {
       setBannerVisible(false);
       return;
     }
-    const timer = setTimeout(() => setBannerVisible(true), 2000);
-    return () => clearTimeout(timer);
-  }, [pendingTools.length]);
+    const STALL_THRESHOLD = 15_000;
+    const check = () => {
+      const now = Date.now();
+      const stalled = pendingTools.some((p) => now - p.since >= STALL_THRESHOLD);
+      setBannerVisible(stalled);
+    };
+    check();
+    const interval = setInterval(check, 2000);
+    return () => clearInterval(interval);
+  }, [pendingTools]);
 
   const toolNames = pendingTools.map((p) => p.tool).join(", ");
 
@@ -87,6 +96,15 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, onCl
             {connected ? "LINKED" : "OFFLINE"}
           </span>
         </div>
+
+        {connected && (
+          <div className={`agent-status ${isProcessing ? "processing" : "idle"}`}>
+            <span className="agent-status-dot" />
+            <span className="agent-status-text">
+              {isProcessing ? "PROCESSING" : "IDLE"}
+            </span>
+          </div>
+        )}
       </div>
     </header>
   );
