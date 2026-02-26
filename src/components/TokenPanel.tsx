@@ -26,6 +26,8 @@ export function TokenPanel({ tokens }: TokenPanelProps) {
   const total = tokens.totalTokens;
   const inputPct = total > 0 ? (tokens.inputTokens / total) * 100 : 0;
   const outputPct = total > 0 ? (tokens.outputTokens / total) * 100 : 0;
+  const cacheReadPct = total > 0 ? (tokens.cacheReadTokens / total) * 100 : 0;
+  const cacheWritePct = total > 0 ? (tokens.cacheCreationTokens / total) * 100 : 0;
 
   return (
     <div className="panel token-panel">
@@ -50,6 +52,11 @@ export function TokenPanel({ tokens }: TokenPanelProps) {
           className="token-bar-output"
           style={{ width: `${outputPct}%` }}
           title={`Output: ${outputPct.toFixed(1)}%`}
+        />
+        <div
+          className="token-bar-cache"
+          style={{ width: `${cacheReadPct + cacheWritePct}%` }}
+          title={`Cache: ${(cacheReadPct + cacheWritePct).toFixed(1)}%`}
         />
       </div>
 

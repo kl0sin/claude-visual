@@ -38,7 +38,12 @@ export class TranscriptTokenReader {
       totalTokens: currentTotal.totalTokens - prev.totalTokens,
     };
 
-    return diff.totalTokens > 0 ? diff : null;
+    const hasChanges =
+      diff.inputTokens > 0 ||
+      diff.outputTokens > 0 ||
+      diff.cacheCreationTokens > 0 ||
+      diff.cacheReadTokens > 0;
+    return hasChanges ? diff : null;
   }
 
   /**
@@ -62,11 +67,13 @@ export class TranscriptTokenReader {
             const u = entry.message.usage;
             const input = u.input_tokens || 0;
             const output = u.output_tokens || 0;
+            const cacheCreation = u.cache_creation_input_tokens || 0;
+            const cacheRead = u.cache_read_input_tokens || 0;
             tokens.inputTokens += input;
             tokens.outputTokens += output;
-            tokens.cacheCreationTokens += u.cache_creation_input_tokens || 0;
-            tokens.cacheReadTokens += u.cache_read_input_tokens || 0;
-            tokens.totalTokens += input + output;
+            tokens.cacheCreationTokens += cacheCreation;
+            tokens.cacheReadTokens += cacheRead;
+            tokens.totalTokens += input + output + cacheCreation + cacheRead;
             found = true;
           }
         } catch {

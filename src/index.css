@@ -569,6 +569,16 @@ body {
   border-radius: 2px;
 }
 
+.event-item {
+  border-left: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.event-item:hover,
+.event-item.expanded {
+  border-left-color: var(--event-color);
+}
+
 .event-row {
   display: flex;
   align-items: baseline;
@@ -576,15 +586,126 @@ body {
   padding: 3px 14px;
   font-size: 12px;
   transition: background 0.15s;
-  border-left: 2px solid transparent;
   white-space: nowrap;
   overflow: hidden;
   max-width: 100%;
+  cursor: pointer;
 }
 
 .event-row:hover {
   background: rgba(0, 240, 255, 0.03);
-  border-left-color: var(--event-color);
+}
+
+.event-expand-icon {
+  flex-shrink: 0;
+  font-size: 10px;
+  opacity: 0.3;
+  transition: opacity 0.15s;
+  margin-left: 4px;
+}
+
+.event-row:hover .event-expand-icon {
+  opacity: 0.7;
+}
+
+.event-item.expanded .event-expand-icon {
+  opacity: 1;
+}
+
+.event-detail {
+  padding: 6px 14px 8px 38px;
+  background: rgba(0, 240, 255, 0.02);
+  border-top: 1px solid var(--color-cyber-border);
+  border-bottom: 1px solid var(--color-cyber-border);
+}
+
+/* ── Structured detail fields ──────────────────────── */
+
+.event-detail-structured {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-field {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.detail-field-label {
+  flex-shrink: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--color-cyber-cyan);
+  padding: 1px 6px;
+  background: rgba(0, 240, 255, 0.08);
+  border-radius: 2px;
+  align-self: flex-start;
+  margin-top: 1px;
+}
+
+.detail-field-value {
+  color: var(--color-cyber-text-bright);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── JSON syntax highlighting ─────────────────────── */
+
+.event-detail-json {
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.event-detail-json::-webkit-scrollbar {
+  width: 3px;
+}
+
+.event-detail-json::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.event-detail-json::-webkit-scrollbar-thumb {
+  background: var(--color-cyber-border-bright);
+  border-radius: 2px;
+}
+
+.json-key {
+  color: var(--color-cyber-cyan);
+}
+
+.json-string {
+  color: var(--color-cyber-green);
+}
+
+.json-number {
+  color: var(--color-cyber-magenta);
+}
+
+.json-bool {
+  color: var(--color-cyber-yellow);
+}
+
+.json-null {
+  color: var(--color-cyber-text-dim);
+  font-style: italic;
+}
+
+.json-bracket {
+  color: var(--color-cyber-text-dim);
+}
+
+.json-punct {
+  color: var(--color-cyber-text-dim);
 }
 
 .event-time {
@@ -982,6 +1103,13 @@ body {
   height: 100%;
   background: var(--color-cyber-magenta);
   box-shadow: 0 0 6px rgba(255, 45, 149, 0.4);
+  transition: width 0.5s ease;
+}
+
+.token-bar-cache {
+  height: 100%;
+  background: var(--color-cyber-green);
+  box-shadow: 0 0 6px rgba(0, 255, 159, 0.4);
   transition: width 0.5s ease;
 }
 
