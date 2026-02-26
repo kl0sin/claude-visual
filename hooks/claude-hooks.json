@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"event_type\":\"SessionStart\",\"session_id\":\"'$CLAUDE_SESSION_ID'\"}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"event_type\":\"SessionEnd\",\"session_id\":\"'$CLAUDE_SESSION_ID'\"}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionEnd\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
           }
         ]
       }

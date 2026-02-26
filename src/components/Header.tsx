@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import type { PendingTool } from "../types";
 
 interface HeaderProps {
   connected: boolean;
   totalEvents: number;
   totalTokens: number;
+  pendingTools: PendingTool[];
   onClear: () => void;
 }
 
@@ -14,7 +16,7 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
-export function Header({ connected, totalEvents, totalTokens, onClear }: HeaderProps) {
+export function Header({ connected, totalEvents, totalTokens, pendingTools, onClear }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -29,8 +31,19 @@ export function Header({ connected, totalEvents, totalTokens, onClear }: HeaderP
     };
   }, []);
 
+  const toolNames = pendingTools.map((p) => p.tool).join(", ");
+
   return (
     <header className="header">
+      {pendingTools.length > 0 && (
+        <div className="attention-banner">
+          <span className="attention-icon">&#9888;</span>
+          <span className="attention-text">
+            AWAITING ACTION — {toolNames}
+          </span>
+        </div>
+      )}
+
       <div className="header-left">
         <h1 className={`header-title ${glitch ? "glitch" : ""}`}>
           <span className="header-title-main">CLAUDE</span>

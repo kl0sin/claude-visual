@@ -37,6 +37,7 @@ export default function App() {
         connected={connected}
         totalEvents={globalStats?.totalEvents || 0}
         totalTokens={globalStats?.tokens.totalTokens || 0}
+        pendingTools={globalStats?.pendingTools || []}
         onClear={clearEvents}
       />
 

@@ -20,6 +20,7 @@ const DEFAULT_STATS: SessionStats = {
   eventTypeCounts: {},
   activeAgents: [],
   tokens: { ...EMPTY_TOKENS },
+  pendingTools: [],
 };
 
 export function useWebSocket(url: string): UseWebSocketReturn {
@@ -146,6 +147,7 @@ export function useWebSocket(url: string): UseWebSocketReturn {
       eventTypeCounts,
       activeAgents: globalStats?.activeAgents.filter((a) => a.sessionId === selectedSession) || [],
       tokens: sessionTokens || { ...EMPTY_TOKENS },
+      pendingTools: globalStats?.pendingTools || [],
       firstEvent: events[0]?.timestamp,
       lastEvent: events[events.length - 1]?.timestamp,
     };

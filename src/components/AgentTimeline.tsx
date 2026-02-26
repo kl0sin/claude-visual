@@ -20,12 +20,17 @@ function formatDuration(ms: number): string {
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
+function formatAgentType(type: string): string {
+  if (!type || type === "unknown") return "agent";
+  return type;
+}
+
 export function AgentTimeline({ agents }: AgentTimelineProps) {
   const [now, setNow] = useState(Date.now());
   const activeAgents = agents.filter((a) => a.status === "active");
   const completedAgents = agents
     .filter((a) => a.status === "completed")
-    .slice(-8);
+    .slice(-20);
 
   // Tick every second to update elapsed times for active agents
   useEffect(() => {
@@ -34,13 +39,23 @@ export function AgentTimeline({ agents }: AgentTimelineProps) {
     return () => clearInterval(interval);
   }, [activeAgents.length]);
 
+  const totalCount = activeAgents.length + completedAgents.length;
+
   return (
     <div className="panel agent-timeline">
       <div className="panel-header">
-        <span className="panel-icon">◈</span>
-        AGENT PROCESSES
+        <div>
+          <span className="panel-icon">◈</span>
+          AGENT PROCESSES
+          {totalCount > 0 && (
+            <span className="panel-count">({totalCount})</span>
+          )}
+        </div>
+
         {activeAgents.length > 0 && (
-          <span className="panel-badge pulse">{activeAgents.length} ACTIVE</span>
+          <span className="panel-badge pulse">
+            {activeAgents.length} ACTIVE
+          </span>
         )}
       </div>
       <div className="agent-list">
@@ -49,38 +64,63 @@ export function AgentTimeline({ agents }: AgentTimelineProps) {
         ) : (
           <>
             {activeAgents.map((agent) => {
-              const color = AGENT_COLORS[agent.type] || "#00f0ff";
+              const type = formatAgentType(agent.type);
+              const color =
+                AGENT_COLORS[agent.type] || AGENT_COLORS[type] || "#00f0ff";
               const elapsed = now - agent.startTime;
 
               return (
-                <div key={agent.id} className="agent-card active" style={{ "--agent-color": color } as React.CSSProperties}>
+                <div
+                  key={agent.id}
+                  className="agent-card active"
+                  style={{ "--agent-color": color } as React.CSSProperties}
+                >
                   <div className="agent-card-header">
-                    <span className="agent-status-indicator pulse" style={{ background: color }} />
-                    <span className="agent-type">{agent.type}</span>
-                    <span className="agent-elapsed">{formatDuration(elapsed)}</span>
+                    <span
+                      className="agent-status-indicator pulse"
+                      style={{ background: color }}
+                    />
+                    <span className="agent-type">{type}</span>
+                    <span className="agent-elapsed">
+                      {formatDuration(elapsed)}
+                    </span>
                   </div>
                   {agent.description && (
                     <div className="agent-description">{agent.description}</div>
                   )}
                   <div className="agent-progress-bar">
-                    <div className="agent-progress-fill scanning" style={{ background: color }} />
+                    <div
+                      className="agent-progress-fill scanning"
+                      style={{ background: color }}
+                    />
                   </div>
                 </div>
               );
             })}
 
             {completedAgents.map((agent) => {
-              const color = AGENT_COLORS[agent.type] || "#00f0ff";
+              const type = formatAgentType(agent.type);
+              const color =
+                AGENT_COLORS[agent.type] || AGENT_COLORS[type] || "#00f0ff";
               const duration = agent.endTime
                 ? agent.endTime - agent.startTime
                 : 0;
 
               return (
-                <div key={agent.id} className="agent-card completed" style={{ "--agent-color": color } as React.CSSProperties}>
+                <div
+                  key={agent.id}
+                  className="agent-card completed"
+                  style={{ "--agent-color": color } as React.CSSProperties}
+                >
                   <div className="agent-card-header">
-                    <span className="agent-status-indicator" style={{ background: color, opacity: 0.4 }} />
-                    <span className="agent-type">{agent.type}</span>
-                    <span className="agent-duration">{formatDuration(duration)}</span>
+                    <span
+                      className="agent-status-indicator"
+                      style={{ background: color, opacity: 0.4 }}
+                    />
+                    <span className="agent-type">{type}</span>
+                    <span className="agent-duration">
+                      {duration > 0 ? formatDuration(duration) : "—"}
+                    </span>
                   </div>
                   {agent.description && (
                     <div className="agent-description">{agent.description}</div>

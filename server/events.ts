@@ -1,4 +1,4 @@
-import type { ClaudeEvent, AgentProcess, TokenUsage, SessionInfo, SessionStats } from "../shared/types";
+import type { ClaudeEvent, AgentProcess, TokenUsage, SessionInfo, SessionStats, PendingTool } from "../shared/types";
 import { EMPTY_TOKENS } from "../shared/types";
 
 export type { ClaudeEvent, AgentProcess, TokenUsage, SessionInfo, SessionStats };
@@ -9,6 +9,7 @@ export class EventStore {
   private tokens: TokenUsage = { ...EMPTY_TOKENS };
   private sessionTokens: Map<string, TokenUsage> = new Map();
   private sessions: Map<string, SessionInfo> = new Map();
+  private pendingTools: Map<string, PendingTool[]> = new Map();
   private idCounter = 0;
 
   add(raw: Record<string, any>): ClaudeEvent {
@@ -20,7 +21,9 @@ export class EventStore {
     const sessionId = raw.session_id || undefined;
 
     // agent_type can be empty string from Claude Code hooks — treat as undefined
-    const agentType = raw.agent_type || raw.subagent_type || undefined;
+    // Also check tool_input.subagent_type for Task tool events
+    const agentType =
+      raw.agent_type || raw.subagent_type || raw.tool_input?.subagent_type || undefined;
 
     const event: ClaudeEvent = {
       id: `evt_${++this.idCounter}`,
@@ -47,18 +50,34 @@ export class EventStore {
           firstEvent: event.timestamp,
           lastEvent: event.timestamp,
           eventCount: 1,
-          status: "active",
+          status: eventType === "SessionEnd" ? "ended" : "active",
         });
+      }
+    } else if (eventType === "SessionEnd") {
+      // SessionEnd without session_id — find most recent active session and end it
+      let latest: SessionInfo | null = null;
+      for (const s of this.sessions.values()) {
+        if (s.status === "active" && (!latest || s.lastEvent > latest.lastEvent)) {
+          latest = s;
+        }
+      }
+      if (latest) {
+        latest.status = "ended";
+        latest.lastEvent = event.timestamp;
+        latest.eventCount++;
+        event.sessionId = latest.id;
       }
     }
 
     // Track agent lifecycle
     if (eventType === "SubagentStart") {
       const agentId = raw.agent_id || `agent_${this.idCounter}`;
+      const description =
+        raw.description || raw.tool_input?.description || undefined;
       this.agents.set(agentId, {
         id: agentId,
         type: agentType || "unknown",
-        description: raw.description,
+        description,
         startTime: event.timestamp,
         status: "active",
         sessionId,
@@ -73,21 +92,44 @@ export class EventStore {
         if (agent.type === "unknown" && agentType) {
           agent.type = agentType;
         }
+        // Update description if missing and Stop has useful info
+        if (!agent.description && raw.description) {
+          agent.description = raw.description;
+        }
         event.duration = agent.endTime - agent.startTime;
       } else if (agentId) {
         // SubagentStop without matching Start — create retroactively
         this.agents.set(agentId, {
           id: agentId,
           type: agentType || "unknown",
-          description: raw.last_assistant_message
-            ? raw.last_assistant_message.slice(0, 100)
-            : undefined,
+          description: raw.description || undefined,
           startTime: event.timestamp,
           endTime: event.timestamp,
           status: "completed",
           sessionId,
         });
       }
+    }
+
+    // Track pending tool uses (PreToolUse without matching PostToolUse)
+    const pendingKey = sessionId || "";
+    if (eventType === "PreToolUse" && raw.tool_name) {
+      const pending = this.pendingTools.get(pendingKey) || [];
+      pending.push({ tool: raw.tool_name, since: event.timestamp });
+      this.pendingTools.set(pendingKey, pending);
+    } else if (
+      (eventType === "PostToolUse" || eventType === "PostToolUseFailure") &&
+      raw.tool_name
+    ) {
+      const pending = this.pendingTools.get(pendingKey);
+      if (pending) {
+        const idx = pending.findIndex((p) => p.tool === raw.tool_name);
+        if (idx >= 0) pending.splice(idx, 1);
+        if (pending.length === 0) this.pendingTools.delete(pendingKey);
+      }
+    } else if (eventType === "Stop" || eventType === "SessionEnd") {
+      // Turn/session complete — clear all pending for this session
+      this.pendingTools.delete(pendingKey);
     }
 
     this.events.push(event);
@@ -166,6 +208,11 @@ export class EventStore {
       ? { ...(this.sessionTokens.get(sessionId) || EMPTY_TOKENS) }
       : { ...this.tokens };
 
+    // Pending tool uses
+    const pendingTools = sessionId
+      ? (this.pendingTools.get(sessionId) || [])
+      : Array.from(this.pendingTools.values()).flat();
+
     return {
       totalEvents: events.length,
       toolCounts,
@@ -173,6 +220,7 @@ export class EventStore {
       eventTypeCounts,
       activeAgents: agents,
       tokens,
+      pendingTools,
       firstEvent: events[0]?.timestamp,
       lastEvent: events[events.length - 1]?.timestamp,
     };
@@ -183,6 +231,7 @@ export class EventStore {
     this.agents.clear();
     this.sessions.clear();
     this.sessionTokens.clear();
+    this.pendingTools.clear();
     this.tokens = { ...EMPTY_TOKENS };
     this.idCounter = 0;
   }

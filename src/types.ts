@@ -5,6 +5,7 @@ export type {
   TokenUsage,
   SessionInfo,
   SessionStats,
+  PendingTool,
   WSMessage,
 } from "../shared/types";
 

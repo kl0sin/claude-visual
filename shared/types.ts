@@ -35,6 +35,11 @@ export interface SessionInfo {
   status: "active" | "ended";
 }
 
+export interface PendingTool {
+  tool: string;
+  since: number;
+}
+
 export interface SessionStats {
   totalEvents: number;
   toolCounts: Record<string, number>;
@@ -42,6 +47,7 @@ export interface SessionStats {
   eventTypeCounts: Record<string, number>;
   activeAgents: AgentProcess[];
   tokens: TokenUsage;
+  pendingTools: PendingTool[];
   firstEvent?: number;
   lastEvent?: number;
 }
