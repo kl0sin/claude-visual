@@ -1,0 +1,114 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"event_type\":\"SessionStart\",\"session_id\":\"'$CLAUDE_SESSION_ID'\"}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"event_type\":\"SessionEnd\",\"session_id\":\"'$CLAUDE_SESSION_ID'\"}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"UserPromptSubmit\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PreToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUseFailure\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Stop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Notification\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TaskCompleted\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1"
+          }
+        ]
+      }
+    ]
+  }
+}
