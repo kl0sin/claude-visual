@@ -9,7 +9,7 @@
     "dev:client": "bunx vite",
     "build": "bunx vite build",
     "start": "NODE_ENV=production bun server/index.ts",
-    "tauri:sidecar": "bun build --compile --outfile src-tauri/binaries/server-x86_64-unknown-linux-gnu server/index.ts",
+    "tauri:sidecar": "TRIPLE=$(rustc -vV | grep '^host:' | awk '{print $2}') && bun build --compile --outfile src-tauri/binaries/server-$TRIPLE server/index.ts",
     "tauri:dev": "bunx tauri dev",
     "tauri:build": "bun run tauri:sidecar && bunx tauri build"
   },

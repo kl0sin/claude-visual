@@ -37,4 +37,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Tauri
 src-tauri/target/
+src-tauri/gen/
 src-tauri/binaries/server-*
