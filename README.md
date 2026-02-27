@@ -11,9 +11,11 @@ Real-time neural monitor for Claude Code agent activity. Tracks events, tool usa
 - **Live Event Feed** — real-time stream of all Claude Code hook events (tool calls, prompts, notifications, stops)
 - **Token Tracking** — reads token usage directly from session transcripts with per-session breakdown (input, output, cache read, cache write)
 - **Cost Estimation** — calculates estimated cost based on Claude Opus 4 pricing ($15/MTok input, $75/MTok output, $18.75/MTok cache write, $1.50/MTok cache read)
+- **History Browser** — browse and inspect past Claude Code sessions and their full transcripts
 - **Agent Processes** — tracks subagent lifecycle (start/stop, duration, type) with active/completed states
 - **Tool Statistics** — visualizes tool usage frequency across sessions
 - **Session Management** — filter dashboard by individual Claude Code sessions
+- **In-app Hook Installation** — install Claude Code hooks directly from the dashboard UI without touching the terminal
 - **WebSocket Updates** — instant UI updates via WebSocket connection to the backend
 - **Native Desktop App** — cross-platform desktop builds via Tauri 2 with bundled sidecar server
 
@@ -53,15 +55,7 @@ Real-time neural monitor for Claude Code agent activity. Tracks events, tool usa
 bun install
 ```
 
-### 2. Install Claude Code hooks
-
-```bash
-bash hooks/install.sh
-```
-
-This merges monitoring hooks into `~/.claude/settings.json`. A backup of your existing settings is created automatically.
-
-### 3. Start the monitor
+### 2. Start the monitor
 
 ```bash
 bun run dev
@@ -69,9 +63,9 @@ bun run dev
 
 This starts both the backend server (port 3200) and Vite dev server concurrently.
 
-### 4. Use Claude Code
+### 3. Use Claude Code
 
-Open any Claude Code session — events will appear in the dashboard in real-time.
+Open the dashboard in your browser. If Claude Code hooks are not yet installed, a banner will appear — click **INSTALL HOOKS** and the app will configure everything automatically. Then start any Claude Code session and events will appear in real-time.
 
 ## Desktop App (Tauri)
 
@@ -132,6 +126,9 @@ server/
 shared/
   types.ts              Shared TypeScript interfaces
   tokens.ts             Token extraction utilities
+landing/
+  src/                  Landing page source (React + Tailwind)
+  vite.config.ts        Configured with base: /claude-visual/ for GitHub Pages
 src/
   App.tsx               Main React component
   hooks/
@@ -141,6 +138,8 @@ src/
     EventFeed.tsx       Live event stream
     TokenPanel.tsx      Token consumption & cost breakdown
     AgentTimeline.tsx   Subagent process tracking
+    HistoryBrowser.tsx  Past session & transcript explorer
+    HookInstallBanner.tsx In-app hook installation prompt
     ToolStats.tsx       Tool usage frequency
     StatsPanel.tsx      Session statistics
     SessionSelector.tsx Session filter dropdown
@@ -158,20 +157,27 @@ hooks/
 .github/
   workflows/
     release.yml         CI/CD — multi-platform Tauri builds on tag push
+    deploy-landing.yml  Deploys landing/ to GitHub Pages on push to main
 ```
 
 ## CI/CD
 
-The project uses GitHub Actions to build desktop releases. Pushing a `v*` tag triggers builds across four targets:
+### Desktop Releases
+
+Pushing a `v*` tag triggers multi-platform Tauri builds:
 
 | Platform | Installer format | Runner |
 | --- | --- | --- |
-| Linux x86_64 | `.deb` | ubuntu-22.04 |
+| Linux x86_64 | `.AppImage` | ubuntu-22.04 |
 | Windows x86_64 | `.msi` / `.exe` | windows-latest |
 | macOS ARM (Apple Silicon) | `.dmg` | macos-latest |
 | macOS Intel | `.dmg` | macos-latest |
 
 Artifacts are uploaded to a draft GitHub Release.
+
+### Landing Page
+
+Pushing to `main` (with changes in `landing/`) automatically builds and deploys the landing page to GitHub Pages at `https://kl0sin.github.io/claude-visual/`.
 
 ## Configuration
 
