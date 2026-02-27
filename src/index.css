@@ -245,8 +245,25 @@ body {
 
 .header-left {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
+}
+
+.header-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  flex-shrink: 0;
+  animation: logo-glow 8s ease-in-out infinite;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+@keyframes logo-glow {
+  0%   { filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.7))  drop-shadow(0 0 18px rgba(0, 240, 255, 0.25)); }
+  25%  { filter: drop-shadow(0 0 6px rgba(255, 45, 149, 0.7)) drop-shadow(0 0 18px rgba(255, 45, 149, 0.25)); }
+  50%  { filter: drop-shadow(0 0 6px rgba(0, 255, 159, 0.7))  drop-shadow(0 0 18px rgba(0, 255, 159, 0.25)); }
+  75%  { filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.7)) drop-shadow(0 0 18px rgba(139, 92, 246, 0.25)); }
+  100% { filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.7))  drop-shadow(0 0 18px rgba(0, 240, 255, 0.25)); }
 }
 
 .header-title {
@@ -665,7 +682,8 @@ body {
 }
 
 .panel-header {
-  padding: 10px 14px;
+  height: 44px;
+  padding: 0 14px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 3px;
@@ -2233,17 +2251,14 @@ body {
   align-items: center;
   width: 44px;
   flex-shrink: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(26, 39, 68, 0.3) 0%,
-    transparent 100%
-  );
+  background: var(--color-cyber-panel);
+  border-right: 1px solid var(--color-cyber-border);
   overflow: hidden;
 }
 
 .collapsed-expand-btn {
   width: 44px;
-  height: 36px;
+  height: 44px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--color-cyber-border);
@@ -2263,7 +2278,7 @@ body {
 }
 
 .collapsed-label {
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 2px;
   color: var(--color-cyber-text-bright);

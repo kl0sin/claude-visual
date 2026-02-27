@@ -326,24 +326,39 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
 function SessionList({
   projectId,
   selectedSessionId,
+  autoSelectId,
   onSelect,
 }: {
   projectId: string;
   selectedSessionId: string | null;
+  autoSelectId?: string;
   onSelect: (session: HistorySession) => void;
 }) {
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [loading, setLoading] = useState(true);
+  const didAutoSelect = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     setLoading(true);
     setSessions([]);
+    didAutoSelect.current = undefined;
     fetch(`${API_BASE}/api/history/sessions?project=${encodeURIComponent(projectId)}`)
       .then((r) => r.json())
       .then((data: HistorySession[]) => setSessions(data))
       .catch(() => setSessions([]))
       .finally(() => setLoading(false));
   }, [projectId]);
+
+  // Auto-select session from URL on load (or when autoSelectId changes)
+  useEffect(() => {
+    if (!autoSelectId || sessions.length === 0) return;
+    if (didAutoSelect.current === autoSelectId) return;
+    const found = sessions.find((s) => s.id === autoSelectId);
+    if (found) {
+      didAutoSelect.current = autoSelectId;
+      onSelect(found);
+    }
+  }, [sessions, autoSelectId, onSelect]);
 
   if (loading) {
     return (
@@ -415,7 +430,13 @@ function CollapsedStrip({ label, onExpand }: { label: string; onExpand: () => vo
 const MIN_WIDTH = 160;
 const MAX_WIDTH = 600;
 
-export function HistoryBrowser() {
+interface HistoryBrowserProps {
+  projectId?: string;
+  sessionId?: string;
+  onNavigate: (projectId?: string, sessionId?: string) => void;
+}
+
+export function HistoryBrowser({ projectId: routeProjectId, sessionId: routeSessionId, onNavigate }: HistoryBrowserProps) {
   const [projects, setProjects] = useState<HistoryProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [selectedProject, setSelectedProject] = useState<HistoryProject | null>(null);
@@ -462,22 +483,54 @@ export function HistoryBrowser() {
     e.preventDefault();
   };
 
+  // Load projects and select from URL if present
   useEffect(() => {
     fetch(`${API_BASE}/api/history/projects`)
       .then((r) => r.json())
       .then((data: HistoryProject[]) => {
         setProjects(data);
-        if (data.length > 0 && data[0]) setSelectedProject(data[0]);
+        if (routeProjectId) {
+          const found = data.find((p) => p.name === routeProjectId);
+          if (found) setSelectedProject(found);
+        }
       })
       .catch(() => setProjects([]))
       .finally(() => setLoadingProjects(false));
+  // Only run on mount — routeProjectId handled by the effect below
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync selectedProject when routeProjectId changes (back/forward navigation)
+  useEffect(() => {
+    if (!routeProjectId) {
+      setSelectedProject(null);
+      setSelectedSession(null);
+      return;
+    }
+    if (projects.length === 0) return;
+    const found = projects.find((p) => p.name === routeProjectId);
+    if (found && found.id !== selectedProject?.id) {
+      setSelectedProject(found);
+      setSelectedSession(null);
+    }
+  }, [routeProjectId, projects]);
+
+  // Clear session when routeSessionId disappears (back navigation)
+  useEffect(() => {
+    if (!routeSessionId) setSelectedSession(null);
+  }, [routeSessionId]);
 
   const handleProjectSelect = (p: HistoryProject) => {
     if (p.id !== selectedProject?.id) {
       setSelectedProject(p);
       setSelectedSession(null);
+      onNavigate(p.name, undefined);
     }
+  };
+
+  const handleSessionSelect = (s: HistorySession) => {
+    setSelectedSession(s);
+    onNavigate(selectedProject?.name, s.id);
   };
 
   return (
@@ -563,7 +616,8 @@ export function HistoryBrowser() {
               <SessionList
                 projectId={selectedProject.id}
                 selectedSessionId={selectedSession?.id || null}
-                onSelect={(s) => setSelectedSession(s)}
+                autoSelectId={routeSessionId}
+                onSelect={handleSessionSelect}
               />
             )}
           </div>

@@ -9,6 +9,7 @@ import { SessionSelector } from "./components/SessionSelector";
 import { HookInstallBanner } from "./components/HookInstallBanner";
 import { HistoryBrowser } from "./components/HistoryBrowser";
 import { useWebSocket } from "./hooks/useWebSocket";
+import { useRouter } from "./hooks/useRouter";
 
 const WS_URL = (window as any).__TAURI__
   ? "ws://localhost:3200/ws"
@@ -36,10 +37,11 @@ export default function App() {
     clearEvents,
   } = useWebSocket(WS_URL);
 
-  const [mode, setMode] = useState<"live" | "history">("live");
+  const { route, navigate } = useRouter();
+  const mode = route.mode;
+
   const [hooksInstalled, setHooksInstalled] = useState<boolean | null>(null);
 
-  // Check hook status on mount and after install
   const checkHookStatus = () => {
     fetch(`${API_BASE}/api/hooks/status`)
       .then((r) => r.json())
@@ -63,7 +65,7 @@ export default function App() {
         isProcessing={sessions.some((s) => s.isProcessing)}
         onClear={clearEvents}
         mode={mode}
-        onModeChange={setMode}
+        onModeChange={(m) => navigate({ mode: m })}
       />
 
       {mode === "live" ? (
@@ -97,7 +99,13 @@ export default function App() {
           </main>
         </>
       ) : (
-        <HistoryBrowser />
+        <HistoryBrowser
+          projectId={route.projectId}
+          sessionId={route.sessionId}
+          onNavigate={(projectId, sessionId) =>
+            navigate({ mode: "history", projectId, sessionId })
+          }
+        />
       )}
 
       <footer className="footer">

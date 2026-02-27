@@ -19,16 +19,28 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
-export function Header({ connected, totalEvents, totalTokens, pendingTools, isProcessing, onClear, mode, onModeChange }: HeaderProps) {
+export function Header({
+  connected,
+  totalEvents,
+  totalTokens,
+  pendingTools,
+  isProcessing,
+  onClear,
+  mode,
+  onModeChange,
+}: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [bannerVisible, setBannerVisible] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setGlitch(true);
-      glitchTimeout.current = setTimeout(() => setGlitch(false), 150);
-    }, 4000 + Math.random() * 3000);
+    const interval = setInterval(
+      () => {
+        setGlitch(true);
+        glitchTimeout.current = setTimeout(() => setGlitch(false), 150);
+      },
+      4000 + Math.random() * 3000,
+    );
     return () => {
       clearInterval(interval);
       clearTimeout(glitchTimeout.current);
@@ -46,7 +58,9 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, isPr
     const STALL_THRESHOLD = 15_000;
     const check = () => {
       const now = Date.now();
-      const stalled = pendingTools.some((p) => now - p.since >= STALL_THRESHOLD);
+      const stalled = pendingTools.some(
+        (p) => now - p.since >= STALL_THRESHOLD,
+      );
       setBannerVisible(stalled);
     };
     check();
@@ -61,13 +75,17 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, isPr
       {bannerVisible && pendingTools.length > 0 && (
         <div className="attention-banner">
           <span className="attention-icon">&#9888;</span>
-          <span className="attention-text">
-            AWAITING ACTION — {toolNames}
-          </span>
+          <span className="attention-text">AWAITING ACTION — {toolNames}</span>
         </div>
       )}
 
       <div className="header-left">
+        <img
+          src="/icon.png"
+          alt="Claude Visual Logo"
+          className="header-logo"
+          aria-hidden="true"
+        />
         <h1 className={`header-title ${glitch ? "glitch" : ""}`}>
           <span className="header-title-main">CLAUDE</span>
           <span className="header-title-accent">VISUAL</span>
@@ -100,15 +118,23 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, isPr
           <span className="header-stat-divider" />
           <span className="header-stat">
             <span className="stat-label">TOKENS</span>
-            <span className="stat-value magenta">{formatTokens(totalTokens)}</span>
+            <span className="stat-value magenta">
+              {formatTokens(totalTokens)}
+            </span>
           </span>
         </div>
 
-        <button className="btn-clear" onClick={onClear} title="Clear all events">
+        <button
+          className="btn-clear"
+          onClick={onClear}
+          title="Clear all events"
+        >
           PURGE
         </button>
 
-        <div className={`connection-status ${!connected ? "offline" : isProcessing ? "processing" : "online"}`}>
+        <div
+          className={`connection-status ${!connected ? "offline" : isProcessing ? "processing" : "online"}`}
+        >
           <span className="status-dot" />
           <span className="status-text">
             {!connected ? "OFFLINE" : isProcessing ? "PROCESSING" : "LINKED"}
