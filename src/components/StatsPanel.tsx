@@ -58,7 +58,24 @@ function Sparkline({ events }: { events: ClaudeEvent[] }) {
               height={barH}
               fill="url(#sparkGrad)"
               opacity={0.8}
-            />
+            >
+              <animate
+                attributeName="height"
+                from="0"
+                to={barH}
+                dur="0.4s"
+                begin={`${i * 0.02}s`}
+                fill="freeze"
+              />
+              <animate
+                attributeName="y"
+                from={h}
+                to={h - barH}
+                dur="0.4s"
+                begin={`${i * 0.02}s`}
+                fill="freeze"
+              />
+            </rect>
           );
         })}
         <defs>
@@ -91,17 +108,17 @@ export function StatsPanel({ stats, events = [] }: StatsPanelProps) {
       </div>
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-value cyan">{stats.totalEvents}</div>
+          <div key={stats.totalEvents} className="stat-card-value cyan">{stats.totalEvents}</div>
           <div className="stat-card-label">TOTAL EVENTS</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-value magenta">
+          <div key={Object.keys(stats.toolCounts).length} className="stat-card-value magenta">
             {Object.keys(stats.toolCounts).length}
           </div>
           <div className="stat-card-label">UNIQUE TOOLS</div>
         </div>
         <div className="stat-card">
-          <div className={`stat-card-value ${activeCount > 0 ? "green pulse" : "dim"}`}>
+          <div key={activeCount} className={`stat-card-value ${activeCount > 0 ? "green pulse" : "dim"}`}>
             {activeCount}
           </div>
           <div className="stat-card-label">ACTIVE AGENTS</div>

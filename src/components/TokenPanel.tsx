@@ -1,7 +1,9 @@
 import type { TokenUsage } from "../types";
+import { estimateCost, getModelLabel } from "../../shared/tokens";
 
 interface TokenPanelProps {
   tokens: TokenUsage;
+  model?: string;
 }
 
 function formatTokenCount(n: number): string {
@@ -11,23 +13,18 @@ function formatTokenCount(n: number): string {
   return n.toLocaleString();
 }
 
-function estimateCost(tokens: TokenUsage): string {
-  // Claude Opus 4 pricing
-  const inputCost = (tokens.inputTokens / 1_000_000) * 15;           // $15/MTok
-  const outputCost = (tokens.outputTokens / 1_000_000) * 75;         // $75/MTok
-  const cacheWriteCost = (tokens.cacheCreationTokens / 1_000_000) * 18.75; // $18.75/MTok (1.25x input)
-  const cacheReadCost = (tokens.cacheReadTokens / 1_000_000) * 1.5;  // $1.50/MTok (0.1x input)
-  const total = inputCost + outputCost + cacheWriteCost + cacheReadCost;
-  if (total < 0.01) return "$0.00";
-  return `$${total.toFixed(2)}`;
-}
-
-export function TokenPanel({ tokens }: TokenPanelProps) {
+export function TokenPanel({ tokens, model }: TokenPanelProps) {
   const total = tokens.totalTokens;
-  const inputPct = total > 0 ? (tokens.inputTokens / total) * 100 : 0;
-  const outputPct = total > 0 ? (tokens.outputTokens / total) * 100 : 0;
-  const cacheReadPct = total > 0 ? (tokens.cacheReadTokens / total) * 100 : 0;
-  const cacheWritePct = total > 0 ? (tokens.cacheCreationTokens / total) * 100 : 0;
+
+  // IO bar: input vs output relative to each other
+  const ioTotal = tokens.inputTokens + tokens.outputTokens;
+  const inputPct = ioTotal > 0 ? (tokens.inputTokens / ioTotal) * 100 : 0;
+  const outputPct = ioTotal > 0 ? (tokens.outputTokens / ioTotal) * 100 : 0;
+
+  // Cache bar: read vs write relative to each other
+  const cacheTotal = tokens.cacheReadTokens + tokens.cacheCreationTokens;
+  const cacheReadPct = cacheTotal > 0 ? (tokens.cacheReadTokens / cacheTotal) * 100 : 0;
+  const cacheWritePct = cacheTotal > 0 ? (tokens.cacheCreationTokens / cacheTotal) * 100 : 0;
 
   return (
     <div className="panel token-panel">
@@ -39,25 +36,45 @@ export function TokenPanel({ tokens }: TokenPanelProps) {
       <div className="token-total">
         <div className="token-total-value">{formatTokenCount(total)}</div>
         <div className="token-total-label">TOTAL TOKENS</div>
-        <div className="token-cost">{estimateCost(tokens)}</div>
+        <div className="token-cost">{estimateCost(tokens, model)}</div>
+        {model && (
+          <div className="token-model">{getModelLabel(model).toUpperCase()}</div>
+        )}
       </div>
 
-      <div className="token-bar">
-        <div
-          className="token-bar-input"
-          style={{ width: `${inputPct}%` }}
-          title={`Input: ${inputPct.toFixed(1)}%`}
-        />
-        <div
-          className="token-bar-output"
-          style={{ width: `${outputPct}%` }}
-          title={`Output: ${outputPct.toFixed(1)}%`}
-        />
-        <div
-          className="token-bar-cache"
-          style={{ width: `${cacheReadPct + cacheWritePct}%` }}
-          title={`Cache: ${(cacheReadPct + cacheWritePct).toFixed(1)}%`}
-        />
+      <div className="token-bars">
+        <div className="token-bar-group">
+          <div className="token-bar-label">I/O</div>
+          <div className="token-bar">
+            <div
+              className="token-bar-input"
+              style={{ width: `${inputPct}%` }}
+              title={`Input: ${formatTokenCount(tokens.inputTokens)} (${inputPct.toFixed(1)}%)`}
+            />
+            <div
+              className="token-bar-output"
+              style={{ width: `${outputPct}%` }}
+              title={`Output: ${formatTokenCount(tokens.outputTokens)} (${outputPct.toFixed(1)}%)`}
+            />
+          </div>
+        </div>
+        {cacheTotal > 0 && (
+          <div className="token-bar-group">
+            <div className="token-bar-label">CACHE</div>
+            <div className="token-bar">
+              <div
+                className="token-bar-cache"
+                style={{ width: `${cacheReadPct}%` }}
+                title={`Cache Read: ${formatTokenCount(tokens.cacheReadTokens)} (${cacheReadPct.toFixed(1)}%)`}
+              />
+              <div
+                className="token-bar-cache-write"
+                style={{ width: `${cacheWritePct}%` }}
+                title={`Cache Write: ${formatTokenCount(tokens.cacheCreationTokens)} (${cacheWritePct.toFixed(1)}%)`}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="token-breakdown">
@@ -83,10 +100,10 @@ export function TokenPanel({ tokens }: TokenPanelProps) {
         )}
         {tokens.cacheCreationTokens > 0 && (
           <div className="token-row">
-            <span className="token-dot cache" />
+            <span className="token-dot cache-write" />
             <span className="token-label">CACHE WRITE</span>
             <span className="token-dots" />
-            <span className="token-value cache">{formatTokenCount(tokens.cacheCreationTokens)}</span>
+            <span className="token-value cache-write">{formatTokenCount(tokens.cacheCreationTokens)}</span>
           </div>
         )}
       </div>

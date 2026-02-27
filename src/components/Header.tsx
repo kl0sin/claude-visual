@@ -90,21 +90,12 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, isPr
           PURGE
         </button>
 
-        <div className={`connection-status ${connected ? "online" : "offline"}`}>
+        <div className={`connection-status ${!connected ? "offline" : isProcessing ? "processing" : "online"}`}>
           <span className="status-dot" />
           <span className="status-text">
-            {connected ? "LINKED" : "OFFLINE"}
+            {!connected ? "OFFLINE" : isProcessing ? "PROCESSING" : "LINKED"}
           </span>
         </div>
-
-        {connected && (
-          <div className={`agent-status ${isProcessing ? "processing" : "idle"}`}>
-            <span className="agent-status-dot" />
-            <span className="agent-status-text">
-              {isProcessing ? "PROCESSING" : "IDLE"}
-            </span>
-          </div>
-        )}
       </div>
     </header>
   );

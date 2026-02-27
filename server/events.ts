@@ -1,5 +1,6 @@
 import type { ClaudeEvent, AgentProcess, TokenUsage, SessionInfo, SessionStats, PendingTool } from "../shared/types";
 import { EMPTY_TOKENS } from "../shared/types";
+import type { TranscriptData } from "./transcript";
 
 export type { ClaudeEvent, AgentProcess, TokenUsage, SessionInfo, SessionStats };
 
@@ -10,6 +11,8 @@ export class EventStore {
   private sessionTokens: Map<string, TokenUsage> = new Map();
   private sessions: Map<string, SessionInfo> = new Map();
   private pendingTools: Map<string, PendingTool[]> = new Map();
+  private sessionModels: Map<string, string> = new Map();
+  private globalModel?: string;
   private idCounter = 0;
 
   add(raw: Record<string, any>): ClaudeEvent {
@@ -153,15 +156,23 @@ export class EventStore {
   }
 
   /**
-   * Add token usage read from a transcript file.
-   * These are incremental tokens (only new entries since last read).
+   * Add transcript data (tokens + model) read from a transcript file.
+   * Tokens are incremental (only new entries since last read).
    */
-  addTranscriptTokens(usage: TokenUsage, sessionId?: string) {
+  addTranscriptData(data: TranscriptData, sessionId?: string) {
+    const usage = data.tokens;
     this.tokens.inputTokens += usage.inputTokens;
     this.tokens.outputTokens += usage.outputTokens;
     this.tokens.cacheCreationTokens += usage.cacheCreationTokens;
     this.tokens.cacheReadTokens += usage.cacheReadTokens;
     this.tokens.totalTokens += usage.totalTokens;
+
+    if (data.model) {
+      this.globalModel = data.model;
+      if (sessionId) {
+        this.sessionModels.set(sessionId, data.model);
+      }
+    }
 
     if (sessionId) {
       const existing = this.sessionTokens.get(sessionId);
@@ -227,6 +238,10 @@ export class EventStore {
       ? (this.pendingTools.get(sessionId) || [])
       : Array.from(this.pendingTools.values()).flat();
 
+    const model = sessionId
+      ? this.sessionModels.get(sessionId) || this.globalModel
+      : this.globalModel;
+
     return {
       totalEvents: events.length,
       toolCounts,
@@ -236,6 +251,7 @@ export class EventStore {
       activeAgents: agents,
       tokens,
       pendingTools,
+      model,
       firstEvent: events[0]?.timestamp,
       lastEvent: events[events.length - 1]?.timestamp,
     };
@@ -246,8 +262,10 @@ export class EventStore {
     this.agents.clear();
     this.sessions.clear();
     this.sessionTokens.clear();
+    this.sessionModels.clear();
     this.pendingTools.clear();
     this.tokens = { ...EMPTY_TOKENS };
+    this.globalModel = undefined;
     this.idCounter = 0;
   }
 }

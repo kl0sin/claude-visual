@@ -7,18 +7,17 @@ import { tmpdir } from "node:os";
 let tmpDir: string;
 let reader: TranscriptTokenReader;
 
-function assistantEntry(input: number, output: number, cacheCreate = 0, cacheRead = 0) {
-  return JSON.stringify({
-    type: "assistant",
-    message: {
-      usage: {
-        input_tokens: input,
-        output_tokens: output,
-        cache_creation_input_tokens: cacheCreate,
-        cache_read_input_tokens: cacheRead,
-      },
+function assistantEntry(input: number, output: number, cacheCreate = 0, cacheRead = 0, model?: string) {
+  const msg: Record<string, any> = {
+    usage: {
+      input_tokens: input,
+      output_tokens: output,
+      cache_creation_input_tokens: cacheCreate,
+      cache_read_input_tokens: cacheRead,
     },
-  });
+  };
+  if (model) msg.model = model;
+  return JSON.stringify({ type: "assistant", message: msg });
 }
 
 function userEntry() {
@@ -193,4 +192,37 @@ test("readNewTokens skips non-assistant entries", async () => {
   const tokens = await reader.readNewTokens(path);
   expect(tokens!.inputTokens).toBe(100);
   expect(tokens!.totalTokens).toBe(150);
+});
+
+test("readNewData returns model from transcript", async () => {
+  const path = await writeTranscript("model.jsonl", [
+    assistantEntry(100, 50, 0, 0, "claude-opus-4-6"),
+  ]);
+
+  const data = await reader.readNewData(path);
+  expect(data).not.toBeNull();
+  expect(data!.model).toBe("claude-opus-4-6");
+  expect(data!.tokens.inputTokens).toBe(100);
+});
+
+test("readAllData returns last seen model", async () => {
+  const path = await writeTranscript("model-multi.jsonl", [
+    assistantEntry(100, 50, 0, 0, "claude-sonnet-4-6"),
+    userEntry(),
+    assistantEntry(200, 80, 0, 0, "claude-opus-4-6"),
+  ]);
+
+  const data = await reader.readAllData(path);
+  expect(data).not.toBeNull();
+  expect(data!.model).toBe("claude-opus-4-6");
+});
+
+test("readAllData returns undefined model when not present", async () => {
+  const path = await writeTranscript("no-model.jsonl", [
+    assistantEntry(100, 50),
+  ]);
+
+  const data = await reader.readAllData(path);
+  expect(data).not.toBeNull();
+  expect(data!.model).toBeUndefined();
 });

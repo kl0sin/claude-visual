@@ -50,6 +50,7 @@ export interface SessionStats {
   activeAgents: AgentProcess[];
   tokens: TokenUsage;
   pendingTools: PendingTool[];
+  model?: string;
   firstEvent?: number;
   lastEvent?: number;
 }

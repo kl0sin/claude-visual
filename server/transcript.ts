@@ -1,6 +1,11 @@
 import type { TokenUsage } from "../shared/types";
 import { EMPTY_TOKENS } from "../shared/types";
 
+export interface TranscriptData {
+  tokens: TokenUsage;
+  model?: string;  // last seen model ID, e.g. "claude-opus-4-6"
+}
+
 /**
  * Reads token usage data from Claude Code transcript JSONL files.
  *
@@ -14,6 +19,7 @@ import { EMPTY_TOKENS } from "../shared/types";
  *   message.usage.output_tokens
  *   message.usage.cache_creation_input_tokens
  *   message.usage.cache_read_input_tokens
+ *   message.model  (e.g. "claude-opus-4-6")
  */
 export class TranscriptTokenReader {
   private lastTotals = new Map<string, TokenUsage>();
@@ -23,19 +29,19 @@ export class TranscriptTokenReader {
    * and return only the increment since the last read.
    * Returns null if nothing new.
    */
-  async readNewTokens(transcriptPath: string): Promise<TokenUsage | null> {
-    const currentTotal = await this.readAllTokens(transcriptPath);
-    if (!currentTotal) return null;
+  async readNewData(transcriptPath: string): Promise<TranscriptData | null> {
+    const current = await this.readAllData(transcriptPath);
+    if (!current) return null;
 
     const prev = this.lastTotals.get(transcriptPath) || EMPTY_TOKENS;
-    this.lastTotals.set(transcriptPath, currentTotal);
+    this.lastTotals.set(transcriptPath, current.tokens);
 
     const diff: TokenUsage = {
-      inputTokens: currentTotal.inputTokens - prev.inputTokens,
-      outputTokens: currentTotal.outputTokens - prev.outputTokens,
-      cacheCreationTokens: currentTotal.cacheCreationTokens - prev.cacheCreationTokens,
-      cacheReadTokens: currentTotal.cacheReadTokens - prev.cacheReadTokens,
-      totalTokens: currentTotal.totalTokens - prev.totalTokens,
+      inputTokens: current.tokens.inputTokens - prev.inputTokens,
+      outputTokens: current.tokens.outputTokens - prev.outputTokens,
+      cacheCreationTokens: current.tokens.cacheCreationTokens - prev.cacheCreationTokens,
+      cacheReadTokens: current.tokens.cacheReadTokens - prev.cacheReadTokens,
+      totalTokens: current.tokens.totalTokens - prev.totalTokens,
     };
 
     const hasChanges =
@@ -43,20 +49,22 @@ export class TranscriptTokenReader {
       diff.outputTokens > 0 ||
       diff.cacheCreationTokens > 0 ||
       diff.cacheReadTokens > 0;
-    return hasChanges ? diff : null;
+
+    return hasChanges ? { tokens: diff, model: current.model } : null;
   }
 
   /**
    * Read ALL token usage from a transcript file.
    * Skips partial/malformed lines safely — they'll be complete on next read.
    */
-  async readAllTokens(transcriptPath: string): Promise<TokenUsage | null> {
+  async readAllData(transcriptPath: string): Promise<TranscriptData | null> {
     try {
       const file = Bun.file(transcriptPath);
       if (!(await file.exists())) return null;
 
       const text = await file.text();
       const tokens: TokenUsage = { ...EMPTY_TOKENS };
+      let model: string | undefined;
       let found = false;
 
       for (const line of text.split("\n")) {
@@ -74,6 +82,9 @@ export class TranscriptTokenReader {
             tokens.cacheCreationTokens += cacheCreation;
             tokens.cacheReadTokens += cacheRead;
             tokens.totalTokens += input + output + cacheCreation + cacheRead;
+            if (entry.message.model) {
+              model = entry.message.model;
+            }
             found = true;
           }
         } catch {
@@ -81,10 +92,21 @@ export class TranscriptTokenReader {
         }
       }
 
-      return found ? tokens : null;
+      return found ? { tokens, model } : null;
     } catch {
       return null;
     }
+  }
+
+  // Backward-compatible aliases
+  async readNewTokens(transcriptPath: string): Promise<TokenUsage | null> {
+    const data = await this.readNewData(transcriptPath);
+    return data ? data.tokens : null;
+  }
+
+  async readAllTokens(transcriptPath: string): Promise<TokenUsage | null> {
+    const data = await this.readAllData(transcriptPath);
+    return data ? data.tokens : null;
   }
 
   /** Reset tracked state (e.g. on clear) */

@@ -31,12 +31,12 @@ app.post("/api/events", async (c) => {
 
     const event = eventStore.add(raw);
 
-    // Read token usage from transcript file (hooks don't include token data directly)
+    // Read token usage + model from transcript file (hooks don't include token data directly)
     const transcriptPath = raw.transcript_path;
     if (transcriptPath && typeof transcriptPath === "string") {
-      const newTokens = await transcriptReader.readNewTokens(transcriptPath);
-      if (newTokens) {
-        eventStore.addTranscriptTokens(newTokens, event.sessionId);
+      const newData = await transcriptReader.readNewData(transcriptPath);
+      if (newData) {
+        eventStore.addTranscriptData(newData, event.sessionId);
       }
     }
 
@@ -60,9 +60,9 @@ app.post("/api/events", async (c) => {
     ) {
       const sessionId = event.sessionId;
       const catchUp = async () => {
-        const extra = await transcriptReader.readNewTokens(transcriptPath);
+        const extra = await transcriptReader.readNewData(transcriptPath);
         if (extra) {
-          eventStore.addTranscriptTokens(extra, sessionId);
+          eventStore.addTranscriptData(extra, sessionId);
           broadcastStats();
         }
       };

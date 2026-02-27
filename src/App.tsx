@@ -63,7 +63,7 @@ export default function App() {
         </div>
 
         <div className="dashboard-right">
-          <TokenPanel tokens={stats?.tokens || DEFAULT_TOKENS} />
+          <TokenPanel tokens={stats?.tokens || DEFAULT_TOKENS} model={stats?.model} />
           <StatsPanel stats={stats} events={events} />
         </div>
       </main>

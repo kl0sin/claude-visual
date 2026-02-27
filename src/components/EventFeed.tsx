@@ -505,11 +505,11 @@ export function EventFeed({ events }: EventFeedProps) {
                     <span className="event-summary">{getEventSummary(event)}</span>
                     <span className="event-expand-icon" style={{ color }}>{isExpanded ? "▾" : "▸"}</span>
                   </div>
-                  {isExpanded && (
+                  <div className="event-detail-wrapper">
                     <div className="event-detail">
-                      <EventDetail event={event} />
+                      {isExpanded && <EventDetail event={event} />}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
