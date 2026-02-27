@@ -68,3 +68,45 @@ export const EMPTY_TOKENS: TokenUsage = {
   cacheReadTokens: 0,
   totalTokens: 0,
 };
+
+// ── HISTORY BROWSER TYPES ──────────────────────────────────
+
+export interface HistoryProject {
+  id: string;           // encoded directory name
+  name: string;         // display name (last path component)
+  fullPath: string;     // decoded full path
+  sessionCount: number;
+  lastActivity?: number;
+}
+
+export interface HistorySession {
+  id: string;           // UUID (filename without .jsonl)
+  projectId: string;
+  filePath: string;
+  messageCount: number;
+  userTurns: number;
+  tokens: TokenUsage;
+  model?: string;
+  lastModified: number;
+}
+
+export type TranscriptContent =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; tool_use_id: string; content: unknown; is_error?: boolean };
+
+export interface TranscriptMessage {
+  role: "user" | "assistant";
+  content: TranscriptContent[];
+  tokens?: TokenUsage;
+  model?: string;
+}
+
+export interface HistorySessionDetail {
+  session: HistorySession;
+  messages: TranscriptMessage[];
+}
+
+export interface HookStatus {
+  installed: boolean;
+}

@@ -7,6 +7,12 @@ export type {
   SessionStats,
   PendingTool,
   WSMessage,
+  HistoryProject,
+  HistorySession,
+  HistorySessionDetail,
+  TranscriptMessage,
+  TranscriptContent,
+  HookStatus,
 } from "../shared/types";
 
 export { EMPTY_TOKENS } from "../shared/types";

@@ -8,6 +8,8 @@ interface HeaderProps {
   pendingTools: PendingTool[];
   isProcessing: boolean;
   onClear: () => void;
+  mode: "live" | "history";
+  onModeChange: (mode: "live" | "history") => void;
 }
 
 function formatTokens(n: number): string {
@@ -17,7 +19,7 @@ function formatTokens(n: number): string {
   return n.toLocaleString();
 }
 
-export function Header({ connected, totalEvents, totalTokens, pendingTools, isProcessing, onClear }: HeaderProps) {
+export function Header({ connected, totalEvents, totalTokens, pendingTools, isProcessing, onClear, mode, onModeChange }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [bannerVisible, setBannerVisible] = useState(false);
@@ -71,6 +73,22 @@ export function Header({ connected, totalEvents, totalTokens, pendingTools, isPr
           <span className="header-title-accent">VISUAL</span>
         </h1>
         <span className="header-subtitle">// NEURAL MONITOR v1.0</span>
+
+        <div className="mode-toggle">
+          <button
+            className={`mode-btn ${mode === "live" ? "active" : ""}`}
+            onClick={() => onModeChange("live")}
+          >
+            <span className="mode-btn-dot" />
+            LIVE
+          </button>
+          <button
+            className={`mode-btn ${mode === "history" ? "active" : ""}`}
+            onClick={() => onModeChange("history")}
+          >
+            &#9783; HISTORY
+          </button>
+        </div>
       </div>
 
       <div className="header-right">

@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import type { ServerWebSocket } from "bun";
 import { EventStore } from "./events";
 import { TranscriptTokenReader } from "./transcript";
+import { listProjects, listSessions, readSession, getHookStatus, installHooks } from "./history";
 
 const app = new Hono();
 const eventStore = new EventStore();
@@ -125,6 +126,40 @@ app.post("/api/clear", (c) => {
 // Health check
 app.get("/api/health", (c) => {
   return c.json({ status: "online", clients: clients.size });
+});
+
+// ── HISTORY BROWSER ────────────────────────────────────────
+
+app.get("/api/history/projects", async (c) => {
+  const projects = await listProjects();
+  return c.json(projects);
+});
+
+app.get("/api/history/sessions", async (c) => {
+  const projectId = c.req.query("project");
+  if (!projectId) return c.json({ error: "Missing project parameter" }, 400);
+  const sessions = await listSessions(projectId);
+  return c.json(sessions);
+});
+
+app.get("/api/history/session", async (c) => {
+  const filePath = c.req.query("path");
+  if (!filePath) return c.json({ error: "Missing path parameter" }, 400);
+  const detail = await readSession(filePath);
+  if (!detail) return c.json({ error: "Session not found" }, 404);
+  return c.json(detail);
+});
+
+// ── HOOKS STATUS / INSTALL ─────────────────────────────────
+
+app.get("/api/hooks/status", async (c) => {
+  const status = await getHookStatus();
+  return c.json(status);
+});
+
+app.post("/api/hooks/install", async (c) => {
+  const result = await installHooks();
+  return c.json(result);
 });
 
 const PORT = Number(process.env.PORT) || 3200;
