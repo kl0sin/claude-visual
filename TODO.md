@@ -8,7 +8,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [ ] **`decodeProjectPath` ambiguity** — `-` encodes both `/` and a hyphen in a directory name. The current heuristic works for typical cases (`_Projects/my-app`) but may fail for projects in regular subdirectories (`~/work/my-app`). Proper fix: filesystem lookup (`access()`) to verify which decoded path actually exists.
 
-- [ ] **Synthetic SubagentStart out-of-order** — the synthetic event gets a `session.firstEvent` timestamp but is pushed to the end of `this.events[]`, so in the live view it may appear below events that happened earlier. A snapshot after reconnect sorts correctly — but the first delivery may be out-of-order.
+- [x] **Synthetic SubagentStart out-of-order** — fixed: `drainSideEffects()` is now called synchronously right after `add()` (before the `await transcriptReader.readNewData()`) so concurrent requests can no longer steal each other's synthetic events. The `event` handler in `useWebSocket.ts` also sorts when a newly arrived event has an earlier timestamp than the previous tail, providing a defensive second layer.
 
 - [ ] **No indication of event truncation** — the server keeps a max of 2000 events in memory (`EventStore`). When the limit is reached, old events are dropped with no indication in the UI. Worth showing a banner/badge "history truncated".
 

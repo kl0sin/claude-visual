@@ -69,12 +69,22 @@ export function useWebSocket(url: string): UseWebSocketReturn {
             setSessions(msg.sessions);
             break;
 
-          case "event":
-            setAllEvents((prev) => [...prev, msg.data]);
+          case "event": {
+            setAllEvents((prev) => {
+              const next = [...prev, msg.data];
+              const len = next.length;
+              // Keep the list sorted even when async transcript reads cause a
+              // broadcast to arrive after a later event was already appended.
+              if (len >= 2 && next[len - 1]!.timestamp < next[len - 2]!.timestamp) {
+                return next.sort((a, b) => a.timestamp - b.timestamp);
+              }
+              return next;
+            });
             setSessions(msg.sessions);
             // Use server-computed stats (includes transcript-based token data)
             setGlobalStats(msg.stats);
             break;
+          }
 
           case "eventPatch":
             // Server sent corrected/synthetic events (e.g. retroactively adopted SubagentStart).

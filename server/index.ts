@@ -32,6 +32,10 @@ app.post("/api/events", async (c) => {
 
     const event = eventStore.add(raw);
 
+    // Drain side-effects BEFORE any await so concurrent requests cannot steal
+    // synthetic/adopted SubagentStart events produced by a different request.
+    const sideEffects = eventStore.drainSideEffects();
+
     // Read token usage + model from transcript file (hooks don't include token data directly)
     const transcriptPath = raw.transcript_path;
     if (transcriptPath && typeof transcriptPath === "string") {
@@ -73,7 +77,6 @@ app.post("/api/events", async (c) => {
 
     // Broadcast retroactively-fixed events (adopted/synthetic SubagentStart) first
     // so clients receive the start before the stop.
-    const sideEffects = eventStore.drainSideEffects();
     if (sideEffects.length > 0) {
       const patchMsg = JSON.stringify({ type: "eventPatch", events: sideEffects });
       for (const ws of clients) {
