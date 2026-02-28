@@ -46,7 +46,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ## 🏗️ Architecture
 
-- [ ] **Event persistence (SQLite)** — replace the in-memory `EventStore` with a SQLite database via `bun:sqlite`. Benefits: unlimited live session history, survives server restarts, query support for events, foundation for historical statistics. **Unlocks: Historical statistics, Replay mode.**
+- [x] **Event persistence (SQLite)** — replace the in-memory `EventStore` with a SQLite database via `bun:sqlite`. Benefits: unlimited live session history, survives server restarts, query support for events, foundation for historical statistics. **Unlocks: Historical statistics, Replay mode.**
 
 - [ ] **Hook `SessionStart` → emit `SubagentStart`** — the current SubagentStart/Stop parity problem stems from SubagentStart firing only once at session start. Add emission of an additional `SubagentStart` event in the `SessionStart` hook — every session will have a guaranteed start visible immediately.
 

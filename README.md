@@ -10,7 +10,7 @@ Real-time neural monitor for Claude Code agent activity. Tracks events, tool usa
 
 - **Live Event Feed** — real-time stream of all Claude Code hook events (tool calls, prompts, notifications, stops)
 - **Token Tracking** — reads token usage directly from session transcripts with per-session breakdown (input, output, cache read, cache write)
-- **Cost Estimation** — calculates estimated cost based on Claude Opus 4 pricing ($15/MTok input, $75/MTok output, $18.75/MTok cache write, $1.50/MTok cache read)
+- **Cost Estimation** — calculates estimated cost per token type (input, output, cache read, cache write) with built-in pricing for Claude Opus 4, Sonnet 4, and Haiku 4; defaults to Sonnet when model is unknown
 - **History Browser** — browse and inspect past Claude Code sessions and their full transcripts
 - **Agent Processes** — tracks subagent lifecycle (start/stop, duration, type) with active/completed states
 - **Tool Statistics** — visualizes tool usage frequency across sessions
@@ -27,7 +27,7 @@ Real-time neural monitor for Claude Code agent activity. Tracks events, tool usa
         ▼
   POST /api/events               Bun + Hono server (port 3200)
         │
-        ├── EventStore            In-memory event storage (last 2000 events)
+        ├── EventStore            SQLite event storage (~/.claude/claude-visual.db)
         ├── TranscriptTokenReader Reads token usage from .jsonl transcripts
         │
         ▼
@@ -121,7 +121,7 @@ Token usage is **not** included in hook payloads — instead, every hook event i
 ```text
 server/
   index.ts              Hono server, WebSocket, REST API
-  events.ts             EventStore — in-memory event & agent tracking
+  events.ts             EventStore — SQLite-backed event, session & agent tracking
   transcript.ts         TranscriptTokenReader — reads tokens from .jsonl files
 shared/
   types.ts              Shared TypeScript interfaces
@@ -185,6 +185,7 @@ Pushing to `main` (with changes in `landing/`) automatically builds and deploys 
 | --- | --- | --- |
 | `PORT` | `3200` | Server & WebSocket port |
 | `NODE_ENV` | — | Set to `production` for static file serving |
+| `CLAUDE_VISUAL_DB` | `~/.claude/claude-visual.db` | Path to the SQLite database file |
 | `DEBUG_TOKENS` | — | Set to `1` to log token extraction to console |
 
 ## Scripts
