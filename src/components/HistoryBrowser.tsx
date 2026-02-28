@@ -5,6 +5,7 @@ import type {
   HistorySessionDetail,
   TranscriptContent,
 } from "../types";
+import { estimateCost } from "../../shared/tokens";
 
 const API_BASE = (window as any).__TAURI__ ? "http://localhost:3200" : "";
 
@@ -382,13 +383,19 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
         </div>
         <div className="transcript-stats">
           <span className="transcript-stat">
-            <span className="stat-label">TURNS</span>
+            <span className="stat-label">EVENTS</span>
             <span className="stat-value cyan">{session.userTurns}</span>
           </span>
           <span className="transcript-stat">
             <span className="stat-label">TOKENS</span>
             <span className="stat-value magenta">
               {formatTokenCount(session.tokens.totalTokens)}
+            </span>
+          </span>
+          <span className="transcript-stat">
+            <span className="stat-label">COST</span>
+            <span className="stat-value yellow">
+              {estimateCost(session.tokens, session.model)}
             </span>
           </span>
         </div>
@@ -482,18 +489,17 @@ function SessionList({
               {formatTime(s.lastModified)}
             </span>
           </div>
+          <div className="history-item-middle">
+            <span className="history-item-meta">{formatDate(s.lastModified)}</span>
+            {s.model && <span className="history-item-model">{shortModel(s.model)}</span>}
+          </div>
           <div className="history-item-bottom">
-            <span className="history-item-meta">
-              {formatDate(s.lastModified)}
-            </span>
-            <span className="history-item-turns">{s.userTurns} turns</span>
+            <span className="history-item-turns">{s.userTurns} events</span>
             <span className="history-item-tokens">
-              {formatTokenCount(s.tokens.totalTokens)} tok
+              {formatTokenCount(s.tokens.totalTokens)} tokens
+              <span className="history-item-cost-inline"> ({estimateCost(s.tokens, s.model)})</span>
             </span>
           </div>
-          {s.model && (
-            <div className="history-item-model">{shortModel(s.model)}</div>
-          )}
         </button>
       ))}
     </div>

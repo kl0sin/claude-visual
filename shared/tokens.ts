@@ -29,21 +29,38 @@ export function resolveModelFamily(modelId: string): string {
 }
 
 /**
+ * Returns the pricing object for a given model ID.
+ * Falls back to Sonnet pricing if model is unknown.
+ */
+export function getPricing(modelId?: string): ModelPricing {
+  const family = modelId ? resolveModelFamily(modelId) : DEFAULT_FAMILY;
+  return MODEL_PRICING[family] ?? MODEL_PRICING[DEFAULT_FAMILY]!;
+}
+
+/**
+ * Formats a dollar amount with appropriate precision.
+ * Sub-cent amounts use 3 decimal places; larger amounts use 2.
+ */
+export function formatCost(total: number): string {
+  if (total <= 0) return "$0.00";
+  if (total < 0.001) return "< $0.01";
+  if (total < 0.01) return `$${total.toFixed(3)}`;
+  if (total >= 100) return `$${Math.round(total)}`;
+  return `$${total.toFixed(2)}`;
+}
+
+/**
  * Estimate cost based on token usage and model.
  * Falls back to Sonnet pricing if model is unknown.
  */
 export function estimateCost(tokens: TokenUsage, modelId?: string): string {
-  const family = modelId ? resolveModelFamily(modelId) : DEFAULT_FAMILY;
-  const pricing = MODEL_PRICING[family] || MODEL_PRICING[DEFAULT_FAMILY]!;
-
-  const inputCost = (tokens.inputTokens / 1_000_000) * pricing.input;
-  const outputCost = (tokens.outputTokens / 1_000_000) * pricing.output;
-  const cacheWriteCost = (tokens.cacheCreationTokens / 1_000_000) * pricing.cacheWrite;
-  const cacheReadCost = (tokens.cacheReadTokens / 1_000_000) * pricing.cacheRead;
-  const total = inputCost + outputCost + cacheWriteCost + cacheReadCost;
-
-  if (total < 0.01) return "$0.00";
-  return `$${total.toFixed(2)}`;
+  const pricing = getPricing(modelId);
+  const total =
+    (tokens.inputTokens / 1_000_000) * pricing.input +
+    (tokens.outputTokens / 1_000_000) * pricing.output +
+    (tokens.cacheCreationTokens / 1_000_000) * pricing.cacheWrite +
+    (tokens.cacheReadTokens / 1_000_000) * pricing.cacheRead;
+  return formatCost(total);
 }
 
 /**

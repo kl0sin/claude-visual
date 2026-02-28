@@ -349,6 +349,11 @@ body {
   text-shadow: 0 0 8px rgba(255, 45, 149, 0.3);
 }
 
+.stat-value.yellow {
+  color: var(--color-cyber-yellow);
+  text-shadow: 0 0 8px rgba(240, 255, 0, 0.3);
+}
+
 .header-stat-divider {
   width: 1px;
   height: 20px;
@@ -1863,6 +1868,15 @@ body {
   color: var(--color-cyber-yellow);
 }
 
+.token-row-cost {
+  font-size: 9px;
+  color: var(--color-cyber-text-bright);
+  opacity: 0.45;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
 /* ── FOOTER ───────────────────────────────────────────── */
 
 .footer {
@@ -2650,22 +2664,31 @@ body {
   flex-shrink: 0;
 }
 
+.history-item-middle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+
 .history-item-bottom {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 5px;
 }
 
 .history-item-meta {
   font-size: 10px;
   color: var(--color-cyber-text-dim);
-  flex: 1;
 }
 
 .history-item-turns {
   font-size: 10px;
   color: var(--color-cyber-cyan);
   opacity: 0.7;
+  flex-shrink: 0;
 }
 
 .history-item-tokens {
@@ -2674,10 +2697,19 @@ body {
   opacity: 0.7;
 }
 
+.history-item-cost-inline {
+  font-size: 9px;
+  color: var(--color-cyber-text-bright);
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
 .history-item-model {
   font-size: 9px;
   color: var(--color-cyber-purple);
   letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
 /* ── TRANSCRIPT VIEW ──────────────────────────────────── */
