@@ -16,7 +16,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ## 🎨 UX / UI
 
-- [ ] **Diff view for Edit/Write** — in the `PreToolUse` detail view for Edit, show a proper diff (`old_string` vs `new_string`) with syntax highlighting instead of raw strings.
+- [x] **Diff view for Edit/Write** — in the `PreToolUse` detail view for Edit, show a proper diff (`old_string` vs `new_string`) with syntax highlighting instead of raw strings.
 
 - [ ] **Token cost → $** — the Token Panel shows token counts but without conversion to dollars. Add simple multipliers (input / output / cache_read / cache_creation) — configurable or with defaults for claude-sonnet/opus/haiku.
 

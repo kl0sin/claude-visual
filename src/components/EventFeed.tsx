@@ -101,6 +101,138 @@ function truncate(s: string | undefined | null, max: number): string {
   return s.length > max ? s.slice(0, max) + "…" : s;
 }
 
+// ── Diff engine ──────────────────────────────────────────────────────────────
+
+type DiffLine =
+  | { type: "ctx"; text: string; oldLine: number; newLine: number }
+  | { type: "del"; text: string; oldLine: number }
+  | { type: "add"; text: string; newLine: number };
+
+function computeDiff(oldText: string, newText: string): DiffLine[] {
+  const oldLines = oldText.split("\n");
+  const newLines = newText.split("\n");
+  const m = oldLines.length;
+  const n = newLines.length;
+
+  // Fallback for very large diffs — show all deletions then all additions
+  if (m * n > 40000) {
+    return [
+      ...oldLines.map((text, i) => ({ type: "del" as const, text, oldLine: i + 1 })),
+      ...newLines.map((text, i) => ({ type: "add" as const, text, newLine: i + 1 })),
+    ];
+  }
+
+  // LCS table (suffix form)
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0) as number[]);
+  for (let i = m - 1; i >= 0; i--) {
+    for (let j = n - 1; j >= 0; j--) {
+      // Indices are bounded by loop constraints — non-null assertions are safe
+      dp[i]![j]! =
+        oldLines[i] === newLines[j]
+          ? dp[i + 1]![j + 1]! + 1
+          : Math.max(dp[i + 1]![j]!, dp[i]![j + 1]!);
+    }
+  }
+
+  const result: DiffLine[] = [];
+  let i = 0, j = 0, oldLine = 1, newLine = 1;
+  while (i < m || j < n) {
+    if (i < m && j < n && oldLines[i]! === newLines[j]!) {
+      result.push({ type: "ctx", text: oldLines[i]!, oldLine: oldLine++, newLine: newLine++ });
+      i++; j++;
+    } else if (j < n && (i >= m || dp[i + 1]![j]! >= dp[i]![j + 1]!)) {
+      result.push({ type: "add", text: newLines[j]!, newLine: newLine++ });
+      j++;
+    } else {
+      result.push({ type: "del", text: oldLines[i]!, oldLine: oldLine++ });
+      i++;
+    }
+  }
+  return result;
+}
+
+const DIFF_CONTEXT = 3;
+
+function DiffView({ oldText, newText }: { oldText?: string; newText?: string }) {
+  // Write tool: no old_string — show entire content as additions
+  if (!oldText && newText) {
+    const lines = newText.split("\n");
+    return (
+      <div className="diff-view">
+        <div className="diff-hunk">
+          {lines.map((text, i) => (
+            <div key={i} className="diff-line diff-line-add">
+              <span className="diff-gutter">+</span>
+              <span className="diff-linenum">{i + 1}</span>
+              <span className="diff-text">{text || " "}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!oldText || !newText) return null;
+
+  const lines = computeDiff(oldText, newText);
+
+  // Determine which line indices to show (near a change)
+  const visible = new Set<number>();
+  lines.forEach((line, i) => {
+    if (line.type !== "ctx") {
+      for (let k = Math.max(0, i - DIFF_CONTEXT); k <= Math.min(lines.length - 1, i + DIFF_CONTEXT); k++) {
+        visible.add(k);
+      }
+    }
+  });
+
+  const rendered: React.ReactNode[] = [];
+  let prevVisible = true;
+  lines.forEach((line, i) => {
+    if (!visible.has(i)) {
+      if (prevVisible) {
+        rendered.push(<div key={`sep-${i}`} className="diff-separator">···</div>);
+      }
+      prevVisible = false;
+      return;
+    }
+    prevVisible = true;
+    if (line.type === "ctx") {
+      rendered.push(
+        <div key={i} className="diff-line diff-line-ctx">
+          <span className="diff-gutter"> </span>
+          <span className="diff-linenum">{line.oldLine}</span>
+          <span className="diff-text">{line.text || " "}</span>
+        </div>
+      );
+    } else if (line.type === "del") {
+      rendered.push(
+        <div key={i} className="diff-line diff-line-del">
+          <span className="diff-gutter">−</span>
+          <span className="diff-linenum">{line.oldLine}</span>
+          <span className="diff-text">{line.text || " "}</span>
+        </div>
+      );
+    } else {
+      rendered.push(
+        <div key={i} className="diff-line diff-line-add">
+          <span className="diff-gutter">+</span>
+          <span className="diff-linenum">{line.newLine}</span>
+          <span className="diff-text">{line.text || " "}</span>
+        </div>
+      );
+    }
+  });
+
+  if (rendered.length === 0) return null;
+
+  return (
+    <div className="diff-view">
+      <div className="diff-hunk">{rendered}</div>
+    </div>
+  );
+}
+
 function formatDuration(ms?: number): string | null {
   if (ms == null) return null;
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
@@ -123,12 +255,15 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
         );
       }
       if ((event.toolName === "Read" || event.toolName === "Write" || event.toolName === "Edit") && input?.file_path) {
+        const hasDiff = input.old_string != null || input.new_string != null;
         return (
           <div className="event-detail-structured">
             <DetailField label="FILE" value={input.file_path} />
-            {input.old_string && <DetailField label="FIND" value={input.old_string} />}
-            {input.new_string && <DetailField label="REPLACE" value={input.new_string} />}
-            {input.content && <DetailField label="CONTENT" value={input.content.length > 200 ? input.content.slice(0, 200) + "…" : input.content} />}
+            {hasDiff ? (
+              <DiffView oldText={input.old_string} newText={input.new_string} />
+            ) : (
+              input.content && <DiffView newText={input.content} />
+            )}
           </div>
         );
       }
