@@ -63,7 +63,8 @@ export function useWebSocket(url: string): UseWebSocketReturn {
 
         switch (msg.type) {
           case "snapshot":
-            setAllEvents(msg.events);
+            // Sort snapshot events by timestamp — synthetic/patched events may be out-of-order.
+            setAllEvents(msg.events.slice().sort((a, b) => a.timestamp - b.timestamp));
             setGlobalStats(msg.stats);
             setSessions(msg.sessions);
             break;
@@ -73,6 +74,16 @@ export function useWebSocket(url: string): UseWebSocketReturn {
             setSessions(msg.sessions);
             // Use server-computed stats (includes transcript-based token data)
             setGlobalStats(msg.stats);
+            break;
+
+          case "eventPatch":
+            // Server sent corrected/synthetic events (e.g. retroactively adopted SubagentStart).
+            // Replace existing events with the same id and re-sort by timestamp.
+            setAllEvents((prev) => {
+              const patchIds = new Set(msg.events.map((e) => e.id));
+              const base = prev.filter((e) => !patchIds.has(e.id));
+              return [...base, ...msg.events].sort((a, b) => a.timestamp - b.timestamp);
+            });
             break;
 
           case "stats":
@@ -120,7 +131,9 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     });
   }, []);
 
-  // Filtered views based on selected session
+  // Filtered views based on selected session.
+  // The server retroactively patches SubagentStart events into the correct session via
+  // eventPatch messages, so simple sessionId filtering is now sufficient.
   const events = useMemo(() => {
     if (!selectedSession) return allEvents;
     return allEvents.filter((e) => e.sessionId === selectedSession);

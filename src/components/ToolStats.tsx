@@ -56,7 +56,11 @@ export function ToolStats({ toolCounts, toolFailCounts = {} }: ToolStatsProps) {
                   {count}
                 </span>
                 {fails > 0 && (
-                  <span className="tool-fail-count" title={`${fails} failed`}>
+                  <span
+                    className="tool-fail-count"
+                    title={`${fails} failed`}
+                    aria-label={`${fails} failed invocation${fails !== 1 ? "s" : ""}`}
+                  >
                     {fails}✗
                   </span>
                 )}

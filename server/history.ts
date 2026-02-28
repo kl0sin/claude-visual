@@ -35,8 +35,46 @@ function decodeProjectPath(encoded: string): string {
 }
 
 function projectDisplayName(encoded: string): string {
-  const decoded = decodeProjectPath(encoded);
-  return decoded.split("/").filter(Boolean).pop() || encoded;
+  const home = process.env.HOME || "";
+  let rel = encoded;
+
+  // Strip the encoded home prefix first.
+  // Home `/home/user` encodes to `-home-user`, so we apply the same encoding to strip it.
+  if (home) {
+    const homeEncoded = home.replace(/\/_/g, "--").replace(/\//g, "-");
+    if (rel.startsWith(homeEncoded)) {
+      rel = rel.slice(homeEncoded.length);
+    }
+  }
+
+  // `rel` is now the path relative to home in encoded form, e.g.:
+  //   `--Projects-claude-visual`  →  ~/_Projects/claude-visual
+  //   `-my-project`               →  ~/my-project
+  //   `-work-my-project`          →  ~/work/my-project
+  //
+  // Strategy: find the last `--` (which encodes `/_`), take everything after it,
+  // then skip the leading underscore-directory name (up to the first `-`) to get
+  // the actual project leaf name — preserving hyphens in the name.
+  const lastDouble = rel.lastIndexOf("--");
+  if (lastDouble >= 0) {
+    const afterUnderscore = rel.slice(lastDouble + 2); // e.g. `Projects-claude-visual`
+    const sep = afterUnderscore.indexOf("-");
+    if (sep >= 0) {
+      const name = afterUnderscore.slice(sep + 1); // `claude-visual`
+      if (name) return name;
+    }
+    return afterUnderscore;
+  }
+
+  // No `--` — project is directly under home (or a non-underscore subdir).
+  // Take everything after the first `-` (which encoded the `/` separator).
+  const first = rel.indexOf("-");
+  if (first >= 0) {
+    const name = rel.slice(first + 1); // `my-project`
+    if (name) return name;
+  }
+
+  return rel || encoded;
 }
 
 export async function listProjects(): Promise<HistoryProject[]> {

@@ -85,7 +85,10 @@ export default function App() {
           <main className="dashboard">
             <div className="dashboard-left">
               <AgentTimeline agents={stats?.activeAgents || []} />
-              <ToolStats toolCounts={stats?.toolCounts || {}} toolFailCounts={stats?.toolFailCounts || {}} />
+              <ToolStats
+                toolCounts={stats?.toolCounts || {}}
+                toolFailCounts={stats?.toolFailCounts || {}}
+              />
             </div>
 
             <div className="dashboard-center">
@@ -93,7 +96,10 @@ export default function App() {
             </div>
 
             <div className="dashboard-right">
-              <TokenPanel tokens={stats?.tokens || DEFAULT_TOKENS} model={stats?.model} />
+              <TokenPanel
+                tokens={stats?.tokens || DEFAULT_TOKENS}
+                model={stats?.model}
+              />
               <StatsPanel stats={stats} events={events} />
             </div>
           </main>
@@ -115,7 +121,9 @@ export default function App() {
         <span className="footer-separator">|</span>
         <span className="footer-text">
           {mode === "live"
-            ? connected ? "◉ SYSTEM ONLINE" : "◎ AWAITING CONNECTION"
+            ? connected
+              ? "◉ SYSTEM ONLINE"
+              : "◎ AWAITING CONNECTION"
             : "◉ HISTORY MODE"}
         </span>
       </footer>

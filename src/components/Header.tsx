@@ -95,6 +95,7 @@ export function Header({
         <div className="mode-toggle">
           <button
             className={`mode-btn ${mode === "live" ? "active" : ""}`}
+            aria-pressed={mode === "live"}
             onClick={() => onModeChange("live")}
           >
             <span className="mode-btn-dot" />
@@ -102,9 +103,10 @@ export function Header({
           </button>
           <button
             className={`mode-btn ${mode === "history" ? "active" : ""}`}
+            aria-pressed={mode === "history"}
             onClick={() => onModeChange("history")}
           >
-            &#9783; HISTORY
+            HISTORY
           </button>
         </div>
       </div>

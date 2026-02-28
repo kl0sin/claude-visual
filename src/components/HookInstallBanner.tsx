@@ -42,13 +42,14 @@ export function HookInstallBanner({ onInstalled }: HookInstallBannerProps) {
           className="hook-install-btn"
           onClick={handleInstall}
           disabled={installing}
+          aria-busy={installing}
         >
           {installing ? "INSTALLING..." : "INSTALL HOOKS"}
         </button>
       </div>
       {error && (
-        <div className="hook-install-error">
-          ERROR: {error}
+        <div className="hook-install-error" role="alert">
+          INSTALL FAILED — {error.startsWith("TypeError") || error.startsWith("SyntaxError") ? "Could not reach server. Is Claude Visual running?" : error}
         </div>
       )}
     </div>

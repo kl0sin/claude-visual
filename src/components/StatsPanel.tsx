@@ -58,24 +58,7 @@ function Sparkline({ events }: { events: ClaudeEvent[] }) {
               height={barH}
               fill="url(#sparkGrad)"
               opacity={0.8}
-            >
-              <animate
-                attributeName="height"
-                from="0"
-                to={barH}
-                dur="0.4s"
-                begin={`${i * 0.02}s`}
-                fill="freeze"
-              />
-              <animate
-                attributeName="y"
-                from={h}
-                to={h - barH}
-                dur="0.4s"
-                begin={`${i * 0.02}s`}
-                fill="freeze"
-              />
-            </rect>
+            />
           );
         })}
         <defs>

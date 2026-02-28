@@ -62,6 +62,7 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
     <div className="session-selector">
       <button
         className={`session-tab ${selectedSession === null ? "active" : ""}`}
+        aria-pressed={selectedSession === null}
         onClick={() => onSelect(null)}
       >
         <span className="session-tab-icon">◈</span>
@@ -80,6 +81,7 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
             <button
               key={session.id}
               className={`session-tab ${isSelected ? "active" : ""} session-${state}`}
+              aria-pressed={isSelected}
               onClick={() => onSelect(isSelected ? null : session.id)}
               title={`Session: ${session.id}\nStatus: ${state}\nEvents: ${session.eventCount}\nStarted: ${new Date(session.firstEvent).toLocaleString()}`}
             >

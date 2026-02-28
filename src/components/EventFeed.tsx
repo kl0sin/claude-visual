@@ -358,10 +358,15 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 
 export function EventFeed({ events }: EventFeedProps) {
   const feedRef = useRef<HTMLDivElement>(null);
+  const pillsRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
+  const [pillsScroll, setPillsScroll] = useState({ left: false, right: false });
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<string | null>(() => {
-    try { return localStorage.getItem("cv-filter-type") || null; } catch { return null; }
+  const [filterTypes, setFilterTypes] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("cv-filter-types");
+      return stored ? new Set<string>(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
   });
   const [searchQuery, setSearchQuery] = useState(() => {
     try { return localStorage.getItem("cv-search-query") || ""; } catch { return ""; }
@@ -369,10 +374,10 @@ export function EventFeed({ events }: EventFeedProps) {
 
   useEffect(() => {
     try {
-      if (filterType) localStorage.setItem("cv-filter-type", filterType);
-      else localStorage.removeItem("cv-filter-type");
+      if (filterTypes.size > 0) localStorage.setItem("cv-filter-types", JSON.stringify([...filterTypes]));
+      else localStorage.removeItem("cv-filter-types");
     } catch {}
-  }, [filterType]);
+  }, [filterTypes]);
 
   useEffect(() => {
     try {
@@ -385,6 +390,37 @@ export function EventFeed({ events }: EventFeedProps) {
     setExpandedId((prev) => (prev === id ? null : id));
   }, []);
 
+  const toggleFilter = useCallback((type: string) => {
+    setFilterTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
+
+  const syncScrollState = useCallback(() => {
+    const el = pillsRef.current;
+    if (!el) return;
+    setPillsScroll({
+      left: el.scrollLeft > 0,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 1,
+    });
+  }, []);
+
+  // Sync scroll buttons when pills container is resized or pills change
+  useEffect(() => {
+    const el = pillsRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", syncScrollState, { passive: true });
+    const ro = new ResizeObserver(syncScrollState);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", syncScrollState);
+      ro.disconnect();
+    };
+  }, [syncScrollState]);
+
   // Collect active event types with counts for filter pills
   const typeCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -395,8 +431,8 @@ export function EventFeed({ events }: EventFeedProps) {
   // Filter events
   const filteredEvents = useMemo(() => {
     let result = events;
-    if (filterType) {
-      result = result.filter((e) => e.type === filterType);
+    if (filterTypes.size > 0) {
+      result = result.filter((e) => filterTypes.has(e.type));
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -407,7 +443,7 @@ export function EventFeed({ events }: EventFeedProps) {
       });
     }
     return result;
-  }, [events, filterType, searchQuery]);
+  }, [events, filterTypes, searchQuery]);
 
   const virtualizer = useVirtualizer({
     count: filteredEvents.length,
@@ -442,30 +478,71 @@ export function EventFeed({ events }: EventFeedProps) {
         <span className="panel-count">{filteredEvents.length}{filteredEvents.length !== events.length ? `/${events.length}` : ""}</span>
       </div>
       <div className="event-filter-bar">
-        <div className="event-filter-pills">
-          {Array.from(typeCounts.entries()).map(([type, count]) => {
-            const color = EVENT_COLORS[type] || "#8892a8";
-            const label = EVENT_TYPE_LABELS[type] || type.toUpperCase();
-            const isActive = filterType === type;
-            return (
-              <button
-                key={type}
-                className={`event-filter-pill${isActive ? " active" : ""}`}
-                style={{ "--pill-color": color } as React.CSSProperties}
-                onClick={() => setFilterType(isActive ? null : type)}
-              >
-                {label}<span className="event-filter-pill-count">{count}</span>
-              </button>
-            );
-          })}
+        <div className="event-filter-pills-wrapper">
+          {pillsScroll.left && (
+            <button
+              className="pills-scroll-btn pills-scroll-btn-left"
+              aria-label="Scroll filters left"
+              onClick={() => pillsRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
+            >
+              ‹
+            </button>
+          )}
+          <div className="event-filter-pills" ref={pillsRef}>
+            <button
+              className={`event-filter-pill${filterTypes.size === 0 ? " active" : ""}`}
+              style={{ "--pill-color": "#c8d0e0" } as React.CSSProperties}
+              aria-pressed={filterTypes.size === 0}
+              onClick={() => setFilterTypes(new Set())}
+            >
+              ALL
+            </button>
+            {Array.from(typeCounts.entries()).map(([type, count]) => {
+              const color = EVENT_COLORS[type] || "#8892a8";
+              const label = EVENT_TYPE_LABELS[type] || type.toUpperCase();
+              const isActive = filterTypes.has(type);
+              return (
+                <button
+                  key={type}
+                  className={`event-filter-pill${isActive ? " active" : ""}`}
+                  style={{ "--pill-color": color } as React.CSSProperties}
+                  aria-pressed={isActive}
+                  onClick={() => toggleFilter(type)}
+                >
+                  {label}<span className="event-filter-pill-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          {pillsScroll.right && (
+            <button
+              className="pills-scroll-btn pills-scroll-btn-right"
+              aria-label="Scroll filters right"
+              onClick={() => pillsRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
+            >
+              ›
+            </button>
+          )}
         </div>
-        <input
-          className="event-search-input"
-          type="text"
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <div className="event-search-wrapper">
+          <input
+            className="event-search-input"
+            type="text"
+            placeholder="Search..."
+            aria-label="Search events"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              className="event-search-clear"
+              aria-label="Clear search"
+              onClick={() => setSearchQuery("")}
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
       <div className="event-feed-list" ref={feedRef} onScroll={handleScroll}>
         {filteredEvents.length === 0 ? (
@@ -495,7 +572,14 @@ export function EventFeed({ events }: EventFeedProps) {
                     transform: `translateY(${virtualRow.start}px)`,
                   } as React.CSSProperties}
                 >
-                  <div className="event-row" onClick={() => toggleExpand(event.id)}>
+                  <div
+                    className="event-row"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isExpanded}
+                    onClick={() => toggleExpand(event.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleExpand(event.id); } }}
+                  >
                     <span className="event-time">{formatTime(event.timestamp)}</span>
                     <span className="event-icon" style={{ color }}>{icon}</span>
                     <span className="event-type" style={{ color }}>[{event.type}]</span>

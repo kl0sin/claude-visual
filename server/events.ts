@@ -14,6 +14,8 @@ export class EventStore {
   private sessionModels: Map<string, string> = new Map();
   private globalModel?: string;
   private idCounter = 0;
+  /** Events generated retroactively (e.g. synthetic SubagentStart) to broadcast alongside the main event. */
+  private sideEffects: ClaudeEvent[] = [];
 
   add(raw: Record<string, any>): ClaudeEvent {
     if (!raw || typeof raw !== "object") {
@@ -118,6 +120,18 @@ export class EventStore {
           status: "completed",
           sessionId,
         });
+      }
+
+      // Ensure every SubagentStop has a visible SubagentStart in the same session.
+      // SubagentStart may fire only once at session init, or in a child process with a
+      // different session_id — if it was missed, adopt an orphan or create a synthetic one.
+      if (sessionId) {
+        const hasStart = this.events.some(
+          (e) => e.type === "SubagentStart" && e.sessionId === sessionId
+        );
+        if (!hasStart) {
+          this.adoptOrSynthSubagentStart(event, sessionId);
+        }
       }
     }
 
@@ -255,6 +269,60 @@ export class EventStore {
       firstEvent: events[0]?.timestamp,
       lastEvent: events[events.length - 1]?.timestamp,
     };
+  }
+
+  /**
+   * Returns events generated as side-effects of the last `add()` call (e.g. adopted / synthetic
+   * SubagentStart events). Clears the buffer so each call only returns new items.
+   */
+  drainSideEffects(): ClaudeEvent[] {
+    const result = this.sideEffects;
+    this.sideEffects = [];
+    return result;
+  }
+
+  /**
+   * When SubagentStop arrives without a matching SubagentStart in the session, try to adopt
+   * an orphaned SubagentStart from another session (cross-process delivery) or synthesise one.
+   * The result is pushed to `sideEffects` so the caller can broadcast the correction.
+   */
+  private adoptOrSynthSubagentStart(stopEvent: ClaudeEvent, sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    const sessionFirstTs = session?.firstEvent ?? stopEvent.timestamp;
+
+    // Look for an unmatched SubagentStart from any other session within a generous window.
+    // Search from newest to oldest so we pick the closest match.
+    const orphan = [...this.events]
+      .reverse()
+      .find(
+        (e) =>
+          e.type === "SubagentStart" &&
+          e.sessionId !== sessionId &&
+          e.timestamp >= sessionFirstTs - 5_000 &&
+          e.timestamp <= stopEvent.timestamp + 30_000
+      );
+
+    if (orphan) {
+      // Adopt: reassign the orphan to this session so it appears in the correct filtered view.
+      orphan.sessionId = sessionId;
+      stopEvent.duration = stopEvent.timestamp - orphan.timestamp;
+      // Broadcast the corrected event (same id, updated sessionId)
+      this.sideEffects.push({ ...orphan });
+      return;
+    }
+
+    // No orphan found — synthesise a SubagentStart anchored at the session's first event.
+    const synth: ClaudeEvent = {
+      id: `evt_${++this.idCounter}`,
+      type: "SubagentStart",
+      timestamp: sessionFirstTs,
+      data: { event_type: "SubagentStart", session_id: sessionId },
+      sessionId,
+      agentType: stopEvent.agentType,
+    };
+    this.events.push(synth);
+    stopEvent.duration = stopEvent.timestamp - synth.timestamp;
+    this.sideEffects.push(synth);
   }
 
   clear() {

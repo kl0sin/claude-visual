@@ -59,6 +59,7 @@ export type WSMessage =
   | { type: "event"; data: ClaudeEvent; stats: SessionStats; sessions: SessionInfo[] }
   | { type: "snapshot"; events: ClaudeEvent[]; stats: SessionStats; sessions: SessionInfo[] }
   | { type: "stats"; stats: SessionStats; sessions: SessionInfo[] }
+  | { type: "eventPatch"; events: ClaudeEvent[] }
   | { type: "clear" };
 
 export const EMPTY_TOKENS: TokenUsage = {

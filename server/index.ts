@@ -71,6 +71,16 @@ app.post("/api/events", async (c) => {
       setTimeout(catchUp, 3000);
     }
 
+    // Broadcast retroactively-fixed events (adopted/synthetic SubagentStart) first
+    // so clients receive the start before the stop.
+    const sideEffects = eventStore.drainSideEffects();
+    if (sideEffects.length > 0) {
+      const patchMsg = JSON.stringify({ type: "eventPatch", events: sideEffects });
+      for (const ws of clients) {
+        try { ws.send(patchMsg); } catch { clients.delete(ws); }
+      }
+    }
+
     const message = JSON.stringify({
       type: "event",
       data: event,
