@@ -26,7 +26,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **AgentTimeline** — fixed: each active agent card now shows the last 5 `PreToolUse → PostToolUse` pairs as inline action bars with duration. Running tools get a scanning animation + live elapsed time; completed tools get a proportional static bar; failed tools show red. Falls back to the scanning progress bar when no tool events exist. Accepts `events: ClaudeEvent[]` prop; tool pairing computed via `computeToolActions()` (FIFO matching, same logic as server).
 
-- [ ] **Raw prompt toggle** — `UserPromptSubmit` detail strips `<system-reminder>` tags, which is fine, but it's worth adding a "show raw prompt" button for debugging.
+- [x] **Raw prompt toggle** — fixed: `UserPromptSubmit` detail now has a `RAW` toggle button (visible only when `<system-reminder>` blocks are present). Default shows the cleaned prompt; `RAW` mode reveals the full original content in a scrollable `pre` block. Toggle state is local per event (separate `PromptDetail` component with `useState`).
 
 ---
 

@@ -503,6 +503,26 @@ export class EventStore {
     };
   }
 
+  /**
+   * Merges `patch` into the stored JSON data of event `id`.
+   * Returns the updated ClaudeEvent, or null if the event doesn't exist.
+   */
+  patchEventData(id: string, patch: Record<string, any>): ClaudeEvent | null {
+    const row = this.db
+      .query("SELECT * FROM events WHERE id = ?")
+      .get(id) as import("./db/types").DbEvent | null;
+    if (!row) return null;
+
+    const merged = { ...JSON.parse(row.data), ...patch };
+    this.db
+      .query("UPDATE events SET data = ? WHERE id = ?")
+      .run(JSON.stringify(merged), id);
+
+    const event = rowToEvent(row);
+    event.data = merged;
+    return event;
+  }
+
   drainSideEffects(): ClaudeEvent[] {
     const result = this.sideEffects;
     this.sideEffects = [];

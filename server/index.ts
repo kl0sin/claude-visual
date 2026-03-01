@@ -38,12 +38,14 @@ app.post("/api/events", async (c) => {
 
     // Read token usage + model from transcript file (hooks don't include token data directly)
     const transcriptPath = raw.transcript_path;
-    if (transcriptPath && typeof transcriptPath === "string") {
-      const newData = await transcriptReader.readNewData(transcriptPath);
-      if (newData) {
-        eventStore.addTranscriptData(newData, event.sessionId);
+
+    const broadcastEventPatch = (patched: ReturnType<typeof eventStore.patchEventData>) => {
+      if (!patched) return;
+      const msg = JSON.stringify({ type: "eventPatch", events: [patched] });
+      for (const ws of clients) {
+        try { ws.send(msg); } catch { clients.delete(ws); }
       }
-    }
+    };
 
     const broadcastStats = () => {
       const msg = JSON.stringify({
@@ -56,6 +58,17 @@ app.post("/api/events", async (c) => {
       }
     };
 
+    if (transcriptPath && typeof transcriptPath === "string") {
+      const newData = await transcriptReader.readNewData(transcriptPath);
+      if (newData) {
+        eventStore.addTranscriptData(newData, event.sessionId);
+        // Attach response text to Stop events so the frontend can display it
+        if (event.type === "Stop" && newData.latestResponse) {
+          broadcastEventPatch(eventStore.patchEventData(event.id, { response_text: newData.latestResponse }));
+        }
+      }
+    }
+
     // On Stop/SessionEnd, schedule delayed re-reads to catch final transcript entries
     // that may not have been flushed when the hook fired
     if (
@@ -63,11 +76,15 @@ app.post("/api/events", async (c) => {
       transcriptPath &&
       typeof transcriptPath === "string"
     ) {
+      const eventId = event.id;
       const sessionId = event.sessionId;
       const catchUp = async () => {
         const extra = await transcriptReader.readNewData(transcriptPath);
         if (extra) {
           eventStore.addTranscriptData(extra, sessionId);
+          if (event.type === "Stop" && extra.latestResponse) {
+            broadcastEventPatch(eventStore.patchEventData(eventId, { response_text: extra.latestResponse }));
+          }
           broadcastStats();
         }
       };

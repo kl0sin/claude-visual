@@ -254,6 +254,57 @@ function formatDuration(ms?: number): string | null {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
 }
 
+/**
+ * Extracts plain text from a Stop event's `message` field.
+ * Handles both a plain string and a structured message object
+ * ({ role: "assistant", content: [{type:"text", text:"..."},...] }).
+ */
+function extractResponseText(d: Record<string, any>): string {
+  // Server-injected field (read from transcript JSONL after Stop fires)
+  if (typeof d.response_text === "string" && d.response_text.trim()) return d.response_text.trim();
+  // Fallback: structured message object in hook payload (future-proof)
+  const content = d.message?.content;
+  if (Array.isArray(content)) {
+    const text = content
+      .filter((b: any) => b.type === "text")
+      .map((b: any) => (b.text as string) || "")
+      .join("\n\n")
+      .trim();
+    if (text) return text;
+  }
+  if (typeof d.message === "string" && d.message.trim()) return d.message.trim();
+  return "";
+}
+
+/** Expandable raw/clean toggle for UserPromptSubmit */
+function PromptDetail({ event }: { event: ClaudeEvent }) {
+  const d = event.data;
+  const raw = (d.prompt || d.message || "") as string;
+  const cleaned = raw.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "").trim();
+  const hasSystemReminder = raw.trim() !== cleaned;
+  const [showRaw, setShowRaw] = useState(false);
+
+  return (
+    <div className="event-detail-structured prompt-detail">
+      <div className="prompt-header">
+        <span className="detail-field-label">PROMPT</span>
+        {hasSystemReminder && (
+          <button
+            className={`prompt-raw-toggle${showRaw ? " active" : ""}`}
+            onClick={() => setShowRaw((v) => !v)}
+            title={showRaw ? "Show cleaned prompt" : "Show raw prompt including system-reminder blocks"}
+          >
+            {showRaw ? "CLEAN" : "RAW"}
+          </button>
+        )}
+      </div>
+      {showRaw
+        ? <pre className="prompt-raw-content">{raw.trim()}</pre>
+        : <span className="detail-field-value">{cleaned || "(empty)"}</span>}
+    </div>
+  );
+}
+
 /** Renders structured detail view for known event types, JSON for the rest */
 function EventDetail({ event }: { event: ClaudeEvent }) {
   const d = event.data;
@@ -302,15 +353,8 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
       }
       return <pre className="event-detail-json"><JsonValue value={input || d} /></pre>;
 
-    case "UserPromptSubmit": {
-      let prompt = (d.prompt || d.message || "") as string;
-      prompt = prompt.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "").trim();
-      return (
-        <div className="event-detail-structured">
-          <DetailField label="PROMPT" value={prompt} />
-        </div>
-      );
-    }
+    case "UserPromptSubmit":
+      return <PromptDetail event={event} />;
 
     case "Notification":
       return (
@@ -337,14 +381,17 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
         </div>
       );
 
-    case "Stop":
+    case "Stop": {
+      const responseText = extractResponseText(d);
       return (
         <div className="event-detail-structured">
           {d.stop_reason && <DetailField label="REASON" value={d.stop_reason} />}
-          {d.message && <DetailField label="MESSAGE" value={truncate(d.message, 500)} />}
-          {!d.stop_reason && !d.message && <DetailField label="STATUS" value="Response generation complete" />}
+          {responseText
+            ? <OutputBlock label="RESPONSE" value={truncate(responseText, 4000)} />
+            : !d.stop_reason && <DetailField label="STATUS" value="Response generation complete" />}
         </div>
       );
+    }
 
     case "SessionStart":
       return (
@@ -479,8 +526,11 @@ function getEventSummary(event: ClaudeEvent): string {
       return prompt || "prompt submitted";
     }
 
-    case "Stop":
-      return "Response complete";
+    case "Stop": {
+      const responseText = extractResponseText(d);
+      if (responseText) return truncate(responseText, 120);
+      return d.stop_reason ? `Stop: ${d.stop_reason}` : "Response complete";
+    }
 
     case "TaskCompleted":
       return d.description || "task done";

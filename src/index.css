@@ -818,7 +818,9 @@ body {
   color: var(--color-cyber-text);
   cursor: pointer;
   border-radius: 3px;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .pills-scroll-btn:hover {
@@ -1070,6 +1072,76 @@ body {
   word-break: break-all;
 }
 
+/* ── Raw prompt toggle ───────────────────────────── */
+
+.prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.prompt-raw-toggle {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 7px;
+  border: 1px solid var(--color-cyber-border-bright);
+  background: transparent;
+  color: var(--color-cyber-text-dim);
+  cursor: pointer;
+  border-radius: 2px;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+  line-height: 1.6;
+}
+
+.prompt-raw-toggle:hover {
+  border-color: var(--color-cyber-cyan);
+  color: var(--color-cyber-cyan);
+}
+
+.prompt-raw-toggle.active {
+  border-color: var(--color-cyber-magenta);
+  color: var(--color-cyber-magenta);
+  background: rgba(255, 45, 149, 0.08);
+}
+
+.prompt-detail .detail-field-value {
+  font-size: 11px;
+}
+
+.prompt-raw-content {
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-cyber-border);
+  border-radius: 2px;
+  color: var(--color-cyber-text);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.prompt-raw-content::-webkit-scrollbar {
+  width: 3px;
+}
+
+.prompt-raw-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.prompt-raw-content::-webkit-scrollbar-thumb {
+  background: var(--color-cyber-border-bright);
+  border-radius: 2px;
+}
+
 /* ── Output block styling ────────────────────────── */
 
 .detail-output-block {
@@ -1245,7 +1317,7 @@ body {
 }
 
 .diff-line-del {
-  background: rgba(255, 0, 64, 0.10);
+  background: rgba(255, 0, 64, 0.1);
   color: #ff8099;
 }
 
@@ -2433,8 +2505,15 @@ body {
 }
 
 @keyframes processing-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.25; transform: scale(0.6); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(0.6);
+  }
 }
 
 .feed-processing-text {
@@ -2442,8 +2521,14 @@ body {
 }
 
 @keyframes processing-fadein {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ── HOOK INSTALL BANNER ──────────────────────────────── */

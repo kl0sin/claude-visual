@@ -3,7 +3,8 @@ import { EMPTY_TOKENS } from "../shared/types";
 
 export interface TranscriptData {
   tokens: TokenUsage;
-  model?: string;  // last seen model ID, e.g. "claude-opus-4-6"
+  model?: string;       // last seen model ID, e.g. "claude-opus-4-6"
+  latestResponse?: string; // text of the most recent assistant message (new since last read)
 }
 
 /**
@@ -23,6 +24,8 @@ export interface TranscriptData {
  */
 export class TranscriptTokenReader {
   private lastTotals = new Map<string, TokenUsage>();
+  // Tracks the last response text we already returned, to avoid re-broadcasting the same text.
+  private lastResponses = new Map<string, string>();
 
   /**
    * Read the transcript file fully, compute total tokens,
@@ -44,13 +47,22 @@ export class TranscriptTokenReader {
       totalTokens: current.tokens.totalTokens - prev.totalTokens,
     };
 
-    const hasChanges =
+    const hasTokenChanges =
       diff.inputTokens > 0 ||
       diff.outputTokens > 0 ||
       diff.cacheCreationTokens > 0 ||
       diff.cacheReadTokens > 0;
 
-    return hasChanges ? { tokens: diff, model: current.model } : null;
+    // Only return latestResponse if it's new (different from what we last reported)
+    const prevResponse = this.lastResponses.get(transcriptPath) ?? "";
+    const latestResponse =
+      current.latestResponse && current.latestResponse !== prevResponse
+        ? current.latestResponse
+        : undefined;
+    if (latestResponse) this.lastResponses.set(transcriptPath, latestResponse);
+
+    if (!hasTokenChanges && !latestResponse) return null;
+    return { tokens: diff, model: current.model, latestResponse };
   }
 
   /**
@@ -65,34 +77,48 @@ export class TranscriptTokenReader {
       const text = await file.text();
       const tokens: TokenUsage = { ...EMPTY_TOKENS };
       let model: string | undefined;
+      let latestResponse: string | undefined;
       let found = false;
 
       for (const line of text.split("\n")) {
         if (!line.trim()) continue;
         try {
           const entry = JSON.parse(line);
-          if (entry.type === "assistant" && entry.message?.usage) {
-            const u = entry.message.usage;
-            const input = u.input_tokens || 0;
-            const output = u.output_tokens || 0;
-            const cacheCreation = u.cache_creation_input_tokens || 0;
-            const cacheRead = u.cache_read_input_tokens || 0;
-            tokens.inputTokens += input;
-            tokens.outputTokens += output;
-            tokens.cacheCreationTokens += cacheCreation;
-            tokens.cacheReadTokens += cacheRead;
-            tokens.totalTokens += input + output + cacheCreation + cacheRead;
-            if (entry.message.model) {
-              model = entry.message.model;
+          if (entry.type === "assistant" && entry.message) {
+            const msg = entry.message;
+
+            if (msg.usage) {
+              const u = msg.usage;
+              const input = u.input_tokens || 0;
+              const output = u.output_tokens || 0;
+              const cacheCreation = u.cache_creation_input_tokens || 0;
+              const cacheRead = u.cache_read_input_tokens || 0;
+              tokens.inputTokens += input;
+              tokens.outputTokens += output;
+              tokens.cacheCreationTokens += cacheCreation;
+              tokens.cacheReadTokens += cacheRead;
+              tokens.totalTokens += input + output + cacheCreation + cacheRead;
+              found = true;
             }
-            found = true;
+
+            if (msg.model) model = msg.model;
+
+            // Extract plain text blocks from the assistant message content
+            if (Array.isArray(msg.content)) {
+              const responseText = msg.content
+                .filter((b: any) => b.type === "text")
+                .map((b: any) => (b.text as string) || "")
+                .join("\n\n")
+                .trim();
+              if (responseText) latestResponse = responseText;
+            }
           }
         } catch {
           // Partial line at EOF — will be complete on next read
         }
       }
 
-      return found ? { tokens, model } : null;
+      return found ? { tokens, model, latestResponse } : null;
     } catch {
       return null;
     }
@@ -112,5 +138,6 @@ export class TranscriptTokenReader {
   /** Reset tracked state (e.g. on clear) */
   clear() {
     this.lastTotals.clear();
+    this.lastResponses.clear();
   }
 }
