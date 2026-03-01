@@ -73,8 +73,8 @@ export function Header({
   return (
     <header className="header">
       {bannerVisible && pendingTools.length > 0 && (
-        <div className="attention-banner">
-          <span className="attention-icon">&#9888;</span>
+        <div className="attention-banner" role="alert" aria-live="assertive">
+          <span className="attention-icon" aria-hidden="true">&#9888;</span>
           <span className="attention-text">AWAITING ACTION — {toolNames}</span>
         </div>
       )}
@@ -82,7 +82,7 @@ export function Header({
       <div className="header-left">
         <img
           src="/icon.png"
-          alt="Claude Visual Logo"
+          alt=""
           className="header-logo"
           aria-hidden="true"
         />
@@ -136,8 +136,10 @@ export function Header({
 
         <div
           className={`connection-status ${!connected ? "offline" : isProcessing ? "processing" : "online"}`}
+          role="status"
+          aria-live="polite"
         >
-          <span className="status-dot" />
+          <span className="status-dot" aria-hidden="true" />
           <span className="status-text">
             {!connected ? "OFFLINE" : isProcessing ? "PROCESSING" : "LINKED"}
           </span>

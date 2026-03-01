@@ -23,9 +23,9 @@ export function ToolStats({ toolCounts, toolFailCounts = {} }: ToolStatsProps) {
   const max = sorted[0]?.[1] || 1;
 
   return (
-    <div className="panel tool-stats">
+    <div className="panel tool-stats" role="region" aria-label="Tool Usage">
       <div className="panel-header">
-        <span className="panel-icon">⚡</span>
+        <span className="panel-icon" aria-hidden="true">⚡</span>
         TOOL USAGE
       </div>
       <div className="tool-list">

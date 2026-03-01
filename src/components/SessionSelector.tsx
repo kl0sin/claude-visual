@@ -65,7 +65,7 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
         aria-pressed={selectedSession === null}
         onClick={() => onSelect(null)}
       >
-        <span className="session-tab-icon">◈</span>
+        <span className="session-tab-icon" aria-hidden="true">◈</span>
         <span className="session-tab-label">ALL</span>
         <span className="session-tab-count">{sessions.reduce((s, x) => s + x.eventCount, 0)}</span>
       </button>
@@ -85,7 +85,7 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
               onClick={() => onSelect(isSelected ? null : session.id)}
               title={`Session: ${session.id}\nStatus: ${state}\nEvents: ${session.eventCount}\nStarted: ${new Date(session.firstEvent).toLocaleString()}`}
             >
-              <span className={`session-status-dot ${state}`} />
+              <span className={`session-status-dot ${state}`} aria-hidden="true" />
               <span className="session-tab-label">{shortId(session.id)}</span>
               <span className="session-tab-time">{formatTime(session.firstEvent)}</span>
               <span className="session-tab-duration">

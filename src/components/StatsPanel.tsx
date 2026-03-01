@@ -46,7 +46,8 @@ function Sparkline({ events }: { events: ClaudeEvent[] }) {
   return (
     <div className="sparkline-container">
       <div className="sparkline-label">EVENT RATE</div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="sparkline-svg" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${w} ${h}`} className="sparkline-svg" preserveAspectRatio="none" role="img" aria-label="Event rate over time">
+        <title>Event rate over time</title>
         {buckets.map((count, i) => {
           const barH = (count / max) * h;
           return (
@@ -84,9 +85,9 @@ export function StatsPanel({ stats, events = [] }: StatsPanelProps) {
   ).length;
 
   return (
-    <div className="panel stats-panel">
+    <div className="panel stats-panel" role="region" aria-label="System Diagnostics">
       <div className="panel-header">
-        <span className="panel-icon">◉</span>
+        <span className="panel-icon" aria-hidden="true">◉</span>
         SYSTEM DIAGNOSTICS
       </div>
       <div className="stats-grid">

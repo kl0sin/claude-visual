@@ -681,9 +681,9 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
   };
 
   return (
-    <div className="panel event-feed">
+    <div className="panel event-feed" role="region" aria-label="Event Stream">
       <div className="panel-header">
-        <span className="panel-icon">▹</span>
+        <span className="panel-icon" aria-hidden="true">▹</span>
         EVENT STREAM
         <span className="panel-count">{filteredEvents.length}{filteredEvents.length !== events.length ? `/${events.length}` : ""}</span>
       </div>
@@ -760,7 +760,7 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
           )}
         </div>
       </div>
-      <div className="event-feed-list" ref={feedRef} onScroll={handleScroll}>
+      <div className="event-feed-list" ref={feedRef} onScroll={handleScroll} role="list" aria-label="Events">
         {filteredEvents.length === 0 ? (
           <div className="event-empty">
             <span className="blink">▊</span> {events.length === 0 ? "Awaiting neural signals..." : "No matching events"}
@@ -778,6 +778,7 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                   key={event.id}
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
+                  role="listitem"
                   className={`event-item${isExpanded ? " expanded" : ""}`}
                   style={{
                     "--event-color": color,
@@ -797,13 +798,13 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleExpand(event.id); } }}
                   >
                     <span className="event-time">{formatTime(event.timestamp)}</span>
-                    <span className="event-icon" style={{ color }}>{icon}</span>
+                    <span className="event-icon" aria-hidden="true" style={{ color }}>{icon}</span>
                     <span className="event-type" style={{ color }}>[{event.type}]</span>
                     {event.toolName && (
                       <span className="event-tool">{event.toolName}</span>
                     )}
                     <span className="event-summary">{getEventSummary(event)}</span>
-                    <span className="event-expand-icon" style={{ color }}>{isExpanded ? "▾" : "▸"}</span>
+                    <span className="event-expand-icon" aria-hidden="true" style={{ color }}>{isExpanded ? "▾" : "▸"}</span>
                   </div>
                   <div className="event-detail-wrapper">
                     <div className="event-detail">
@@ -818,8 +819,8 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
       </div>
 
       {isProcessing && (
-        <div className="feed-processing-banner">
-          <span className="feed-processing-dot" />
+        <div className="feed-processing-banner" role="status" aria-live="polite">
+          <span className="feed-processing-dot" aria-hidden="true" />
           <span className="feed-processing-text" key={processingMsgIdx}>
             {pendingTools && pendingTools.length > 0
               ? `Running ${pendingTools[0]!.tool}...`

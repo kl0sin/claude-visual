@@ -83,7 +83,7 @@ export default function App() {
             />
           )}
 
-          <main className="dashboard">
+          <main className="dashboard" aria-label="Live monitoring dashboard">
             <div className="dashboard-left">
               <AgentTimeline agents={stats?.activeAgents || []} events={events} />
               <ToolStats

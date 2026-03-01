@@ -115,10 +115,10 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
   const totalCount = activeAgents.length + completedAgents.length;
 
   return (
-    <div className="panel agent-timeline">
+    <div className="panel agent-timeline" role="region" aria-label="Agent Processes">
       <div className="panel-header">
         <div className="flex gap-2 items-center">
-          <span className="panel-icon">◈</span>
+          <span className="panel-icon" aria-hidden="true">◈</span>
           AGENT PROCESSES
           {totalCount > 0 && <span className="panel-count">({totalCount})</span>}
         </div>
@@ -147,7 +147,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                   style={{ "--agent-color": color } as React.CSSProperties}
                 >
                   <div className="agent-card-header">
-                    <span className="agent-status-indicator pulse" style={{ background: color }} />
+                    <span className="agent-status-indicator pulse" style={{ background: color }} aria-hidden="true" />
                     <span className="agent-type">{type}</span>
                     <span className="agent-elapsed">{formatDuration(elapsed)}</span>
                   </div>
@@ -172,7 +172,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                             key={action.id}
                             className={`agent-action agent-action-${action.status}`}
                           >
-                            <span className="agent-action-icon">
+                            <span className="agent-action-icon" aria-hidden="true">
                               {action.status === "running"
                                 ? "●"
                                 : action.status === "failed"
@@ -237,6 +237,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                     <span
                       className="agent-status-indicator"
                       style={{ background: color, opacity: 0.4 }}
+                      aria-hidden="true"
                     />
                     <span className="agent-type">{type}</span>
                     <span className="agent-duration">

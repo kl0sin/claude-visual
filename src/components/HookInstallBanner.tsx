@@ -31,7 +31,7 @@ export function HookInstallBanner({ onInstalled }: HookInstallBannerProps) {
   return (
     <div className="hook-install-banner">
       <div className="hook-install-content">
-        <div className="hook-install-icon">⬡</div>
+        <div className="hook-install-icon" aria-hidden="true">⬡</div>
         <div className="hook-install-text">
           <span className="hook-install-title">HOOKS NOT DETECTED</span>
           <span className="hook-install-desc">

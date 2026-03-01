@@ -34,9 +34,9 @@ export function TokenPanel({ tokens, model }: TokenPanelProps) {
   const cacheWritePct = cacheTotal > 0 ? (tokens.cacheCreationTokens / cacheTotal) * 100 : 0;
 
   return (
-    <div className="panel token-panel">
+    <div className="panel token-panel" role="region" aria-label="Token Consumption">
       <div className="panel-header">
-        <span className="panel-icon">◈</span>
+        <span className="panel-icon" aria-hidden="true">◈</span>
         TOKEN CONSUMPTION
       </div>
 

@@ -20,7 +20,7 @@
   --color-cyber-purple: #8b5cf6;
   --color-cyber-text: #8892a8;
   --color-cyber-text-bright: #c8d0e0;
-  --color-cyber-text-dim: #4a5568;
+  --color-cyber-text-dim: #7888a4; /* raised from #4a5568 — now ~5:1 contrast on cyber-bg */
 }
 
 /* ── BASE ─────────────────────────────────────────────── */
@@ -3519,4 +3519,25 @@ mark.search-highlight {
   color: var(--color-cyber-cyan);
   border-radius: 2px;
   padding: 0 1px;
+}
+
+/* ── FOCUS VISIBLE ────────────────────────────────────── */
+
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-cyber-cyan);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 240, 255, 0.15);
+}
+
+/* ── REDUCED MOTION ───────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

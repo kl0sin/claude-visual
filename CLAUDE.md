@@ -103,6 +103,58 @@ Event colors and icons are mapped in `src/types.ts` (`EVENT_COLORS`, `EVENT_ICON
 - Server state is in-memory via `EventStore` class (`server/events.ts`) — max 2000 events.
 - WebSocket messages follow the `WSMessage` union type in `shared/types.ts`.
 
+### Server Modules
+
+| Module | Purpose |
+|--------|---------|
+| `server/index.ts` | Hono app, HTTP routes, WebSocket upgrade + broadcast |
+| `server/events.ts` | `EventStore` — SQLite-backed event/session/agent tracking |
+| `server/transcript.ts` | `TranscriptTokenReader` — reads token diff from JSONL files |
+| `server/history.ts` | History browser — lists past Claude Code projects/sessions |
+| `server/db/schema.ts` | SQLite table definitions + migration |
+| `server/db/types.ts` | DB row interfaces + type converters |
+
+### SQLite Database
+
+The server uses **Bun's built-in SQLite** (`bun:sqlite`) — no separate sqlite3 package needed.
+
+- Import: `import { Database } from "bun:sqlite"`
+- DB path: `~/.claude/claude-visual.db` (configurable via `CLAUDE_VISUAL_DB` env var)
+- Schema: 4 tables — `events`, `sessions`, `agents`, `session_tokens`
+- `EventStore` in `server/events.ts` uses prepared statements for all hot-path queries
+- Max 2,000 events stored — oldest are evicted on insert
+- `__global__` is a reserved `session_id` bucket for events without a session
+
+### Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `3200` | HTTP server + WebSocket port |
+| `NODE_ENV` | — | Set to `production` for static file serving from `dist/` |
+| `CLAUDE_VISUAL_DB` | `~/.claude/claude-visual.db` | SQLite database path |
+| `DEBUG_TOKENS` | — | Set to `1` to enable token extraction debug logging |
+
+### Tauri Desktop Integration
+
+- `src-tauri/` — Tauri 2.x config and Rust source
+- Server runs as a **sidecar binary** in production (compiled with `bun build --compile`)
+- Sidecar binary: `src-tauri/binaries/server-<rust-triple>` (e.g. `server-x86_64-unknown-linux-gnu`)
+- Build sidecar: `bun run tauri:sidecar`
+- Desktop dev (requires WSLg on WSL2): `bun run tauri:dev`
+- Desktop build + bundle: `bun run tauri:build`
+- `API_BASE` in `src/hooks/useWebSocket.ts` handles Tauri vs web URL routing
+- `src-tauri/src/lib.rs` manages sidecar lifecycle (spawn on app start, kill on close)
+- System libs required: `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`
+
+### Key Architectural Rules
+
+1. **Token data is NOT in hook payloads** — always read from JSONL via `transcript_path`
+2. **Hook jq must be pass-through**: `. + {event_type: "..."}` — never destructive `{field: .field}`
+3. **All frontend state via `useWebSocket` hook** — no additional state management
+4. **No new colors** — only use `--color-cyber-*` tokens defined in `src/index.css`
+5. **SQLite is source of truth** — in-memory maps (`sessions`, `agents`) are warm caches rebuilt on startup
+6. **Always drain side effects**: after `EventStore.add()` call `drainSideEffects()` before broadcasting
+
 ### Testing
 
 Use `bun test` to run tests. Tests use Bun's native test framework.
@@ -115,10 +167,13 @@ test("example", () => {
 });
 ```
 
+Test files: `server/history.test.ts`, `server/transcript.test.ts`, `shared/tokens.test.ts`
+
 ### Debugging
 
 - **Server not receiving events**: Check that Claude Code hooks are installed (`~/.claude/settings.json` should reference `hooks/claude-hooks.json`). Run `bash hooks/install.sh` to install.
 - **WebSocket disconnects**: Frontend auto-reconnects every 2s. Check that server is running on port 3200.
-- **Token counts zero**: Token data comes from transcript JSONL files. Verify `transcript_path` exists in hook event payloads. Check `server/transcript.ts` logic.
+- **Token counts zero**: Token data comes from transcript JSONL files. Verify `transcript_path` exists in hook event payloads. Check `server/transcript.ts` logic. Set `DEBUG_TOKENS=1` for detailed logging.
 - **Type errors**: Run `bunx tsc --noEmit` for full type check. Strict mode is enabled.
 - **Events not showing**: Check the session filter in the UI — "ALL" shows everything, individual session tabs filter.
+- **Database issues**: Check `~/.claude/claude-visual.db` exists and is writable. Use `CLAUDE_VISUAL_DB` env var to override path.
