@@ -3016,6 +3016,13 @@ body {
   padding-bottom: 12px;
 }
 
+/* Search navigation target highlight */
+.transcript-virtual-row.search-target .msg-bubble {
+  border-left: 2px solid var(--color-cyber-cyan);
+  box-shadow: inset 2px 0 0 rgba(0, 240, 255, 0.08);
+  background: rgba(0, 240, 255, 0.03);
+}
+
 /* ── TRANSCRIPT TRUNCATED BANNER ──────────────────────── */
 .transcript-truncated-banner {
   flex-shrink: 0;

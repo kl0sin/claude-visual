@@ -20,7 +20,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Token cost → $** — the Token Panel shows token counts but without conversion to dollars. Add simple multipliers (input / output / cache_read / cache_creation) — configurable or with defaults for claude-sonnet/opus/haiku.
 
-- [ ] **History Browser — full-text search** — grep across JSONL transcripts. With many sessions/projects there is no way to find a specific conversation.
+- [x] **History Browser — full-text search** — grep across JSONL transcripts. With many sessions/projects there is no way to find a specific conversation. Fixed: `searchTranscripts()` scans all JSONL files, endpoint `/api/history/search?q=&project=`, `SearchResultsPanel` with snippet highlighting. Clicking a result loads the full transcript (`limit=999999`) and scrolls to the matched message (centered, with cyan left-border highlight). `messageIndex` tracked per match so the virtualizer always lands on the correct row.
 
 - [x] **Transcript streaming in History** — fixed: backend `readSession` now accepts a `limit` param (default 300), returning only the most-recent N messages plus `totalMessages`/`offset` metadata. Frontend `TranscriptPanel` uses `useVirtualizer` from `@tanstack/react-virtual` to render only visible items (dynamic `measureElement` re-measures on expand/collapse). A yellow banner shows "Showing last N of M messages" with a [LOAD ALL] button when the session is truncated. Scrolls to the most-recent message on open.
 

@@ -121,6 +121,7 @@ export interface SearchMatch {
   snippet: string;      // ~200 chars centred around the match
   matchOffset: number;  // char offset of match start within snippet (adjusted for leading "…")
   matchLength: number;
+  messageIndex: number; // 0-based index in the session messages array
 }
 
 export interface SearchResult {

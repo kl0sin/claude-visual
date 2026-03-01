@@ -330,7 +330,10 @@ const DEFAULT_LIMIT = 300;
 // Must stay in sync with estimateSize below. Used to compensate for prepended items.
 const VIRTUAL_ESTIMATE_PX = 150;
 
-function TranscriptPanel({ session }: { session: HistorySession }) {
+function TranscriptPanel({ session, scrollToMessageIndex }: {
+  session: HistorySession;
+  scrollToMessageIndex?: number;
+}) {
   const [detail, setDetail] = useState<HistorySessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingAll, setLoadingAll] = useState(false);
@@ -340,6 +343,8 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
   // null   → initial/retry load: scroll to end
   // number → Load All: target scrollTop in pixels after prepending (preserves viewport)
   const scrollTargetRef = useRef<number | null>(null);
+  // Pending message index to scroll to after data loads (from search navigation)
+  const scrollToIdxRef = useRef<number | undefined>(undefined);
 
   const messages = detail?.messages ?? [];
   const isTruncated = detail != null && detail.totalMessages > messages.length;
@@ -351,13 +356,15 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
     overscan: 8,
   });
 
-  // Fetch on session change
+  // Fetch on session change (or when switching between normal/search-nav modes)
   useEffect(() => {
     setLoading(true);
     setError(null);
     setDetail(null);
+    const limit = scrollToMessageIndex !== undefined ? 999999 : DEFAULT_LIMIT;
+    scrollToIdxRef.current = scrollToMessageIndex;
     fetch(
-      `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=${DEFAULT_LIMIT}`,
+      `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=${limit}`,
     )
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -366,17 +373,25 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
       .then((data: HistorySessionDetail) => setDetail(data))
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-  }, [session.filePath, retryKey]);
+    // scrollToMessageIndex !== undefined controls the fetch limit; re-fetch when mode toggles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.filePath, retryKey, scrollToMessageIndex !== undefined]);
 
-  // After detail loads: scroll to end (initial/retry) or restore pixel offset (Load All).
+  // After detail loads: scroll to search match, restore pixel offset (Load All), or scroll to end.
   useEffect(() => {
     if (!detail || messages.length === 0) return;
-    const target = scrollTargetRef.current;
+    const pixelTarget = scrollTargetRef.current;
+    const idxTarget = scrollToIdxRef.current;
     scrollTargetRef.current = null; // consume
-    if (target !== null) {
+    scrollToIdxRef.current = undefined; // consume
+    if (pixelTarget !== null) {
       // Directly set scrollTop — no animation, immediate. The virtualizer renders
       // items around this offset and measures them, naturally correcting any drift.
-      if (parentRef.current) parentRef.current.scrollTop = target;
+      if (parentRef.current) parentRef.current.scrollTop = pixelTarget;
+    } else if (idxTarget !== undefined) {
+      requestAnimationFrame(() => {
+        rowVirtualizer.scrollToIndex(idxTarget, { align: "center" });
+      });
     } else {
       requestAnimationFrame(() => {
         rowVirtualizer.scrollToIndex(messages.length - 1, { align: "end" });
@@ -488,12 +503,13 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const msg = messages[virtualRow.index];
             if (!msg) return null;
+            const isTarget = scrollToMessageIndex !== undefined && virtualRow.index === scrollToMessageIndex;
             return (
               <div
                 key={virtualRow.key}
                 data-index={virtualRow.index}
                 ref={rowVirtualizer.measureElement}
-                className="transcript-virtual-row"
+                className={`transcript-virtual-row${isTarget ? " search-target" : ""}`}
                 style={{
                   position: "absolute",
                   top: 0,
@@ -703,7 +719,7 @@ function SearchResultsPanel({
           onClick={() => onSelect(result)}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && onSelect(result)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelect(result)}
         >
           <div className="search-result-header">
             <span className="search-result-project">{result.projectName}</span>
@@ -757,6 +773,7 @@ export function HistoryBrowser({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [scrollToIdx, setScrollToIdx] = useState<number | undefined>(undefined);
 
   const [projectsWidth, setProjectsWidth] = useState(280);
   const [sessionsWidth, setSessionsWidth] = useState(320);
@@ -870,6 +887,7 @@ export function HistoryBrowser({
   };
 
   const handleSessionSelect = useCallback((s: HistorySession) => {
+    setScrollToIdx(undefined);
     setSelectedSession(s);
     onNavigate(selectedProject?.name, s.id);
   }, [onNavigate, selectedProject?.name]);
@@ -884,6 +902,7 @@ export function HistoryBrowser({
         <input
           className="history-search-input"
           placeholder="SEARCH TRANSCRIPTS..."
+          aria-label="Search transcripts"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Escape" && setSearchQuery("")}
@@ -910,6 +929,7 @@ export function HistoryBrowser({
             if (proj) {
               setSelectedProject(proj);
               setSelectedSession(result.session);
+              setScrollToIdx(result.matches[0]?.messageIndex);
               onNavigate(proj.name, result.session.id);
             }
             setSearchQuery("");
@@ -1041,7 +1061,7 @@ export function HistoryBrowser({
             <span>SELECT A SESSION</span>
           </div>
         ) : (
-          <TranscriptPanel key={selectedSession.filePath} session={selectedSession} />
+          <TranscriptPanel key={selectedSession.filePath} session={selectedSession} scrollToMessageIndex={scrollToIdx} />
         )}
       </div>
       </div>

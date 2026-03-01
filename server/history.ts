@@ -401,6 +401,7 @@ function extractSnippet(
   matchIndex: number,
   queryLen: number,
   role: "user" | "assistant",
+  messageIndex: number,
 ): SearchMatch {
   const HALF = 100;
   const start = Math.max(0, matchIndex - HALF);
@@ -413,6 +414,7 @@ function extractSnippet(
     snippet,
     matchOffset: matchIndex - start + prefix.length,
     matchLength: queryLen,
+    messageIndex,
   };
 }
 
@@ -451,6 +453,7 @@ export async function searchTranscripts(
 
       const lines = text.split("\n").filter((l) => l.trim());
       const matches: SearchMatch[] = [];
+      let msgIdx = 0;
 
       outer: for (const line of lines) {
         let entry: Record<string, unknown>;
@@ -467,6 +470,10 @@ export async function searchTranscripts(
               ? "assistant"
               : undefined;
         if (!role) continue;
+
+        // Capture and increment index for every user/assistant line,
+        // mirroring the order in which readSession() pushes to allMessages.
+        const curIdx = msgIdx++;
 
         const rawContent = (entry as any).message?.content;
         if (!rawContent) continue;
@@ -492,7 +499,7 @@ export async function searchTranscripts(
         for (const blockText of textBlocks) {
           const idx = blockText.toLowerCase().indexOf(queryLow);
           if (idx === -1) continue;
-          matches.push(extractSnippet(blockText, idx, query.length, role));
+          matches.push(extractSnippet(blockText, idx, query.length, role, curIdx));
           if (matches.length >= maxMatchesPerSession) break outer;
         }
       }
