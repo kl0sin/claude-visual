@@ -1,12 +1,27 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { ClaudeEvent } from "../types";
+import type { ClaudeEvent, PendingTool } from "../types";
 import { EVENT_COLORS, EVENT_ICONS } from "../types";
 
 interface EventFeedProps {
   events: ClaudeEvent[];
   truncated?: boolean;
+  isProcessing?: boolean;
+  pendingTools?: PendingTool[];
 }
+
+const PROCESSING_MESSAGES = [
+  "Vibing...",
+  "Thinking...",
+  "Neural pathways firing...",
+  "Generating...",
+  "Analyzing...",
+  "Reasoning...",
+  "Computing...",
+  "On it...",
+  "Contemplating...",
+  "Processing...",
+];
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
@@ -492,11 +507,12 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   TaskCompleted: "DONE",
 };
 
-export function EventFeed({ events, truncated }: EventFeedProps) {
+export function EventFeed({ events, truncated, isProcessing, pendingTools }: EventFeedProps) {
   const feedRef = useRef<HTMLDivElement>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
   const [pillsScroll, setPillsScroll] = useState({ left: false, right: false });
+  const [processingMsgIdx, setProcessingMsgIdx] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterTypes, setFilterTypes] = useState<Set<string>>(() => {
     try {
@@ -521,6 +537,14 @@ export function EventFeed({ events, truncated }: EventFeedProps) {
       else localStorage.removeItem("cv-search-query");
     } catch {}
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!isProcessing) return;
+    const id = setInterval(() => {
+      setProcessingMsgIdx((i) => (i + 1) % PROCESSING_MESSAGES.length);
+    }, 2500);
+    return () => clearInterval(id);
+  }, [isProcessing]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -742,6 +766,17 @@ export function EventFeed({ events, truncated }: EventFeedProps) {
           </div>
         )}
       </div>
+
+      {isProcessing && (
+        <div className="feed-processing-banner">
+          <span className="feed-processing-dot" />
+          <span className="feed-processing-text" key={processingMsgIdx}>
+            {pendingTools && pendingTools.length > 0
+              ? `Running ${pendingTools[0]!.tool}...`
+              : PROCESSING_MESSAGES[processingMsgIdx % PROCESSING_MESSAGES.length]}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

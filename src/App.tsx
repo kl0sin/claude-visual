@@ -93,7 +93,16 @@ export default function App() {
             </div>
 
             <div className="dashboard-center">
-              <EventFeed events={events} truncated={truncated} />
+              <EventFeed
+                events={events}
+                truncated={truncated}
+                isProcessing={
+                  selectedSession
+                    ? (sessions.find((s) => s.id === selectedSession)?.isProcessing ?? false)
+                    : sessions.some((s) => s.isProcessing)
+                }
+                pendingTools={stats?.pendingTools}
+              />
             </div>
 
             <div className="dashboard-right">
