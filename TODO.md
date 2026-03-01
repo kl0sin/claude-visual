@@ -32,7 +32,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ## ✨ New Features
 
-- [ ] **Alerts / desktop notifications** — notifications (Web Notifications API or Tauri) for: `PostToolUseFailure`, session running >X minutes, token/cost threshold exceeded. Configurable thresholds.
+- [x] **Alerts / desktop notifications** — fixed: `useNotifications` hook watches all events and fires Web Notifications API + in-app toasts for: `PostToolUseFailure` (tool failures), `PermissionRequest`, `SessionEnd`. Threshold alerts for cost (`$N`) and session duration (`N` minutes). `AlertSettingsModal` (button ALERTS in Header) lets user toggle each trigger, request browser notification permission, and set numeric thresholds. Settings persist via `localStorage`. `ToastContainer` renders stacked toasts (bottom-right, auto-dismiss 5s, cyberpunk-styled). Initial snapshot events are silently skipped — only new live events trigger notifications.
 
 - [ ] **Session export** — download button for JSON/CSV of events from the selected session. Useful for external analysis or reporting.
 

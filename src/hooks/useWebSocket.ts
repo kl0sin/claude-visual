@@ -4,6 +4,7 @@ import { EMPTY_TOKENS } from "../types";
 
 interface UseWebSocketReturn {
   events: ClaudeEvent[];
+  allEvents: ClaudeEvent[];
   stats: SessionStats | null;
   globalStats: SessionStats | null;
   sessions: SessionInfo[];
@@ -188,5 +189,5 @@ export function useWebSocket(url: string): UseWebSocketReturn {
   // Matches SQL LIMIT 2000 in server/events.ts
   const truncated = (globalStats?.totalEvents ?? 0) > 2000;
 
-  return { events, stats, globalStats, sessions, selectedSession, setSelectedSession, connected, clearEvents, truncated };
+  return { events, allEvents, stats, globalStats, sessions, selectedSession, setSelectedSession, connected, clearEvents, truncated };
 }

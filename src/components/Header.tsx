@@ -10,6 +10,8 @@ interface HeaderProps {
   onClear: () => void;
   mode: "live" | "history";
   onModeChange: (mode: "live" | "history") => void;
+  alertsEnabled: boolean;
+  onOpenAlerts: () => void;
 }
 
 function formatTokens(n: number): string {
@@ -28,6 +30,8 @@ export function Header({
   onClear,
   mode,
   onModeChange,
+  alertsEnabled,
+  onOpenAlerts,
 }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -125,6 +129,15 @@ export function Header({
             </span>
           </span>
         </div>
+
+        <button
+          className={`btn-alerts ${alertsEnabled ? "active" : ""}`}
+          onClick={onOpenAlerts}
+          title="Alert settings"
+          aria-label="Open alert settings"
+        >
+          ALERTS
+        </button>
 
         <button
           className="btn-clear"

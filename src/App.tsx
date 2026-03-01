@@ -8,8 +8,11 @@ import { TokenPanel } from "./components/TokenPanel";
 import { SessionSelector } from "./components/SessionSelector";
 import { HookInstallBanner } from "./components/HookInstallBanner";
 import { HistoryBrowser } from "./components/HistoryBrowser";
+import { ToastContainer } from "./components/ToastContainer";
+import { AlertSettingsModal } from "./components/AlertSettingsModal";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useRouter } from "./hooks/useRouter";
+import { useNotifications } from "./hooks/useNotifications";
 
 const WS_URL = (window as any).__TAURI__
   ? "ws://localhost:3200/ws"
@@ -28,6 +31,7 @@ const DEFAULT_TOKENS = {
 export default function App() {
   const {
     events,
+    allEvents,
     stats,
     globalStats,
     sessions,
@@ -42,6 +46,10 @@ export default function App() {
   const mode = route.mode;
 
   const [hooksInstalled, setHooksInstalled] = useState<boolean | null>(null);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+
+  const { toasts, dismissToast, settings: alertSettings, updateSettings: updateAlertSettings } =
+    useNotifications(allEvents, globalStats, sessions);
 
   const checkHookStatus = () => {
     fetch(`${API_BASE}/api/hooks/status`)
@@ -67,6 +75,8 @@ export default function App() {
         onClear={clearEvents}
         mode={mode}
         onModeChange={(m) => navigate({ mode: m })}
+        alertsEnabled={alertSettings.enabled}
+        onOpenAlerts={() => setAlertsOpen(true)}
       />
 
       {mode === "live" ? (
@@ -121,6 +131,16 @@ export default function App() {
           onNavigate={(projectId, sessionId) =>
             navigate({ mode: "history", projectId, sessionId })
           }
+        />
+      )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {alertsOpen && (
+        <AlertSettingsModal
+          settings={alertSettings}
+          onUpdate={updateAlertSettings}
+          onClose={() => setAlertsOpen(false)}
         />
       )}
 
