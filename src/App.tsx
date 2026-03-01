@@ -85,7 +85,7 @@ export default function App() {
 
           <main className="dashboard">
             <div className="dashboard-left">
-              <AgentTimeline agents={stats?.activeAgents || []} />
+              <AgentTimeline agents={stats?.activeAgents || []} events={events} />
               <ToolStats
                 toolCounts={stats?.toolCounts || {}}
                 toolFailCounts={stats?.toolFailCounts || {}}

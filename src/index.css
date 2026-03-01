@@ -1467,6 +1467,81 @@ body {
   }
 }
 
+/* ── AGENT TOOL ACTIONS ───────────────────────────────── */
+
+.agent-actions {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.agent-action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.agent-action-icon {
+  flex-shrink: 0;
+  width: 10px;
+  font-size: 8px;
+  text-align: center;
+  line-height: 1;
+}
+
+.agent-action-running .agent-action-icon {
+  color: var(--color-cyber-cyan);
+  animation: processing-pulse 1.4s ease-in-out infinite;
+}
+
+.agent-action-done .agent-action-icon {
+  color: var(--color-cyber-green);
+  opacity: 0.8;
+}
+
+.agent-action-failed .agent-action-icon {
+  color: var(--color-cyber-red);
+}
+
+.agent-action-name {
+  flex-shrink: 0;
+  width: 44px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-action-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-cyber-border);
+  overflow: hidden;
+  border-radius: 2px;
+  min-width: 0;
+  position: relative;
+}
+
+.agent-action-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.agent-action-dur {
+  flex-shrink: 0;
+  width: 38px;
+  font-size: 9px;
+  color: var(--color-cyber-text-dim);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* ── TOOL STATS ───────────────────────────────────────── */
 
 .tool-stats {

@@ -24,7 +24,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [ ] **Transcript streaming in History** — the entire JSONL file is loaded at once (`readSession`). For large sessions (>500 messages) this is slow and memory-hungry. Worth streaming lines and virtualizing the message list.
 
-- [ ] **AgentTimeline** — the component exists but is underexposed. Consider integrating with Event Stream — visually grouping `PreToolUse → PostToolUse` as a single "action" with a duration bar.
+- [x] **AgentTimeline** — fixed: each active agent card now shows the last 5 `PreToolUse → PostToolUse` pairs as inline action bars with duration. Running tools get a scanning animation + live elapsed time; completed tools get a proportional static bar; failed tools show red. Falls back to the scanning progress bar when no tool events exist. Accepts `events: ClaudeEvent[]` prop; tool pairing computed via `computeToolActions()` (FIFO matching, same logic as server).
 
 - [ ] **Raw prompt toggle** — `UserPromptSubmit` detail strips `<system-reminder>` tags, which is fine, but it's worth adding a "show raw prompt" button for debugging.
 
