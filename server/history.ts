@@ -268,7 +268,10 @@ export async function listSessions(projectId: string): Promise<HistorySession[]>
   return sessions.sort((a, b) => b.lastModified - a.lastModified);
 }
 
-export async function readSession(filePath: string): Promise<HistorySessionDetail | null> {
+export async function readSession(
+  filePath: string,
+  limit = 300,
+): Promise<HistorySessionDetail | null> {
   try {
     const file = Bun.file(filePath);
     if (!(await file.exists())) return null;
@@ -276,7 +279,7 @@ export async function readSession(filePath: string): Promise<HistorySessionDetai
     const text = await file.text();
     const lines = text.split("\n").filter((l) => l.trim());
 
-    const messages: TranscriptMessage[] = [];
+    const allMessages: TranscriptMessage[] = [];
     const totalTokens: TokenUsage = { ...EMPTY_TOKENS };
     let model: string | undefined;
     let messageCount = 0;
@@ -291,7 +294,7 @@ export async function readSession(filePath: string): Promise<HistorySessionDetai
           userTurns++;
           const content = parseContent(entry.message?.content);
           if (content.length > 0) {
-            messages.push({ role: "user", content });
+            allMessages.push({ role: "user", content });
           }
         } else if (entry.type === "assistant") {
           const msgModel = entry.message?.model;
@@ -320,7 +323,7 @@ export async function readSession(filePath: string): Promise<HistorySessionDetai
 
           const content = parseContent(entry.message?.content);
           if (content.length > 0) {
-            messages.push({ role: "assistant", content, tokens: msgTokens, model: msgModel });
+            allMessages.push({ role: "assistant", content, tokens: msgTokens, model: msgModel });
           }
         }
       } catch {}
@@ -329,6 +332,11 @@ export async function readSession(filePath: string): Promise<HistorySessionDetai
     const fstat = await stat(filePath);
     const projectId = path.basename(path.dirname(filePath));
     const sessionId = path.basename(filePath, ".jsonl");
+
+    const totalMessages = allMessages.length;
+    const clampedLimit = limit > 0 ? limit : totalMessages;
+    const offset = totalMessages > clampedLimit ? totalMessages - clampedLimit : 0;
+    const messages = offset > 0 ? allMessages.slice(offset) : allMessages;
 
     return {
       session: {
@@ -342,6 +350,8 @@ export async function readSession(filePath: string): Promise<HistorySessionDetai
         lastModified: fstat.mtime.getTime(),
       },
       messages,
+      totalMessages,
+      offset,
     };
   } catch {
     return null;

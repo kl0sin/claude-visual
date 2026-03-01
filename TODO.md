@@ -22,7 +22,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [ ] **History Browser — full-text search** — grep across JSONL transcripts. With many sessions/projects there is no way to find a specific conversation.
 
-- [ ] **Transcript streaming in History** — the entire JSONL file is loaded at once (`readSession`). For large sessions (>500 messages) this is slow and memory-hungry. Worth streaming lines and virtualizing the message list.
+- [x] **Transcript streaming in History** — fixed: backend `readSession` now accepts a `limit` param (default 300), returning only the most-recent N messages plus `totalMessages`/`offset` metadata. Frontend `TranscriptPanel` uses `useVirtualizer` from `@tanstack/react-virtual` to render only visible items (dynamic `measureElement` re-measures on expand/collapse). A yellow banner shows "Showing last N of M messages" with a [LOAD ALL] button when the session is truncated. Scrolls to the most-recent message on open.
 
 - [x] **AgentTimeline** — fixed: each active agent card now shows the last 5 `PreToolUse → PostToolUse` pairs as inline action bars with duration. Running tools get a scanning animation + live elapsed time; completed tools get a proportional static bar; failed tools show red. Falls back to the scanning progress bar when no tool events exist. Accepts `events: ClaudeEvent[]` prop; tool pairing computed via `computeToolActions()` (FIFO matching, same logic as server).
 

@@ -175,7 +175,9 @@ app.get("/api/history/sessions", async (c) => {
 app.get("/api/history/session", async (c) => {
   const filePath = c.req.query("path");
   if (!filePath) return c.json({ error: "Missing path parameter" }, 400);
-  const detail = await readSession(filePath);
+  const limitParam = Number(c.req.query("limit") || "300");
+  const limit = isNaN(limitParam) || limitParam <= 0 ? 300 : limitParam;
+  const detail = await readSession(filePath, limit);
   if (!detail) return c.json({ error: "Session not found" }, 404);
   return c.json(detail);
 });

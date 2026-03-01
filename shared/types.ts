@@ -106,6 +106,8 @@ export interface TranscriptMessage {
 export interface HistorySessionDetail {
   session: HistorySession;
   messages: TranscriptMessage[];
+  totalMessages: number;
+  offset: number;
 }
 
 export interface HookStatus {

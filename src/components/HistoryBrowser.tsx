@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
   HistoryProject,
   HistorySession,
@@ -323,18 +324,38 @@ function MessageBubble({
 
 // ── Transcript panel ────────────────────────────────────────
 
+const DEFAULT_LIMIT = 300;
+// Must stay in sync with estimateSize below. Used to compensate for prepended items.
+const VIRTUAL_ESTIMATE_PX = 150;
+
 function TranscriptPanel({ session }: { session: HistorySession }) {
   const [detail, setDetail] = useState<HistorySessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingAll, setLoadingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const parentRef = useRef<HTMLDivElement>(null);
+  // null   → initial/retry load: scroll to end
+  // number → Load All: target scrollTop in pixels after prepending (preserves viewport)
+  const scrollTargetRef = useRef<number | null>(null);
 
+  const messages = detail?.messages ?? [];
+  const isTruncated = detail != null && detail.totalMessages > messages.length;
+
+  const rowVirtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => VIRTUAL_ESTIMATE_PX,
+    overscan: 8,
+  });
+
+  // Fetch on session change
   useEffect(() => {
     setLoading(true);
     setError(null);
     setDetail(null);
     fetch(
-      `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}`,
+      `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=${DEFAULT_LIMIT}`,
     )
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -344,6 +365,44 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [session.filePath, retryKey]);
+
+  // After detail loads: scroll to end (initial/retry) or restore pixel offset (Load All).
+  useEffect(() => {
+    if (!detail || messages.length === 0) return;
+    const target = scrollTargetRef.current;
+    scrollTargetRef.current = null; // consume
+    if (target !== null) {
+      // Directly set scrollTop — no animation, immediate. The virtualizer renders
+      // items around this offset and measures them, naturally correcting any drift.
+      if (parentRef.current) parentRef.current.scrollTop = target;
+    } else {
+      requestAnimationFrame(() => {
+        rowVirtualizer.scrollToIndex(messages.length - 1, { align: "end" });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail]);
+
+  const handleLoadAll = useCallback(() => {
+    // Convert current scroll position to the equivalent position after prepending.
+    // New items (detail.offset of them) each have estimated height VIRTUAL_ESTIMATE_PX.
+    const savedScrollTop = parentRef.current?.scrollTop ?? 0;
+    const prependedCount = detail?.offset ?? 0;
+    scrollTargetRef.current = savedScrollTop + prependedCount * VIRTUAL_ESTIMATE_PX;
+    setLoadingAll(true);
+    fetch(
+      `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=999999`,
+    )
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data: HistorySessionDetail) => {
+        setDetail(data);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingAll(false));
+  }, [session.filePath, detail]);
 
   if (loading) {
     return (
@@ -401,16 +460,56 @@ function TranscriptPanel({ session }: { session: HistorySession }) {
         </div>
       </div>
 
-      <div className="transcript-messages">
-        {detail.messages.map((msg, i) => (
-          <MessageBubble
-            key={i}
-            role={msg.role}
-            content={msg.content}
-            tokens={msg.tokens}
-            model={msg.model}
-          />
-        ))}
+      {isTruncated && (
+        <div className="transcript-truncated-banner">
+          <span>
+            Showing last {messages.length} of {detail.totalMessages} messages
+          </span>
+          <button
+            className="transcript-load-all-btn"
+            onClick={handleLoadAll}
+            disabled={loadingAll}
+          >
+            {loadingAll ? "LOADING..." : "LOAD ALL"}
+          </button>
+        </div>
+      )}
+
+      <div ref={parentRef} className="transcript-messages">
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: "100%",
+            position: "relative",
+          }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+            const msg = messages[virtualRow.index];
+            if (!msg) return null;
+            return (
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                className="transcript-virtual-row"
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <MessageBubble
+                  role={msg.role}
+                  content={msg.content}
+                  tokens={msg.tokens}
+                  model={msg.model}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -792,7 +891,7 @@ export function HistoryBrowser({
             <span>SELECT A SESSION</span>
           </div>
         ) : (
-          <TranscriptPanel session={selectedSession} />
+          <TranscriptPanel key={selectedSession.filePath} session={selectedSession} />
         )}
       </div>
     </div>

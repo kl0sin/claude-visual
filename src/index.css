@@ -2978,9 +2978,50 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  position: relative;
+}
+
+/* Virtual row wrapper — provides spacing between messages */
+.transcript-virtual-row {
+  padding-bottom: 12px;
+}
+
+/* ── TRANSCRIPT TRUNCATED BANNER ──────────────────────── */
+.transcript-truncated-banner {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 14px;
+  background: rgba(240, 255, 0, 0.04);
+  border-bottom: 1px solid rgba(240, 255, 0, 0.2);
+  color: var(--color-cyber-yellow);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+}
+
+.transcript-load-all-btn {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid rgba(240, 255, 0, 0.35);
+  color: var(--color-cyber-yellow);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.transcript-load-all-btn:hover:not(:disabled) {
+  background: rgba(240, 255, 0, 0.08);
+  border-color: rgba(240, 255, 0, 0.6);
+}
+
+.transcript-load-all-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .transcript-messages::-webkit-scrollbar {
