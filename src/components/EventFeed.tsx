@@ -5,6 +5,7 @@ import { EVENT_COLORS, EVENT_ICONS } from "../types";
 
 interface EventFeedProps {
   events: ClaudeEvent[];
+  truncated?: boolean;
 }
 
 function formatTime(ts: number): string {
@@ -491,7 +492,7 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   TaskCompleted: "DONE",
 };
 
-export function EventFeed({ events }: EventFeedProps) {
+export function EventFeed({ events, truncated }: EventFeedProps) {
   const feedRef = useRef<HTMLDivElement>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef(true);
@@ -612,6 +613,12 @@ export function EventFeed({ events }: EventFeedProps) {
         EVENT STREAM
         <span className="panel-count">{filteredEvents.length}{filteredEvents.length !== events.length ? `/${events.length}` : ""}</span>
       </div>
+      {truncated && (
+        <div className="feed-truncation-banner">
+          <span>⚠</span>
+          <span>HISTORY TRUNCATED — showing latest 2,000 events</span>
+        </div>
+      )}
       <div className="event-filter-bar">
         <div className="event-filter-pills-wrapper">
           {pillsScroll.left && (

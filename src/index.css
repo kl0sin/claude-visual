@@ -2317,6 +2317,21 @@ body {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+/* ── FEED TRUNCATION BANNER ───────────────────────────── */
+
+.feed-truncation-banner {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(240, 255, 0, 0.05);
+  border-bottom: 1px solid rgba(240, 255, 0, 0.25);
+  color: var(--color-cyber-yellow);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
 /* ── HOOK INSTALL BANNER ──────────────────────────────── */
 
 .hook-install-banner {

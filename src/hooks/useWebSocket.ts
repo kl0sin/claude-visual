@@ -11,6 +11,7 @@ interface UseWebSocketReturn {
   setSelectedSession: (id: string | null) => void;
   connected: boolean;
   clearEvents: () => void;
+  truncated: boolean;
 }
 
 const DEFAULT_STATS: SessionStats = {
@@ -184,5 +185,8 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     };
   }, [selectedSession, events, globalStats, sessionTokens]);
 
-  return { events, stats, globalStats, sessions, selectedSession, setSelectedSession, connected, clearEvents };
+  // Matches SQL LIMIT 2000 in server/events.ts
+  const truncated = (globalStats?.totalEvents ?? 0) > 2000;
+
+  return { events, stats, globalStats, sessions, selectedSession, setSelectedSession, connected, clearEvents, truncated };
 }

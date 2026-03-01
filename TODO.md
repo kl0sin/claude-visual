@@ -10,7 +10,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Synthetic SubagentStart out-of-order** — fixed: `drainSideEffects()` is now called synchronously right after `add()` (before the `await transcriptReader.readNewData()`) so concurrent requests can no longer steal each other's synthetic events. The `event` handler in `useWebSocket.ts` also sorts when a newly arrived event has an earlier timestamp than the previous tail, providing a defensive second layer.
 
-- [ ] **No indication of event truncation** — the server keeps a max of 2000 events in memory (`EventStore`). When the limit is reached, old events are dropped with no indication in the UI. Worth showing a banner/badge "history truncated".
+- [x] **No indication of event truncation** — fixed: `EventFeed` now shows a cyber-yellow banner "HISTORY TRUNCATED — showing latest 2,000 events" when `globalStats.totalEvents > 2000`. Derived entirely from existing `totalEvents` in `SessionStats` — no backend changes needed.
 
 ---
 

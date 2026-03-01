@@ -35,6 +35,7 @@ export default function App() {
     setSelectedSession,
     connected,
     clearEvents,
+    truncated,
   } = useWebSocket(WS_URL);
 
   const { route, navigate } = useRouter();
@@ -92,7 +93,7 @@ export default function App() {
             </div>
 
             <div className="dashboard-center">
-              <EventFeed events={events} />
+              <EventFeed events={events} truncated={truncated} />
             </div>
 
             <div className="dashboard-right">
