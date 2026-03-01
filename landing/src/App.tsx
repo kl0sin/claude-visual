@@ -3,6 +3,8 @@ import { Hero } from "./components/Hero";
 import { Features } from "./components/Features";
 import { DemoTerminal } from "./components/DemoTerminal";
 import { DemoHistory } from "./components/DemoHistory";
+import { DemoAlerts } from "./components/DemoAlerts";
+import { DemoStats } from "./components/DemoStats";
 import { Download } from "./components/Download";
 import { Footer } from "./components/Footer";
 
@@ -39,6 +41,22 @@ export function App() {
               <DemoHistory />
               <p className="demo-caption">
                 Browse and replay past sessions stored locally on your machine
+              </p>
+            </div>
+
+            <div className="demo-block">
+              <p className="demo-block-label">03 // SMART ALERTS</p>
+              <DemoAlerts />
+              <p className="demo-caption">
+                Desktop notifications + in-app toasts — tool failures, permission requests, cost thresholds
+              </p>
+            </div>
+
+            <div className="demo-block">
+              <p className="demo-block-label">04 // HISTORICAL ANALYTICS</p>
+              <DemoStats />
+              <p className="demo-caption">
+                Per-project KPIs, top tool usage, session trends over 30 days and model breakdown
               </p>
             </div>
           </div>
