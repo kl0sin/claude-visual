@@ -253,6 +253,19 @@ export class EventStore {
         );
         if (!hasStart) this._adoptOrSynthSubagentStart(event, sid);
       }
+
+    } else if (eventType === "SessionEnd" && sessionId) {
+      // Complete any active agents that were started in this session.
+      // Covers agents emitted by the SessionStart hook (agent_type "session") which
+      // never receive a SubagentStop because nothing above them issues one.
+      for (const agent of this.agents.values()) {
+        if (agent.sessionId === sessionId && agent.status === "active") {
+          agent.endTime = event.timestamp;
+          agent.status = "completed";
+          event.duration = agent.endTime - agent.startTime;
+          this._persistAgent(agent);
+        }
+      }
     }
 
     // ── Pending tool tracking (transient) ────────────────────────────────

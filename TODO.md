@@ -48,7 +48,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Event persistence (SQLite)** — replace the in-memory `EventStore` with a SQLite database via `bun:sqlite`. Benefits: unlimited live session history, survives server restarts, query support for events, foundation for historical statistics. **Unlocks: Historical statistics, Replay mode.**
 
-- [ ] **Hook `SessionStart` → emit `SubagentStart`** — the current SubagentStart/Stop parity problem stems from SubagentStart firing only once at session start. Add emission of an additional `SubagentStart` event in the `SessionStart` hook — every session will have a guaranteed start visible immediately.
+- [x] **Hook `SessionStart` → emit `SubagentStart`** — fixed: `SessionStart` hook now sends a second `SubagentStart` event (agent_type `"session"`) immediately after, so every session appears as an active agent from the moment it starts — no retroactive synthesis needed. `SessionEnd` now also completes any `active` agents in that session so root-session agents close cleanly (they never receive a `SubagentStop`). **Requires re-running `bash hooks/install.sh`.**
 
 ---
 
