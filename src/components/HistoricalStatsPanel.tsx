@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import type { ProjectStats } from "../../shared/types";
 import { formatCost, getModelLabel } from "../../shared/tokens";
 
-const API_BASE = (window as any).__TAURI__ ? "http://localhost:3200" : "";
-
 function formatTokenCount(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
@@ -20,9 +18,11 @@ function modelColor(model: string): string {
 interface HistoricalStatsPanelProps {
   projectId: string;
   projectName: string;
+  apiBase: string;
+  authHeaders: Record<string, string>;
 }
 
-export function HistoricalStatsPanel({ projectId, projectName }: HistoricalStatsPanelProps) {
+export function HistoricalStatsPanel({ projectId, projectName, apiBase, authHeaders }: HistoricalStatsPanelProps) {
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export function HistoricalStatsPanel({ projectId, projectName }: HistoricalStats
     setError(null);
     setStats(null);
 
-    fetch(`${API_BASE}/api/history/stats?project=${encodeURIComponent(projectId)}`)
+    fetch(`${apiBase}/api/history/stats?project=${encodeURIComponent(projectId)}`, { headers: authHeaders })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<ProjectStats>;

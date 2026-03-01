@@ -8,10 +8,10 @@ interface HeaderProps {
   pendingTools: PendingTool[];
   isProcessing: boolean;
   onClear: () => void;
-  mode: "live" | "history";
-  onModeChange: (mode: "live" | "history") => void;
-  alertsEnabled: boolean;
-  onOpenAlerts: () => void;
+  mode: "live" | "history" | "settings";
+  onModeChange: (mode: "live" | "history" | "settings") => void;
+  isRemoteServer: boolean;
+  hasAlerts: boolean;
 }
 
 function formatTokens(n: number): string {
@@ -30,8 +30,8 @@ export function Header({
   onClear,
   mode,
   onModeChange,
-  alertsEnabled,
-  onOpenAlerts,
+  isRemoteServer,
+  hasAlerts,
 }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -51,9 +51,6 @@ export function Header({
     };
   }, []);
 
-  // Only show the attention banner when a tool has been pending for a long time
-  // (>15s), indicating the user likely needs to approve a permission prompt.
-  // Normal tool execution (Bash, Task, etc.) won't trigger this.
   useEffect(() => {
     if (pendingTools.length === 0) {
       setBannerVisible(false);
@@ -62,9 +59,7 @@ export function Header({
     const STALL_THRESHOLD = 15_000;
     const check = () => {
       const now = Date.now();
-      const stalled = pendingTools.some(
-        (p) => now - p.since >= STALL_THRESHOLD,
-      );
+      const stalled = pendingTools.some((p) => now - p.since >= STALL_THRESHOLD);
       setBannerVisible(stalled);
     };
     check();
@@ -73,6 +68,9 @@ export function Header({
   }, [pendingTools]);
 
   const toolNames = pendingTools.map((p) => p.tool).join(", ");
+
+  // Dot indicators on the gear: remote server or alerts enabled
+  const gearDot = isRemoteServer || hasAlerts;
 
   return (
     <header className="header">
@@ -84,12 +82,7 @@ export function Header({
       )}
 
       <div className="header-left">
-        <img
-          src="/icon.png"
-          alt=""
-          className="header-logo"
-          aria-hidden="true"
-        />
+        <img src="/icon.png" alt="" className="header-logo" aria-hidden="true" />
         <h1 className={`header-title ${glitch ? "glitch" : ""}`}>
           <span className="header-title-main">CLAUDE</span>
           <span className="header-title-accent">VISUAL</span>
@@ -124,20 +117,9 @@ export function Header({
           <span className="header-stat-divider" />
           <span className="header-stat">
             <span className="stat-label">TOKENS</span>
-            <span className="stat-value magenta">
-              {formatTokens(totalTokens)}
-            </span>
+            <span className="stat-value magenta">{formatTokens(totalTokens)}</span>
           </span>
         </div>
-
-        <button
-          className={`btn-alerts ${alertsEnabled ? "active" : ""}`}
-          onClick={onOpenAlerts}
-          title="Alert settings"
-          aria-label="Open alert settings"
-        >
-          ALERTS
-        </button>
 
         <button
           className="btn-clear"
@@ -145,6 +127,17 @@ export function Header({
           title="Clear all events"
         >
           PURGE
+        </button>
+
+        <button
+          className={`btn-settings ${mode === "settings" ? "active" : ""}`}
+          onClick={() => onModeChange(mode === "settings" ? "live" : "settings")}
+          title="Settings"
+          aria-label="Settings"
+          aria-pressed={mode === "settings"}
+        >
+          <span className="btn-settings-icon">⚙</span>
+          {gearDot && <span className="btn-settings-dot" aria-hidden="true" />}
         </button>
 
         <div

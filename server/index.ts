@@ -12,14 +12,40 @@ const clients = new Set<ServerWebSocket<unknown>>();
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// Optional auth token — set CLAUDE_VISUAL_TOKEN env var to enable
+const AUTH_TOKEN = process.env.CLAUDE_VISUAL_TOKEN || undefined;
+
+// CORS: when AUTH_TOKEN is set allow any origin (token provides the security);
+// otherwise use the existing local-only policy in production.
 app.use(
   "/*",
   cors(
-    isProduction
-      ? { origin: [`http://localhost:${process.env.PORT || 3200}`] }
-      : { origin: "*" }
+    AUTH_TOKEN
+      ? { origin: "*", allowHeaders: ["Authorization", "Content-Type"] }
+      : isProduction
+        ? { origin: [`http://localhost:${process.env.PORT || 3200}`] }
+        : { origin: "*" }
   )
 );
+
+// Auth middleware — skip /api/health and /api/info so connectivity can be tested
+app.use("/*", async (c, next) => {
+  const path = new URL(c.req.url).pathname;
+  if (!AUTH_TOKEN || path === "/api/health" || path === "/api/info") {
+    return next();
+  }
+  const header = c.req.header("Authorization") ?? "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : header;
+  if (token !== AUTH_TOKEN) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  return next();
+});
+
+// Server info — no auth required (used by clients to probe a remote server)
+app.get("/api/info", (c) => {
+  return c.json({ name: "Claude Visual", version: "0.2.0", auth: !!AUTH_TOKEN });
+});
 
 // Receive events from Claude Code hooks
 app.post("/api/events", async (c) => {
@@ -219,6 +245,13 @@ const server = Bun.serve({
 
     // WebSocket upgrade
     if (url.pathname === "/ws") {
+      // Optional token auth via query param (headers unavailable during WS upgrade)
+      if (AUTH_TOKEN) {
+        const token = url.searchParams.get("token") ?? "";
+        if (token !== AUTH_TOKEN) {
+          return new Response("Unauthorized", { status: 401 });
+        }
+      }
       const upgraded = server.upgrade(req);
       if (upgraded) return undefined;
       return new Response("WebSocket upgrade failed", { status: 400 });

@@ -1,12 +1,12 @@
 import { useState } from "react";
 
-const API_BASE = (window as any).__TAURI__ ? "http://localhost:3200" : "";
-
 interface HookInstallBannerProps {
   onInstalled: () => void;
+  apiBase: string;
+  authHeaders: Record<string, string>;
 }
 
-export function HookInstallBanner({ onInstalled }: HookInstallBannerProps) {
+export function HookInstallBanner({ onInstalled, apiBase, authHeaders }: HookInstallBannerProps) {
   const [installing, setInstalling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,7 +14,7 @@ export function HookInstallBanner({ onInstalled }: HookInstallBannerProps) {
     setInstalling(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/hooks/install`, { method: "POST" });
+      const res = await fetch(`${apiBase}/api/hooks/install`, { method: "POST", headers: authHeaders });
       const data = await res.json();
       if (data.ok) {
         onInstalled();

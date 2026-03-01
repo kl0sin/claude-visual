@@ -26,9 +26,11 @@ const DEFAULT_STATS: SessionStats = {
   pendingTools: [],
 };
 
-const API_BASE = (window as any).__TAURI__ ? 'http://localhost:3200' : '';
-
-export function useWebSocket(url: string): UseWebSocketReturn {
+export function useWebSocket(
+  url: string,
+  apiBase: string,
+  authHeaders: Record<string, string>,
+): UseWebSocketReturn {
   const [allEvents, setAllEvents] = useState<ClaudeEvent[]>([]);
   const [globalStats, setGlobalStats] = useState<SessionStats | null>(null);
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -125,20 +127,31 @@ export function useWebSocket(url: string): UseWebSocketReturn {
     };
   }, [connect]);
 
+  // Reset local state when switching to a different server
+  useEffect(() => {
+    setAllEvents([]);
+    setGlobalStats(null);
+    setSessions([]);
+    setSelectedSession(null);
+    setSessionTokens(null);
+  }, [url]);
+
   // Fetch per-session token stats when session changes or new events arrive
   useEffect(() => {
     if (!selectedSession) {
       setSessionTokens(null);
       return;
     }
-    fetch(`${API_BASE}/api/stats?session=${encodeURIComponent(selectedSession)}`)
+    fetch(`${apiBase}/api/stats?session=${encodeURIComponent(selectedSession)}`, {
+      headers: authHeaders,
+    })
       .then((r) => r.json())
       .then((data: SessionStats) => setSessionTokens(data.tokens))
       .catch(() => setSessionTokens(null));
   }, [selectedSession, globalStats]);
 
   const clearEvents = useCallback(() => {
-    fetch(`${API_BASE}/api/clear`, { method: "POST" }).catch((err) => {
+    fetch(`${apiBase}/api/clear`, { method: "POST", headers: authHeaders }).catch((err) => {
       console.error("[NEURAL LINK] Clear failed:", err);
     });
   }, []);

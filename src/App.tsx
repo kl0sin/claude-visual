@@ -8,17 +8,12 @@ import { TokenPanel } from "./components/TokenPanel";
 import { SessionSelector } from "./components/SessionSelector";
 import { HookInstallBanner } from "./components/HookInstallBanner";
 import { HistoryBrowser } from "./components/HistoryBrowser";
+import { SettingsPage } from "./components/SettingsPage";
 import { ToastContainer } from "./components/ToastContainer";
-import { AlertSettingsModal } from "./components/AlertSettingsModal";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useRouter } from "./hooks/useRouter";
 import { useNotifications } from "./hooks/useNotifications";
-
-const WS_URL = (window as any).__TAURI__
-  ? "ws://localhost:3200/ws"
-  : `ws://${window.location.host}/ws`;
-
-const API_BASE = (window as any).__TAURI__ ? "http://localhost:3200" : "";
+import { useServerConfig } from "./hooks/useServerConfig";
 
 const DEFAULT_TOKENS = {
   inputTokens: 0,
@@ -30,6 +25,13 @@ const DEFAULT_TOKENS = {
 
 export default function App() {
   const {
+    activeId: activeServerId,
+    wsUrl,
+    apiBase,
+    authHeaders,
+  } = useServerConfig();
+
+  const {
     events,
     allEvents,
     stats,
@@ -40,19 +42,18 @@ export default function App() {
     connected,
     clearEvents,
     truncated,
-  } = useWebSocket(WS_URL);
+  } = useWebSocket(wsUrl, apiBase, authHeaders);
 
   const { route, navigate } = useRouter();
   const mode = route.mode;
 
   const [hooksInstalled, setHooksInstalled] = useState<boolean | null>(null);
-  const [alertsOpen, setAlertsOpen] = useState(false);
 
   const { toasts, dismissToast, settings: alertSettings, updateSettings: updateAlertSettings } =
     useNotifications(allEvents, globalStats, sessions);
 
   const checkHookStatus = () => {
-    fetch(`${API_BASE}/api/hooks/status`)
+    fetch(`${apiBase}/api/hooks/status`, { headers: authHeaders })
       .then((r) => r.json())
       .then((data: { installed: boolean }) => setHooksInstalled(data.installed))
       .catch(() => setHooksInstalled(false));
@@ -75,14 +76,18 @@ export default function App() {
         onClear={clearEvents}
         mode={mode}
         onModeChange={(m) => navigate({ mode: m })}
-        alertsEnabled={alertSettings.enabled}
-        onOpenAlerts={() => setAlertsOpen(true)}
+        isRemoteServer={activeServerId !== "local"}
+        hasAlerts={alertSettings.enabled}
       />
 
-      {mode === "live" ? (
+      {mode === "live" && (
         <>
           {hooksInstalled === false && (
-            <HookInstallBanner onInstalled={checkHookStatus} />
+            <HookInstallBanner
+              onInstalled={checkHookStatus}
+              apiBase={apiBase}
+              authHeaders={authHeaders}
+            />
           )}
 
           {sessions.length > 0 && (
@@ -124,25 +129,28 @@ export default function App() {
             </div>
           </main>
         </>
-      ) : (
+      )}
+
+      {mode === "history" && (
         <HistoryBrowser
-          projectId={route.projectId}
-          sessionId={route.sessionId}
+          projectId={"projectId" in route ? route.projectId : undefined}
+          sessionId={"sessionId" in route ? route.sessionId : undefined}
           onNavigate={(projectId, sessionId) =>
             navigate({ mode: "history", projectId, sessionId })
           }
+          apiBase={apiBase}
+          authHeaders={authHeaders}
+        />
+      )}
+
+      {mode === "settings" && (
+        <SettingsPage
+          alertSettings={alertSettings}
+          onUpdateAlerts={updateAlertSettings}
         />
       )}
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-
-      {alertsOpen && (
-        <AlertSettingsModal
-          settings={alertSettings}
-          onUpdate={updateAlertSettings}
-          onClose={() => setAlertsOpen(false)}
-        />
-      )}
 
       <footer className="footer">
         <span className="footer-text">
@@ -154,7 +162,9 @@ export default function App() {
             ? connected
               ? "◉ SYSTEM ONLINE"
               : "◎ AWAITING CONNECTION"
-            : "◉ HISTORY MODE"}
+            : mode === "settings"
+              ? "◈ SETTINGS"
+              : "◉ HISTORY MODE"}
         </span>
       </footer>
     </div>

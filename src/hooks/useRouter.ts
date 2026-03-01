@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 
 export type AppRoute =
   | { mode: "live" }
-  | { mode: "history"; projectId?: string; sessionId?: string };
+  | { mode: "history"; projectId?: string; sessionId?: string }
+  | { mode: "settings" };
 
 function parsePath(pathname: string): AppRoute {
   const parts = pathname.replace(/^\//, "").split("/").filter(Boolean);
@@ -13,10 +14,12 @@ function parsePath(pathname: string): AppRoute {
       sessionId: parts[2] ? decodeURIComponent(parts[2]) : undefined,
     };
   }
+  if (parts[0] === "settings") return { mode: "settings" };
   return { mode: "live" };
 }
 
 function routeToPath(route: AppRoute): string {
+  if (route.mode === "settings") return "/settings";
   if (route.mode === "live") return "/";
   if (!route.projectId) return "/history";
   if (!route.sessionId) return `/history/${encodeURIComponent(route.projectId)}`;

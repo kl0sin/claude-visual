@@ -10,8 +10,7 @@ import type {
 } from "../types";
 import { estimateCost } from "../../shared/tokens";
 import { HistoricalStatsPanel } from "./HistoricalStatsPanel";
-
-const API_BASE = (window as any).__TAURI__ ? "http://localhost:3200" : "";
+import { useServerConfig } from "../hooks/useServerConfig";
 
 function formatTokenCount(n: number): string {
   if (n === 0) return "0";
@@ -355,6 +354,7 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
   scrollToMessageIndex?: number;
   highlightQuery?: string;
 }) {
+  const { apiBase, authHeaders } = useServerConfig();
   const [detail, setDetail] = useState<HistorySessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingAll, setLoadingAll] = useState(false);
@@ -393,7 +393,8 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
     setDetail(null);
     const limit = scrollToMessageIndex !== undefined ? 999999 : DEFAULT_LIMIT;
     fetch(
-      `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=${limit}`,
+      `${apiBase}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=${limit}`,
+      { headers: authHeaders },
     )
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -429,7 +430,8 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
     scrollTargetRef.current = savedScrollTop + prependedCount * VIRTUAL_ESTIMATE_PX;
     setLoadingAll(true);
     fetch(
-      `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=999999`,
+      `${apiBase}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=999999`,
+      { headers: authHeaders },
     )
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -594,6 +596,7 @@ function SessionList({
   onSelect: (session: HistorySession) => void;
   onAutoSelect?: (session: HistorySession) => void;
 }) {
+  const { apiBase, authHeaders } = useServerConfig();
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [loading, setLoading] = useState(true);
   const didAutoSelect = useRef<string | undefined>(undefined);
@@ -603,7 +606,8 @@ function SessionList({
     setSessions([]);
     didAutoSelect.current = undefined;
     fetch(
-      `${API_BASE}/api/history/sessions?project=${encodeURIComponent(projectId)}`,
+      `${apiBase}/api/history/sessions?project=${encodeURIComponent(projectId)}`,
+      { headers: authHeaders },
     )
       .then((r) => r.json())
       .then((data: HistorySession[]) => setSessions(data))
@@ -808,12 +812,16 @@ interface HistoryBrowserProps {
   projectId?: string;
   sessionId?: string;
   onNavigate: (projectId?: string, sessionId?: string) => void;
+  apiBase: string;
+  authHeaders: Record<string, string>;
 }
 
 export function HistoryBrowser({
   projectId: routeProjectId,
   sessionId: routeSessionId,
   onNavigate,
+  apiBase,
+  authHeaders,
 }: HistoryBrowserProps) {
   const [projects, setProjects] = useState<HistoryProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -886,9 +894,9 @@ export function HistoryBrowser({
     }
     const t = setTimeout(() => {
       setSearching(true);
-      let url = `${API_BASE}/api/history/search?q=${encodeURIComponent(searchQuery)}`;
+      let url = `${apiBase}/api/history/search?q=${encodeURIComponent(searchQuery)}`;
       if (selectedProject) url += `&project=${encodeURIComponent(selectedProject.id)}`;
-      fetch(url)
+      fetch(url, { headers: authHeaders })
         .then((r) => r.json())
         .then((data: SearchResult[]) => setSearchResults(data))
         .catch(() => setSearchResults([]))
@@ -899,7 +907,7 @@ export function HistoryBrowser({
 
   // Load projects and select from URL if present
   useEffect(() => {
-    fetch(`${API_BASE}/api/history/projects`)
+    fetch(`${apiBase}/api/history/projects`, { headers: authHeaders })
       .then((r) => r.json())
       .then((data: HistoryProject[]) => {
         setProjects(data);
@@ -1135,6 +1143,8 @@ export function HistoryBrowser({
             <HistoricalStatsPanel
               projectId={selectedProject.id}
               projectName={selectedProject.name}
+              apiBase={apiBase}
+              authHeaders={authHeaders}
             />
           ) : (
             <div className="history-empty">
@@ -1146,6 +1156,8 @@ export function HistoryBrowser({
           <HistoricalStatsPanel
             projectId={selectedProject.id}
             projectName={selectedProject.name}
+            apiBase={apiBase}
+            authHeaders={authHeaders}
           />
         ) : (
           <TranscriptPanel key={selectedSession.filePath} session={selectedSession} scrollToMessageIndex={scrollToIdx} highlightQuery={highlightQuery} />

@@ -40,7 +40,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [ ] **Replay mode** — replay a live session at ×1/×5/×10 speed (throttled EventStream), useful for step-by-step analysis of exactly what happened.
 
-- [ ] **Multi-instance / remote** — the dashboard currently assumes a single local server (`localhost:3200`). Support connecting to a remote instance (URL + optional token auth).
+- [x] **Multi-instance / remote** — fixed: `useServerConfig` hook manages a list of server instances (local + user-added remote) persisted in `localStorage`. Derives `wsUrl`, `apiBase`, `authHeaders` from the active server. `ServerConfigModal` (button in Header showing active server name) lists saved servers with TEST/CONNECT/remove buttons and an Add Server form (name, URL, optional auth token). Server-side: `CLAUDE_VISUAL_TOKEN` env var enables Bearer token auth on all API routes + `?token=` query param for WebSocket; CORS widened to `*` when auth is active. `GET /api/info` and `GET /api/health` remain public. All fetch calls across `useWebSocket`, `HistoryBrowser`, `HistoricalStatsPanel`, `HookInstallBanner`, `App` thread the dynamic `apiBase`/`authHeaders`. Switching server resets WebSocket state and reconnects to the new instance.
 
 ---
 
