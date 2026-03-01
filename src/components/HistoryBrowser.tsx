@@ -9,6 +9,7 @@ import type {
   SearchResult,
 } from "../types";
 import { estimateCost } from "../../shared/tokens";
+import { HistoricalStatsPanel } from "./HistoricalStatsPanel";
 
 const API_BASE = (window as any).__TAURI__ ? "http://localhost:3200" : "";
 
@@ -237,16 +238,35 @@ function InstructionBlock({ content }: { content: TranscriptContent[] }) {
 
 // ── Message bubble ──────────────────────────────────────────
 
+/** Renders `text` with all case-insensitive occurrences of `query` wrapped in <mark>. */
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query) return <>{text}</>;
+  const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.toLowerCase() ? (
+          <mark key={i} className="search-highlight">{part}</mark>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 function MessageBubble({
   role,
   content,
   tokens,
   model,
+  highlightQuery,
 }: {
   role: "user" | "assistant";
   content: TranscriptContent[];
   tokens?: { totalTokens: number } | undefined;
   model?: string;
+  highlightQuery?: string;
 }) {
   if (isSystemInstruction(role, content)) {
     return <InstructionBlock content={content} />;
@@ -310,7 +330,7 @@ function MessageBubble({
       <div className="msg-content">
         {textParts.map((c, i) => (
           <p key={i} className="msg-text">
-            {c.text}
+            {highlightQuery ? <HighlightText text={c.text} query={highlightQuery} /> : c.text}
           </p>
         ))}
         {toolUses.map((c, i) => (
@@ -330,9 +350,10 @@ const DEFAULT_LIMIT = 300;
 // Must stay in sync with estimateSize below. Used to compensate for prepended items.
 const VIRTUAL_ESTIMATE_PX = 150;
 
-function TranscriptPanel({ session, scrollToMessageIndex }: {
+function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
   session: HistorySession;
   scrollToMessageIndex?: number;
+  highlightQuery?: string;
 }) {
   const [detail, setDetail] = useState<HistorySessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -343,26 +364,34 @@ function TranscriptPanel({ session, scrollToMessageIndex }: {
   // null   → initial/retry load: scroll to end
   // number → Load All: target scrollTop in pixels after prepending (preserves viewport)
   const scrollTargetRef = useRef<number | null>(null);
-  // Pending message index to scroll to after data loads (from search navigation)
-  const scrollToIdxRef = useRef<number | undefined>(undefined);
+  // Callback ref attached to the search-target message.
+  // Fires synchronously when the element enters the DOM — avoids useEffect timing issues
+  // where setDetail + setLoading may not be batched, leaving targetRef.current null.
+  const targetCallbackRef = useCallback((node: HTMLDivElement | null) => {
+    node?.scrollIntoView({ block: "center" });
+  }, []);
 
   const messages = detail?.messages ?? [];
   const isTruncated = detail != null && detail.totalMessages > messages.length;
 
+  // In search mode we disable virtualisation so scrollIntoView works reliably.
+  // rowVirtualizer.scrollToIndex() relies on estimated heights for unrendered items and
+  // consistently lands at the wrong position when messages vary greatly in size.
+  const searchMode = scrollToMessageIndex !== undefined;
+
   const rowVirtualizer = useVirtualizer({
-    count: messages.length,
+    count: searchMode ? 0 : messages.length, // disabled in search mode
     getScrollElement: () => parentRef.current,
     estimateSize: () => VIRTUAL_ESTIMATE_PX,
     overscan: 8,
   });
 
-  // Fetch on session change (or when switching between normal/search-nav modes)
+  // Fetch on session change, or when toggling between normal (limit=300) and search-nav (limit=all).
   useEffect(() => {
     setLoading(true);
     setError(null);
     setDetail(null);
     const limit = scrollToMessageIndex !== undefined ? 999999 : DEFAULT_LIMIT;
-    scrollToIdxRef.current = scrollToMessageIndex;
     fetch(
       `${API_BASE}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=${limit}`,
     )
@@ -373,26 +402,18 @@ function TranscriptPanel({ session, scrollToMessageIndex }: {
       .then((data: HistorySessionDetail) => setDetail(data))
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
-    // scrollToMessageIndex !== undefined controls the fetch limit; re-fetch when mode toggles
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.filePath, retryKey, scrollToMessageIndex !== undefined]);
 
-  // After detail loads: scroll to search match, restore pixel offset (Load All), or scroll to end.
+  // Handles Load All pixel-restore and normal-mode scroll-to-end.
+  // Search-mode scrolling is handled by targetCallbackRef (fires on DOM attach, before effects).
   useEffect(() => {
     if (!detail || messages.length === 0) return;
     const pixelTarget = scrollTargetRef.current;
-    const idxTarget = scrollToIdxRef.current;
-    scrollTargetRef.current = null; // consume
-    scrollToIdxRef.current = undefined; // consume
+    scrollTargetRef.current = null;
     if (pixelTarget !== null) {
-      // Directly set scrollTop — no animation, immediate. The virtualizer renders
-      // items around this offset and measures them, naturally correcting any drift.
       if (parentRef.current) parentRef.current.scrollTop = pixelTarget;
-    } else if (idxTarget !== undefined) {
-      requestAnimationFrame(() => {
-        rowVirtualizer.scrollToIndex(idxTarget, { align: "center" });
-      });
-    } else {
+    } else if (!searchMode) {
       requestAnimationFrame(() => {
         rowVirtualizer.scrollToIndex(messages.length - 1, { align: "end" });
       });
@@ -493,41 +514,66 @@ function TranscriptPanel({ session, scrollToMessageIndex }: {
       )}
 
       <div ref={parentRef} className="transcript-messages">
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const msg = messages[virtualRow.index];
-            if (!msg) return null;
-            const isTarget = scrollToMessageIndex !== undefined && virtualRow.index === scrollToMessageIndex;
-            return (
-              <div
-                key={virtualRow.key}
-                data-index={virtualRow.index}
-                ref={rowVirtualizer.measureElement}
-                className={`transcript-virtual-row${isTarget ? " search-target" : ""}`}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <MessageBubble
-                  role={msg.role}
-                  content={msg.content}
-                  tokens={msg.tokens}
-                  model={msg.model}
-                />
-              </div>
-            );
-          })}
-        </div>
+        {searchMode ? (
+          // Non-virtual rendering: all messages in the DOM so scrollIntoView is accurate.
+          // Virtual list can't reliably scroll to unrendered items with dynamic heights.
+          <div>
+            {messages.map((msg, idx) => {
+              const isTarget = idx === scrollToMessageIndex;
+              return (
+                <div
+                  key={idx}
+                  ref={isTarget ? targetCallbackRef : undefined}
+                  className={`transcript-virtual-row${isTarget ? " search-target" : ""}`}
+                >
+                  <MessageBubble
+                    role={msg.role}
+                    content={msg.content}
+                    tokens={msg.tokens}
+                    model={msg.model}
+                    highlightQuery={isTarget ? highlightQuery : undefined}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          // Virtual rendering for normal browsing (handles large transcripts efficiently).
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "100%",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const msg = messages[virtualRow.index];
+              if (!msg) return null;
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  className="transcript-virtual-row"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <MessageBubble
+                    role={msg.role}
+                    content={msg.content}
+                    tokens={msg.tokens}
+                    model={msg.model}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -540,11 +586,13 @@ function SessionList({
   selectedSessionId,
   autoSelectId,
   onSelect,
+  onAutoSelect,
 }: {
   projectId: string;
   selectedSessionId: string | null;
   autoSelectId?: string;
   onSelect: (session: HistorySession) => void;
+  onAutoSelect?: (session: HistorySession) => void;
 }) {
   const [sessions, setSessions] = useState<HistorySession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -563,16 +611,17 @@ function SessionList({
       .finally(() => setLoading(false));
   }, [projectId]);
 
-  // Auto-select session from URL on load (or when autoSelectId changes)
+  // Auto-select session from URL on load (or when autoSelectId changes).
+  // Uses onAutoSelect when provided (search navigation) to avoid clearing scrollToIdx.
   useEffect(() => {
     if (!autoSelectId || sessions.length === 0) return;
     if (didAutoSelect.current === autoSelectId) return;
     const found = sessions.find((s) => s.id === autoSelectId);
     if (found) {
       didAutoSelect.current = autoSelectId;
-      onSelect(found);
+      (onAutoSelect ?? onSelect)(found);
     }
-  }, [sessions, autoSelectId, onSelect]);
+  }, [sessions, autoSelectId, onSelect, onAutoSelect]);
 
   if (loading) {
     return (
@@ -685,7 +734,7 @@ function SearchResultsPanel({
   query: string;
   results: SearchResult[];
   searching: boolean;
-  onSelect: (result: SearchResult) => void;
+  onSelect: (result: SearchResult, messageIndex: number) => void;
 }) {
   if (searching) {
     return (
@@ -716,12 +765,12 @@ function SearchResultsPanel({
         <div
           key={`${result.projectId}-${result.session.id}`}
           className="search-result-item"
-          onClick={() => onSelect(result)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelect(result)}
         >
-          <div className="search-result-header">
+          <button
+            className="search-result-header search-result-header-btn"
+            onClick={() => onSelect(result, result.matches[0]?.messageIndex ?? 0)}
+            title="Jump to first match"
+          >
             <span className="search-result-project">{result.projectName}</span>
             <span className="search-result-date">
               {formatDate(result.session.lastModified)}
@@ -732,12 +781,17 @@ function SearchResultsPanel({
             <span className="search-result-count">
               {result.matches.length} MATCH{result.matches.length !== 1 ? "ES" : ""}
             </span>
-          </div>
+          </button>
           {result.matches.map((m, i) => (
-            <div key={i} className="search-snippet">
+            <button
+              key={i}
+              className="search-snippet search-snippet-btn"
+              onClick={() => onSelect(result, m.messageIndex)}
+              title="Jump to this match"
+            >
               <div className="search-snippet-role">{m.role === "assistant" ? "CLAUDE" : "YOU"}</div>
               <HighlightSnippet {...m} />
-            </div>
+            </button>
           ))}
         </div>
       ))}
@@ -774,6 +828,8 @@ export function HistoryBrowser({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [scrollToIdx, setScrollToIdx] = useState<number | undefined>(undefined);
+  const [highlightQuery, setHighlightQuery] = useState<string | undefined>(undefined);
+  const [showStats, setShowStats] = useState(false);
 
   const [projectsWidth, setProjectsWidth] = useState(280);
   const [sessionsWidth, setSessionsWidth] = useState(320);
@@ -888,9 +944,17 @@ export function HistoryBrowser({
 
   const handleSessionSelect = useCallback((s: HistorySession) => {
     setScrollToIdx(undefined);
+    setHighlightQuery(undefined);
     setSelectedSession(s);
+    setShowStats(false);
     onNavigate(selectedProject?.name, s.id);
   }, [onNavigate, selectedProject?.name]);
+
+  // Used by SessionList auto-select (URL-driven) — does NOT clear scrollToIdx so that
+  // search navigation state is preserved when SessionList reconciles with the URL.
+  const handleAutoSessionSelect = useCallback((s: HistorySession) => {
+    setSelectedSession(s);
+  }, []);
 
   const isSearching = searchQuery.trim().length >= 2;
 
@@ -924,12 +988,13 @@ export function HistoryBrowser({
           query={searchQuery}
           results={searchResults}
           searching={searching}
-          onSelect={(result) => {
+          onSelect={(result, messageIndex) => {
             const proj = projects.find((p) => p.id === result.projectId);
             if (proj) {
               setSelectedProject(proj);
               setSelectedSession(result.session);
-              setScrollToIdx(result.matches[0]?.messageIndex);
+              setScrollToIdx(messageIndex);
+              setHighlightQuery(searchQuery.trim() || undefined);
               onNavigate(proj.name, result.session.id);
             }
             setSearchQuery("");
@@ -1037,6 +1102,7 @@ export function HistoryBrowser({
                 selectedSessionId={selectedSession?.id || null}
                 autoSelectId={routeSessionId}
                 onSelect={handleSessionSelect}
+                onAutoSelect={handleAutoSessionSelect}
               />
             )}
           </div>
@@ -1044,24 +1110,45 @@ export function HistoryBrowser({
         </>
       )}
 
-      {/* Right: Transcript */}
+      {/* Right: Transcript / Stats */}
       <div className="history-panel history-panel-wide">
         <div className="panel-header">
-          <span className="panel-title">TRANSCRIPT</span>
-          {selectedSession && (
-            <span className="panel-subtitle">
-              {selectedSession.id.slice(0, 8)}…
-            </span>
+          <span className="panel-title">{showStats || !selectedSession ? "PROJECT STATS" : "TRANSCRIPT"}</span>
+          {showStats && selectedProject ? (
+            <span className="panel-subtitle">{selectedProject.name}</span>
+          ) : selectedSession && !showStats ? (
+            <span className="panel-subtitle">{selectedSession.id.slice(0, 8)}…</span>
+          ) : null}
+          {selectedProject && selectedSession && (
+            <button
+              className="hist-stats-toggle"
+              onClick={() => setShowStats((v) => !v)}
+              title={showStats ? "Show transcript" : "Show project statistics"}
+            >
+              {showStats ? "TRANSCRIPT" : "STATS"}
+            </button>
           )}
         </div>
 
         {!selectedSession ? (
-          <div className="history-empty">
-            <span className="history-empty-icon">←</span>
-            <span>SELECT A SESSION</span>
-          </div>
+          selectedProject ? (
+            <HistoricalStatsPanel
+              projectId={selectedProject.id}
+              projectName={selectedProject.name}
+            />
+          ) : (
+            <div className="history-empty">
+              <span className="history-empty-icon">←</span>
+              <span>SELECT A SESSION</span>
+            </div>
+          )
+        ) : showStats && selectedProject ? (
+          <HistoricalStatsPanel
+            projectId={selectedProject.id}
+            projectName={selectedProject.name}
+          />
         ) : (
-          <TranscriptPanel key={selectedSession.filePath} session={selectedSession} scrollToMessageIndex={scrollToIdx} />
+          <TranscriptPanel key={selectedSession.filePath} session={selectedSession} scrollToMessageIndex={scrollToIdx} highlightQuery={highlightQuery} />
         )}
       </div>
       </div>

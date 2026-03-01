@@ -3016,11 +3016,14 @@ body {
   padding-bottom: 12px;
 }
 
-/* Search navigation target highlight */
+/* Search navigation target highlight — pulse glow (3 beats, then settles to soft ring) */
 .transcript-virtual-row.search-target .msg-bubble {
-  border-left: 2px solid var(--color-cyber-cyan);
-  box-shadow: inset 2px 0 0 rgba(0, 240, 255, 0.08);
-  background: rgba(0, 240, 255, 0.03);
+  box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.25), 0 0 12px rgba(0, 240, 255, 0.08);
+  animation: search-pulse 0.8s ease-in-out 3 forwards;
+}
+@keyframes search-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.25), 0 0 12px rgba(0, 240, 255, 0.08); }
+  50%       { box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.6),  0 0 24px rgba(0, 240, 255, 0.35); }
 }
 
 /* ── TRANSCRIPT TRUNCATED BANNER ──────────────────────── */
@@ -3487,6 +3490,26 @@ body {
   gap: 8px;
   margin-bottom: 8px;
 }
+/* Header as button — reset button styles, keep flex layout */
+.search-result-header-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 2px;
+  padding: 2px 4px;
+  margin: -2px -4px 6px;
+  transition: background 0.1s;
+}
+.search-result-header-btn:hover {
+  background: rgba(0, 240, 255, 0.06);
+}
+.search-result-header-btn:focus-visible {
+  outline: 1px solid var(--color-cyber-cyan);
+  outline-offset: -1px;
+}
 .search-result-project {
   color: var(--color-cyber-magenta);
   font-size: 11px;
@@ -3516,6 +3539,26 @@ body {
   white-space: normal;
   word-break: break-word;
 }
+/* Snippet as button — reset, keep block look, add hover */
+.search-snippet-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-left: 2px solid var(--color-cyber-border);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.1s, background 0.1s;
+}
+.search-snippet-btn:hover {
+  border-left-color: var(--color-cyber-cyan);
+  background: rgba(0, 240, 255, 0.04);
+}
+.search-snippet-btn:focus-visible {
+  outline: 1px solid var(--color-cyber-cyan);
+  outline-offset: -1px;
+}
 .search-snippet-role {
   color: var(--color-cyber-cyan);
   font-size: 10px;
@@ -3526,6 +3569,86 @@ mark.search-highlight {
   color: var(--color-cyber-cyan);
   border-radius: 2px;
   padding: 0 1px;
+}
+
+/* ── HISTORICAL STATS TOGGLE BUTTON ────────────────── */
+.hist-stats-toggle {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  font-family: inherit;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--color-cyber-border);
+  color: var(--color-cyber-text-dim);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.hist-stats-toggle:hover {
+  border-color: var(--color-cyber-cyan);
+  color: var(--color-cyber-cyan);
+}
+
+/* ── HISTORICAL STATS PANEL ────────────────────────── */
+.hist-stats-panel {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.hist-stats-section {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-cyber-border);
+}
+.hist-stats-section:last-child { border-bottom: none; }
+.hist-stats-section-title {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--color-cyber-text-dim);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.hist-model-row, .hist-tool-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.hist-model-name, .hist-tool-name {
+  width: 90px;
+  flex-shrink: 0;
+  color: var(--color-cyber-text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hist-model-cost, .hist-tool-count {
+  width: 52px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--color-cyber-text);
+  font-variant-numeric: tabular-nums;
+}
+.hist-model-sessions {
+  width: 32px;
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--color-cyber-text-dim);
+  font-size: 10px;
+}
+.hist-sparkline-svg {
+  width: 100%;
+  height: 44px;
+  display: block;
+}
+.hist-sparkline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--color-cyber-text-dim);
+  margin-top: 4px;
 }
 
 /* ── FOCUS VISIBLE ────────────────────────────────────── */

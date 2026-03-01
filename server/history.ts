@@ -9,8 +9,10 @@ import type {
   TokenUsage,
   SearchMatch,
   SearchResult,
+  ProjectStats,
 } from "../shared/types";
 import { EMPTY_TOKENS } from "../shared/types";
+import { getPricing, resolveModelFamily } from "../shared/tokens";
 
 const CLAUDE_DIR = path.join(process.env.HOME || "~", ".claude");
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects");
@@ -471,30 +473,18 @@ export async function searchTranscripts(
               : undefined;
         if (!role) continue;
 
-        // Capture and increment index for every user/assistant line,
-        // mirroring the order in which readSession() pushes to allMessages.
+        // Use parseContent() — same function as readSession() — to decide whether
+        // this entry would be pushed to allMessages and what index it would get.
+        // Skipping here (instead of after msgIdx++) keeps msgIdx in sync with allMessages.
+        const parsedContent = parseContent((entry as any).message?.content);
+        if (parsedContent.length === 0) continue;
+
         const curIdx = msgIdx++;
 
-        const rawContent = (entry as any).message?.content;
-        if (!rawContent) continue;
-
         // Only search text blocks for better signal
-        const textBlocks: string[] = [];
-        if (typeof rawContent === "string") {
-          if (rawContent.trim()) textBlocks.push(rawContent);
-        } else if (Array.isArray(rawContent)) {
-          for (const block of rawContent) {
-            if (
-              block &&
-              typeof block === "object" &&
-              block.type === "text" &&
-              typeof block.text === "string" &&
-              block.text.trim()
-            ) {
-              textBlocks.push(block.text);
-            }
-          }
-        }
+        const textBlocks = parsedContent
+          .filter((c): c is { type: "text"; text: string } => c.type === "text")
+          .map((c) => c.text);
 
         for (const blockText of textBlocks) {
           const idx = blockText.toLowerCase().indexOf(queryLow);
@@ -595,4 +585,128 @@ export async function installHooks(): Promise<{ ok: boolean; error?: string }> {
   } catch (e) {
     return { ok: false, error: String(e) };
   }
+}
+
+// ── HISTORICAL STATISTICS ────────────────────────────────────
+
+async function countToolsFromFile(
+  filePath: string,
+  counts: Map<string, number>,
+): Promise<void> {
+  let text: string;
+  try {
+    text = await Bun.file(filePath).text();
+  } catch {
+    return;
+  }
+
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (!line.includes('"tool_use"')) continue;
+    let entry: Record<string, unknown>;
+    try {
+      entry = JSON.parse(line);
+    } catch {
+      continue;
+    }
+
+    const content = (entry as any).message?.content;
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (block?.type === "tool_use" && typeof block.name === "string") {
+        counts.set(block.name, (counts.get(block.name) || 0) + 1);
+      }
+    }
+  }
+}
+
+function toDateString(ts: number): string {
+  return new Date(ts).toISOString().slice(0, 10);
+}
+
+export async function getProjectStats(projectId: string): Promise<ProjectStats | null> {
+  const sessions = await listSessions(projectId);
+  if (sessions.length === 0) return null;
+
+  const totalTokens: TokenUsage = { ...EMPTY_TOKENS };
+  let totalCost = 0;
+
+  const modelMap = new Map<string, { sessions: number; cost: number }>();
+  const dayMap = new Map<string, { count: number; tokens: number; cost: number }>();
+
+  // Pass 1 — aggregate from session metadata
+  for (const s of sessions) {
+    const p = getPricing(s.model);
+    const cost =
+      (s.tokens.inputTokens * p.input +
+        s.tokens.outputTokens * p.output +
+        s.tokens.cacheCreationTokens * p.cacheWrite +
+        s.tokens.cacheReadTokens * p.cacheRead) /
+      1_000_000;
+
+    totalCost += cost;
+    totalTokens.inputTokens += s.tokens.inputTokens;
+    totalTokens.outputTokens += s.tokens.outputTokens;
+    totalTokens.cacheCreationTokens += s.tokens.cacheCreationTokens;
+    totalTokens.cacheReadTokens += s.tokens.cacheReadTokens;
+    totalTokens.totalTokens += s.tokens.totalTokens;
+
+    if (s.model) {
+      const modelKey = resolveModelFamily(s.model);
+      const modelEntry = modelMap.get(modelKey) || { sessions: 0, cost: 0 };
+      modelEntry.sessions++;
+      modelEntry.cost += cost;
+      modelMap.set(modelKey, modelEntry);
+    }
+
+    const day = toDateString(s.lastModified);
+    const dayEntry = dayMap.get(day) || { count: 0, tokens: 0, cost: 0 };
+    dayEntry.count++;
+    dayEntry.tokens += s.tokens.totalTokens;
+    dayEntry.cost += cost;
+    dayMap.set(day, dayEntry);
+  }
+
+  // Pass 2 — scan JSONL for tool counts
+  const toolCountMap = new Map<string, number>();
+  for (const s of sessions) {
+    await countToolsFromFile(s.filePath, toolCountMap);
+  }
+
+  // Build sessionsByDay: 30 days from today-29 to today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const sessionsByDay = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(today.getTime() - (29 - i) * 86_400_000);
+    const dateStr = d.toISOString().slice(0, 10);
+    const entry = dayMap.get(dateStr);
+    return {
+      date: dateStr,
+      count: entry?.count || 0,
+      tokens: entry?.tokens || 0,
+      cost: entry?.cost || 0,
+    };
+  });
+
+  const modelBreakdown = Array.from(modelMap.entries())
+    .map(([model, v]) => ({ model, sessions: v.sessions, cost: v.cost }))
+    .sort((a, b) => b.cost - a.cost);
+
+  const toolCounts = Array.from(toolCountMap.entries())
+    .map(([tool, count]) => ({ tool, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const n = sessions.length;
+  return {
+    projectId,
+    totalSessions: n,
+    totalTokens,
+    totalCost,
+    avgCostPerSession: n > 0 ? totalCost / n : 0,
+    avgTokensPerSession: n > 0 ? totalTokens.totalTokens / n : 0,
+    modelBreakdown,
+    sessionsByDay,
+    toolCounts,
+  };
 }

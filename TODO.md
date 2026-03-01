@@ -36,7 +36,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [ ] **Session export** — download button for JSON/CSV of events from the selected session. Useful for external analysis or reporting.
 
-- [ ] **Historical statistics** — in History Browser: token and session count charts over time, most frequently used tools per project, average session cost.
+- [x] **Historical statistics** — in History Browser: token and session count charts over time, most frequently used tools per project, average session cost. Fixed: `getProjectStats()` w `server/history.ts` agreguje dane z metadanych sesji (dwa przebiegi: tokeny/koszty/model + skan JSONL dla narzędzi). Endpoint `/api/history/stats?project=`. Komponent `HistoricalStatsPanel` z KPI cards (sesje, tokeny, koszt, avg/sesja), sparkline 30 dni, model breakdown z barami, top 10 tools. Panel pojawia się w prawym obszarze gdy projekt wybrany bez sesji; przycisk STATS/TRANSCRIPT w nagłówku pozwala przełączyć widok gdy sesja jest otwarta.
 
 - [ ] **Replay mode** — replay a live session at ×1/×5/×10 speed (throttled EventStream), useful for step-by-step analysis of exactly what happened.
 

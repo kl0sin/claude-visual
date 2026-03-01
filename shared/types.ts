@@ -130,3 +130,35 @@ export interface SearchResult {
   projectName: string;
   matches: SearchMatch[];
 }
+
+// ── HISTORICAL STATISTICS TYPES ─────────────────────────────
+
+export interface DayStats {
+  date: string;    // "YYYY-MM-DD"
+  count: number;   // session count for that day
+  tokens: number;  // sum of totalTokens
+  cost: number;    // sum of costs (raw float)
+}
+
+export interface ModelStats {
+  model: string;
+  sessions: number;
+  cost: number;
+}
+
+export interface ToolStat {
+  tool: string;
+  count: number;
+}
+
+export interface ProjectStats {
+  projectId: string;
+  totalSessions: number;
+  totalTokens: TokenUsage;
+  totalCost: number;
+  avgCostPerSession: number;
+  avgTokensPerSession: number;
+  modelBreakdown: ModelStats[];   // sorted by cost desc
+  sessionsByDay: DayStats[];      // 30 entries oldest→newest, zeros filled in
+  toolCounts: ToolStat[];         // top 10 sorted by count desc
+}

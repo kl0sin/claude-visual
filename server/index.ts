@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import type { ServerWebSocket } from "bun";
 import { EventStore } from "./events";
 import { TranscriptTokenReader } from "./transcript";
-import { listProjects, listSessions, readSession, searchTranscripts, getHookStatus, installHooks } from "./history";
+import { listProjects, listSessions, readSession, searchTranscripts, getHookStatus, installHooks, getProjectStats } from "./history";
 
 const app = new Hono();
 const eventStore = new EventStore();
@@ -180,6 +180,14 @@ app.get("/api/history/session", async (c) => {
   const detail = await readSession(filePath, limit);
   if (!detail) return c.json({ error: "Session not found" }, 404);
   return c.json(detail);
+});
+
+app.get("/api/history/stats", async (c) => {
+  const projectId = c.req.query("project");
+  if (!projectId) return c.json({ error: "project required" }, 400);
+  const stats = await getProjectStats(projectId);
+  if (!stats) return c.json({ error: "not found" }, 404);
+  return c.json(stats);
 });
 
 app.get("/api/history/search", async (c) => {
