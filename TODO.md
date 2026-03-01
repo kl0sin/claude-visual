@@ -6,7 +6,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ## 🐛 Bugs / Tech Debt
 
-- [ ] **`decodeProjectPath` ambiguity** — `-` encodes both `/` and a hyphen in a directory name. The current heuristic works for typical cases (`_Projects/my-app`) but may fail for projects in regular subdirectories (`~/work/my-app`). Proper fix: filesystem lookup (`access()`) to verify which decoded path actually exists.
+- [x] **`decodeProjectPath` ambiguity** — fixed: function is now async and uses a recursive filesystem traversal (`stat` + backtracking DFS) to resolve which `-` characters are path separators vs literal hyphens. Naive decode is kept as a fast path (when the path exists) and as a fallback (when the project dir is gone). Tests added in `server/history.test.ts`.
 
 - [x] **Synthetic SubagentStart out-of-order** — fixed: `drainSideEffects()` is now called synchronously right after `add()` (before the `await transcriptReader.readNewData()`) so concurrent requests can no longer steal each other's synthetic events. The `event` handler in `useWebSocket.ts` also sorts when a newly arrived event has an earlier timestamp than the previous tail, providing a defensive second layer.
 

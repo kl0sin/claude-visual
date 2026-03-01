@@ -17,14 +17,11 @@ const SETTINGS_FILE = path.join(CLAUDE_DIR, "settings.json");
 const HOOKS_INSTALL_SCRIPT = path.join(import.meta.dir, "../hooks/install.sh");
 
 /**
- * Decode encoded project directory name back to a display path.
- * Claude Code encodes project paths by replacing / and _ with -,
- * with double-dash (--) representing /_ sequences.
- *
- * Example: -Users-john--Projects-my-app
- *       → /Users/john/_Projects/my-app
+ * Naive decode — replaces all `-` with `/` and `--` with `/_`.
+ * Incorrect for directory names containing literal hyphens, but used as
+ * a fast-path guess and as fallback when filesystem lookup fails.
  */
-function decodeProjectPath(encoded: string): string {
+function naiveDecodeProjectPath(encoded: string): string {
   let decoded = encoded;
   if (decoded.startsWith("-")) {
     decoded = "/" + decoded.slice(1);
@@ -32,6 +29,93 @@ function decodeProjectPath(encoded: string): string {
   decoded = decoded.replace(/--/g, "/_");
   decoded = decoded.replace(/-/g, "/");
   return decoded;
+}
+
+async function dirExists(p: string): Promise<boolean> {
+  try {
+    return (await stat(p)).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Walk `tokens[startIdx..]` greedily against the real filesystem, starting
+ * at `basePath`.  Each path component is formed by joining one or more
+ * consecutive tokens with literal hyphens until an existing directory is
+ * found; the search backtracks when a branch leads nowhere.
+ */
+async function resolveSegmentTokens(
+  tokens: string[],
+  startIdx: number,
+  basePath: string
+): Promise<string | null> {
+  if (startIdx >= tokens.length) return basePath;
+
+  for (let end = startIdx; end < tokens.length; end++) {
+    const component = tokens.slice(startIdx, end + 1).join("-");
+    const candidate = path.join(basePath, component);
+    if (await dirExists(candidate)) {
+      const result = await resolveSegmentTokens(tokens, end + 1, candidate);
+      if (result !== null) return result;
+    }
+  }
+  return null;
+}
+
+/**
+ * Decode encoded project directory name back to a filesystem path.
+ *
+ * Claude Code encodes absolute paths by replacing `/_` → `--` and `/` → `-`.
+ * A literal `-` in a directory name is indistinguishable from a `/` separator
+ * in the encoded form, so this function verifies candidates against the real
+ * filesystem and backtracks when a candidate does not exist.
+ *
+ * Fast path: if the naively-decoded path exists, return it immediately.
+ * Slow path: split on `--` (definite `/_` boundaries), then for each segment
+ *            walk the filesystem to find which hyphens are separators vs literals.
+ *
+ * Falls back to the naive decode if traversal yields no result (e.g. project
+ * directory was deleted).
+ *
+ * Example: -Users-john--Projects-my-app  →  /Users/john/_Projects/my-app
+ */
+export async function decodeProjectPath(encoded: string): Promise<string> {
+  const naive = naiveDecodeProjectPath(encoded);
+  if (await dirExists(naive)) return naive;
+
+  // Split on -- (each occurrence is a definite /_ boundary in the original path)
+  const parts = encoded.split("--");
+  let currentPath = "";
+  let segIdx = 0;
+
+  for (const part of parts) {
+    if (segIdx === 0) {
+      // First segment starts with "-" which represents the leading "/"
+      const tokenStr = part.startsWith("-") ? part.slice(1) : part;
+      const tokens = tokenStr.split("-").filter(Boolean);
+      if (tokens.length === 0) {
+        currentPath = "/";
+      } else {
+        const resolved = await resolveSegmentTokens(tokens, 0, "/");
+        if (!resolved) return naive;
+        currentPath = resolved;
+      }
+    } else {
+      // Subsequent segments come after "--" which encoded "/_".
+      // The underscore is the implicit prefix of the first directory in this segment.
+      const tokens = part.split("-").filter(Boolean);
+      if (tokens.length > 0) {
+        tokens[0] = "_" + tokens[0];
+        const resolved = await resolveSegmentTokens(tokens, 0, currentPath);
+        if (!resolved) return naive;
+        currentPath = resolved;
+      }
+    }
+    segIdx++;
+  }
+
+  return currentPath || naive;
 }
 
 function projectDisplayName(encoded: string): string {
@@ -109,7 +193,7 @@ export async function listProjects(): Promise<HistoryProject[]> {
       projects.push({
         id: entry,
         name: projectDisplayName(entry),
-        fullPath: decodeProjectPath(entry),
+        fullPath: await decodeProjectPath(entry),
         sessionCount: jsonlFiles.length,
         lastActivity,
       });
