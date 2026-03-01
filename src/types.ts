@@ -13,6 +13,8 @@ export type {
   TranscriptMessage,
   TranscriptContent,
   HookStatus,
+  SearchMatch,
+  SearchResult,
 } from "../shared/types";
 
 export { EMPTY_TOKENS } from "../shared/types";

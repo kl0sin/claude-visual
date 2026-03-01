@@ -7,6 +7,8 @@ import type {
   TranscriptMessage,
   TranscriptContent,
   TokenUsage,
+  SearchMatch,
+  SearchResult,
 } from "../shared/types";
 import { EMPTY_TOKENS } from "../shared/types";
 
@@ -392,6 +394,168 @@ function parseContent(raw: unknown): TranscriptContent[] {
   }
 
   return [];
+}
+
+function extractSnippet(
+  text: string,
+  matchIndex: number,
+  queryLen: number,
+  role: "user" | "assistant",
+): SearchMatch {
+  const HALF = 100;
+  const start = Math.max(0, matchIndex - HALF);
+  const end = Math.min(text.length, matchIndex + queryLen + HALF);
+  const prefix = start > 0 ? "…" : "";
+  const suffix = end < text.length ? "…" : "";
+  const snippet = prefix + text.slice(start, end) + suffix;
+  return {
+    role,
+    snippet,
+    matchOffset: matchIndex - start + prefix.length,
+    matchLength: queryLen,
+  };
+}
+
+export async function searchTranscripts(
+  query: string,
+  projectId?: string,
+  maxMatchesPerSession = 3,
+): Promise<SearchResult[]> {
+  const queryLow = query.toLowerCase();
+  const allProjects = await listProjects();
+  const targetProjects = projectId
+    ? allProjects.filter((p) => p.id === projectId)
+    : allProjects;
+
+  const results: SearchResult[] = [];
+
+  for (const project of targetProjects) {
+    const projectDir = path.join(PROJECTS_DIR, project.id);
+    let files: string[];
+    try {
+      files = await readdir(projectDir);
+    } catch {
+      continue;
+    }
+
+    const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+
+    for (const file of jsonlFiles) {
+      const filePath = path.join(projectDir, file);
+      let text: string;
+      try {
+        text = await Bun.file(filePath).text();
+      } catch {
+        continue;
+      }
+
+      const lines = text.split("\n").filter((l) => l.trim());
+      const matches: SearchMatch[] = [];
+
+      outer: for (const line of lines) {
+        let entry: Record<string, unknown>;
+        try {
+          entry = JSON.parse(line);
+        } catch {
+          continue;
+        }
+
+        const role: "user" | "assistant" | undefined =
+          entry.type === "user"
+            ? "user"
+            : entry.type === "assistant"
+              ? "assistant"
+              : undefined;
+        if (!role) continue;
+
+        const rawContent = (entry as any).message?.content;
+        if (!rawContent) continue;
+
+        // Only search text blocks for better signal
+        const textBlocks: string[] = [];
+        if (typeof rawContent === "string") {
+          if (rawContent.trim()) textBlocks.push(rawContent);
+        } else if (Array.isArray(rawContent)) {
+          for (const block of rawContent) {
+            if (
+              block &&
+              typeof block === "object" &&
+              block.type === "text" &&
+              typeof block.text === "string" &&
+              block.text.trim()
+            ) {
+              textBlocks.push(block.text);
+            }
+          }
+        }
+
+        for (const blockText of textBlocks) {
+          const idx = blockText.toLowerCase().indexOf(queryLow);
+          if (idx === -1) continue;
+          matches.push(extractSnippet(blockText, idx, query.length, role));
+          if (matches.length >= maxMatchesPerSession) break outer;
+        }
+      }
+
+      if (matches.length === 0) continue;
+
+      // Build a lightweight HistorySession
+      let fstat: Awaited<ReturnType<typeof stat>>;
+      try {
+        fstat = await stat(filePath);
+      } catch {
+        continue;
+      }
+
+      const sessionId = file.replace(".jsonl", "");
+      let messageCount = 0;
+      let userTurns = 0;
+      const tokens: TokenUsage = { ...EMPTY_TOKENS };
+      let model: string | undefined;
+
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line);
+          messageCount++;
+          if (entry.type === "user") {
+            userTurns++;
+          } else if (entry.type === "assistant" && entry.message?.usage) {
+            const u = entry.message.usage;
+            const input = u.input_tokens || 0;
+            const output = u.output_tokens || 0;
+            const cc = u.cache_creation_input_tokens || 0;
+            const cr = u.cache_read_input_tokens || 0;
+            tokens.inputTokens += input;
+            tokens.outputTokens += output;
+            tokens.cacheCreationTokens += cc;
+            tokens.cacheReadTokens += cr;
+            tokens.totalTokens += input + output + cc + cr;
+            if (entry.message.model) model = entry.message.model;
+          }
+        } catch {}
+      }
+
+      const session: HistorySession = {
+        id: sessionId,
+        projectId: project.id,
+        filePath,
+        messageCount,
+        userTurns,
+        tokens,
+        model,
+        lastModified: fstat.mtime.getTime(),
+      };
+
+      results.push({
+        session,
+        projectId: project.id,
+        projectName: project.name,
+        matches,
+      });
+    }
+  }
+
+  return results.sort((a, b) => b.session.lastModified - a.session.lastModified);
 }
 
 export async function getHookStatus(): Promise<{ installed: boolean }> {

@@ -129,7 +129,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
 
       <div className="agent-list">
         {agents.length === 0 ? (
-          <div className="agent-empty">No agents deployed</div>
+          <div className="agent-empty">NO AGENTS DEPLOYED</div>
         ) : (
           <>
             {activeAgents.map((agent) => {
@@ -152,7 +152,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                     <span className="agent-elapsed">{formatDuration(elapsed)}</span>
                   </div>
                   {agent.description && (
-                    <div className="agent-description">{agent.description}</div>
+                    <div className="agent-description" title={agent.description}>{agent.description}</div>
                   )}
 
                   {recent.length > 0 ? (
@@ -216,6 +216,12 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
               );
             })}
 
+            {completedAgents.length > 0 && (
+              <div className="agent-section-label">
+                {activeAgents.length > 0 ? "COMPLETED" : "RECENT"}
+              </div>
+            )}
+
             {completedAgents.map((agent) => {
               const type = formatAgentType(agent.type);
               const color = AGENT_COLORS[agent.type] ?? AGENT_COLORS[type] ?? "#00f0ff";
@@ -238,7 +244,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                     </span>
                   </div>
                   {agent.description && (
-                    <div className="agent-description">{agent.description}</div>
+                    <div className="agent-description" title={agent.description}>{agent.description}</div>
                   )}
                 </div>
               );

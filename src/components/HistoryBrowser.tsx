@@ -5,6 +5,8 @@ import type {
   HistorySession,
   HistorySessionDetail,
   TranscriptContent,
+  SearchMatch,
+  SearchResult,
 } from "../types";
 import { estimateCost } from "../../shared/tokens";
 
@@ -643,6 +645,90 @@ function CollapsedStrip({
   );
 }
 
+// ── Search components ────────────────────────────────────────
+
+function HighlightSnippet({ snippet, matchOffset, matchLength }: SearchMatch) {
+  const before = snippet.slice(0, matchOffset);
+  const match = snippet.slice(matchOffset, matchOffset + matchLength);
+  const after = snippet.slice(matchOffset + matchLength);
+  return (
+    <span>
+      {before}
+      <mark className="search-highlight">{match}</mark>
+      {after}
+    </span>
+  );
+}
+
+function SearchResultsPanel({
+  query,
+  results,
+  searching,
+  onSelect,
+}: {
+  query: string;
+  results: SearchResult[];
+  searching: boolean;
+  onSelect: (result: SearchResult) => void;
+}) {
+  if (searching) {
+    return (
+      <div className="history-empty">
+        <span className="history-empty-icon">⟳</span>
+        <span>SEARCHING TRANSCRIPTS...</span>
+      </div>
+    );
+  }
+
+  const queryDisplay = query.length > 32 ? query.slice(0, 32) + "…" : query;
+
+  if (results.length === 0) {
+    return (
+      <div className="history-empty">
+        <span className="history-empty-icon">∅</span>
+        <span>NO RESULTS FOR "{queryDisplay.toUpperCase()}"</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="search-results-panel">
+      <div className="search-results-header">
+        {results.length} SESSION{results.length !== 1 ? "S" : ""} MATCHED
+      </div>
+      {results.map((result) => (
+        <div
+          key={`${result.projectId}-${result.session.id}`}
+          className="search-result-item"
+          onClick={() => onSelect(result)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && onSelect(result)}
+        >
+          <div className="search-result-header">
+            <span className="search-result-project">{result.projectName}</span>
+            <span className="search-result-date">
+              {formatDate(result.session.lastModified)}
+            </span>
+            {result.session.model && (
+              <span className="msg-model">{shortModel(result.session.model)}</span>
+            )}
+            <span className="search-result-count">
+              {result.matches.length} MATCH{result.matches.length !== 1 ? "ES" : ""}
+            </span>
+          </div>
+          {result.matches.map((m, i) => (
+            <div key={i} className="search-snippet">
+              <div className="search-snippet-role">{m.role === "assistant" ? "CLAUDE" : "YOU"}</div>
+              <HighlightSnippet {...m} />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main HistoryBrowser ─────────────────────────────────────
 
 const MIN_WIDTH = 160;
@@ -667,6 +753,10 @@ export function HistoryBrowser({
   const [selectedSession, setSelectedSession] = useState<HistorySession | null>(
     null,
   );
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
 
   const [projectsWidth, setProjectsWidth] = useState(280);
   const [sessionsWidth, setSessionsWidth] = useState(320);
@@ -714,6 +804,25 @@ export function HistoryBrowser({
       };
       e.preventDefault();
     };
+
+  // Debounced search
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      setSearching(true);
+      let url = `${API_BASE}/api/history/search?q=${encodeURIComponent(searchQuery)}`;
+      if (selectedProject) url += `&project=${encodeURIComponent(selectedProject.id)}`;
+      fetch(url)
+        .then((r) => r.json())
+        .then((data: SearchResult[]) => setSearchResults(data))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchQuery, selectedProject]);
 
   // Load projects and select from URL if present
   useEffect(() => {
@@ -765,8 +874,49 @@ export function HistoryBrowser({
     onNavigate(selectedProject?.name, s.id);
   }, [onNavigate, selectedProject?.name]);
 
+  const isSearching = searchQuery.trim().length >= 2;
+
   return (
     <div className="history-browser">
+      {/* Search bar */}
+      <div className="history-search-bar">
+        <span className="history-search-icon">⌕</span>
+        <input
+          className="history-search-input"
+          placeholder="SEARCH TRANSCRIPTS..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Escape" && setSearchQuery("")}
+        />
+        {searching && <span className="history-search-spinner">⟳</span>}
+        {searchQuery && !searching && (
+          <button
+            className="history-search-clear"
+            onClick={() => setSearchQuery("")}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* Search results OR 3-column layout */}
+      {isSearching ? (
+        <SearchResultsPanel
+          query={searchQuery}
+          results={searchResults}
+          searching={searching}
+          onSelect={(result) => {
+            const proj = projects.find((p) => p.id === result.projectId);
+            if (proj) {
+              setSelectedProject(proj);
+              setSelectedSession(result.session);
+              onNavigate(proj.name, result.session.id);
+            }
+            setSearchQuery("");
+          }}
+        />
+      ) : (
+      <div className="history-columns">
       {/* Left: Projects */}
       {projectsCollapsed ? (
         <CollapsedStrip
@@ -894,6 +1044,8 @@ export function HistoryBrowser({
           <TranscriptPanel key={selectedSession.filePath} session={selectedSession} />
         )}
       </div>
+      </div>
+      )}
     </div>
   );
 }

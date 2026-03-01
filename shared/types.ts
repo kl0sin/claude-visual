@@ -113,3 +113,19 @@ export interface HistorySessionDetail {
 export interface HookStatus {
   installed: boolean;
 }
+
+// ── HISTORY SEARCH TYPES ────────────────────────────────────
+
+export interface SearchMatch {
+  role: "user" | "assistant";
+  snippet: string;      // ~200 chars centred around the match
+  matchOffset: number;  // char offset of match start within snippet (adjusted for leading "…")
+  matchLength: number;
+}
+
+export interface SearchResult {
+  session: HistorySession;
+  projectId: string;
+  projectName: string;
+  matches: SearchMatch[];
+}
