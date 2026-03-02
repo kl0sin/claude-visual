@@ -31,6 +31,8 @@
     "@tauri-apps/api": "^2",
     "hono": "^4.12.2",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   }
 }

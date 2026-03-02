@@ -298,7 +298,7 @@ export async function readSession(
           userTurns++;
           const content = parseContent(entry.message?.content);
           if (content.length > 0) {
-            allMessages.push({ role: "user", content });
+            allMessages.push({ role: "user", content, timestamp: entry.timestamp });
           }
         } else if (entry.type === "assistant") {
           const msgModel = entry.message?.model;
@@ -327,7 +327,7 @@ export async function readSession(
 
           const content = parseContent(entry.message?.content);
           if (content.length > 0) {
-            allMessages.push({ role: "assistant", content, tokens: msgTokens, model: msgModel });
+            allMessages.push({ role: "assistant", content, tokens: msgTokens, model: msgModel, timestamp: entry.timestamp });
           }
         }
       } catch {}
@@ -374,7 +374,11 @@ function parseContent(raw: unknown): TranscriptContent[] {
     for (const item of raw) {
       if (!item || typeof item !== "object") continue;
       const it = item as Record<string, unknown>;
-      if (it.type === "text" && typeof it.text === "string" && it.text.trim()) {
+      if (it.type === "thinking" && typeof it.thinking === "string" && it.thinking.trim()) {
+        result.push({ type: "thinking", thinking: it.thinking });
+      } else if (it.type === "redacted_thinking" && typeof it.data === "string") {
+        result.push({ type: "redacted_thinking", data: it.data });
+      } else if (it.type === "text" && typeof it.text === "string" && it.text.trim()) {
         result.push({ type: "text", text: it.text });
       } else if (it.type === "tool_use") {
         result.push({

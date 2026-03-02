@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type {
   HistoryProject,
   HistorySession,
   HistorySessionDetail,
   TranscriptContent,
+  TranscriptMessage,
   SearchMatch,
   SearchResult,
 } from "../types";
@@ -235,6 +238,83 @@ function InstructionBlock({ content }: { content: TranscriptContent[] }) {
   );
 }
 
+// ── Markdown renderer components ────────────────────────────
+
+const MD_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>["components"] = {
+  p:          ({ children }) => <p className="md-p">{children}</p>,
+  h1:         ({ children }) => <h1 className="md-h">{children}</h1>,
+  h2:         ({ children }) => <h2 className="md-h md-h2">{children}</h2>,
+  h3:         ({ children }) => <h3 className="md-h md-h3">{children}</h3>,
+  h4:         ({ children }) => <h4 className="md-h md-h4">{children}</h4>,
+  ul:         ({ children }) => <ul className="md-ul">{children}</ul>,
+  ol:         ({ children }) => <ol className="md-ol">{children}</ol>,
+  li:         ({ children }) => <li className="md-li">{children}</li>,
+  strong:     ({ children }) => <strong className="md-strong">{children}</strong>,
+  em:         ({ children }) => <em className="md-em">{children}</em>,
+  blockquote: ({ children }) => <blockquote className="md-blockquote">{children}</blockquote>,
+  hr:         () => <hr className="md-hr" />,
+  code:       ({ children, className }) => {
+    const isBlock = className?.startsWith("language-");
+    return isBlock
+      ? <code className={`md-code-block ${className ?? ""}`}>{children}</code>
+      : <code className="md-code-inline">{children}</code>;
+  },
+  pre:        ({ children }) => <pre className="md-pre">{children}</pre>,
+  a:          ({ href, children }) => (
+    <a className="md-link" href={href} target="_blank" rel="noreferrer">{children}</a>
+  ),
+  table:  ({ children }) => <div className="md-table-wrap"><table className="md-table">{children}</table></div>,
+  thead:  ({ children }) => <thead className="md-thead">{children}</thead>,
+  tbody:  ({ children }) => <tbody>{children}</tbody>,
+  tr:     ({ children }) => <tr className="md-tr">{children}</tr>,
+  th:     ({ children }) => <th className="md-th">{children}</th>,
+  td:     ({ children }) => <td className="md-td">{children}</td>,
+};
+
+// ── Thinking block ───────────────────────────────────────────
+
+function ThinkingBlock({
+  thinking,
+  redacted,
+  label = "THINKING",
+}: {
+  thinking?: string;
+  redacted?: boolean;
+  label?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const preview = thinking ? thinking.slice(0, 80).replace(/\n/g, " ") : "";
+  const isLong = thinking ? thinking.length > 80 : false;
+
+  return (
+    <div className="thinking-block">
+      <button
+        className="thinking-header"
+        aria-expanded={redacted ? undefined : expanded}
+        onClick={() => !redacted && setExpanded((e) => !e)}
+        style={redacted ? { cursor: "default" } : undefined}
+      >
+        <span className="thinking-icon">◈</span>
+        <span className="thinking-label">{label}</span>
+        {redacted ? (
+          <span className="thinking-preview redacted">redacted</span>
+        ) : (
+          <span className="thinking-preview">
+            {!expanded && preview}
+            {!expanded && isLong ? "…" : ""}
+          </span>
+        )}
+        {!redacted && (
+          <span className="tool-block-chevron">{expanded ? "▲" : "▼"}</span>
+        )}
+      </button>
+      {!redacted && expanded && thinking && (
+        <pre className="thinking-body">{thinking}</pre>
+      )}
+    </div>
+  );
+}
+
 // ── Message bubble ──────────────────────────────────────────
 
 /** Renders `text` with all case-insensitive occurrences of `query` wrapped in <mark>. */
@@ -260,12 +340,14 @@ function MessageBubble({
   tokens,
   model,
   highlightQuery,
+  duration,
 }: {
   role: "user" | "assistant";
   content: TranscriptContent[];
   tokens?: { totalTokens: number } | undefined;
   model?: string;
   highlightQuery?: string;
+  duration?: string;
 }) {
   if (isSystemInstruction(role, content)) {
     return <InstructionBlock content={content} />;
@@ -318,9 +400,10 @@ function MessageBubble({
             {model && <span className="msg-model">{shortModel(model)}</span>}
             {tokens && tokens.totalTokens > 0 && (
               <span className="msg-tokens">
-                {formatTokenCount(tokens.totalTokens)} tok
+                {formatTokenCount(tokens.totalTokens)} tokens
               </span>
             )}
+            {duration && <span className="turn-duration">{duration}</span>}
           </>
         ) : (
           <span className="msg-role">YOU</span>
@@ -339,6 +422,484 @@ function MessageBubble({
           <ToolResultBlock key={i} content={c.content} isError={c.is_error} />
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Conversation turn grouping ───────────────────────────────
+
+interface ConversationTurn {
+  input: TranscriptMessage;
+  steps: TranscriptMessage[];
+  output: TranscriptMessage | null;
+  inputOriginalIdx: number;
+  stepOriginalIndices: number[];
+  outputOriginalIdx: number;
+}
+
+function computeDuration(startTs?: string, endTs?: string): string | null {
+  if (!startTs || !endTs) return null;
+  const ms = new Date(endTs).getTime() - new Date(startTs).getTime();
+  if (ms <= 0) return null;
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return `${m}m ${s}s`;
+}
+
+function groupIntoTurns(messages: TranscriptMessage[]): ConversationTurn[] {
+  const turns: ConversationTurn[] = [];
+  const promptIdxs: number[] = [];
+
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    if (
+      m != null &&
+      m.role === "user" &&
+      !isSystemInstruction(m.role, m.content) &&
+      !isProcessMessage(m.role, m.content)
+    ) {
+      promptIdxs.push(i);
+    }
+  }
+
+  for (let t = 0; t < promptIdxs.length; t++) {
+    const start = promptIdxs[t];
+    if (start == null) continue;
+    const end =
+      t + 1 < promptIdxs.length ? (promptIdxs[t + 1] ?? messages.length) : messages.length;
+    const input = messages[start];
+    if (input == null) continue;
+
+    const betweenEntries: Array<{ msg: TranscriptMessage; origIdx: number }> =
+      [];
+    for (let i = start + 1; i < end; i++) {
+      const m = messages[i];
+      if (m != null && !isSystemInstruction(m.role, m.content)) {
+        betweenEntries.push({ msg: m, origIdx: i });
+      }
+    }
+
+    // Last assistant message in the range is the output
+    let outputEntry: { msg: TranscriptMessage; origIdx: number } | null = null;
+    for (let i = betweenEntries.length - 1; i >= 0; i--) {
+      const entry = betweenEntries[i];
+      if (entry != null && entry.msg.role === "assistant") {
+        outputEntry = entry;
+        break;
+      }
+    }
+
+    const stepEntries = betweenEntries.filter((e) => e !== outputEntry);
+
+    turns.push({
+      input,
+      steps: stepEntries.map((e) => e.msg),
+      output: outputEntry != null ? outputEntry.msg : null,
+      inputOriginalIdx: start,
+      stepOriginalIndices: stepEntries.map((e) => e.origIdx),
+      outputOriginalIdx: outputEntry != null ? outputEntry.origIdx : -1,
+    });
+  }
+
+  return turns;
+}
+
+// ── Step row (expandable) ────────────────────────────────────
+
+/** Extract full text from tool result content. */
+function getResultText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((c) =>
+        typeof c === "object" && c !== null && "text" in c
+          ? (c as { text: string }).text
+          : JSON.stringify(c),
+      )
+      .filter(Boolean)
+      .join("\n");
+  }
+  return JSON.stringify(content, null, 2);
+}
+
+/** Extract a short single-line preview from tool result content. */
+function resultPreview(content: unknown): string {
+  return getResultText(content).slice(0, 80).replace(/\n/g, " ");
+}
+
+/** Extract the most useful single parameter to display for a tool call. */
+function getToolKeyParam(name: string, input: Record<string, unknown>): string {
+  // File-path based tools — show just the filename
+  const filePath = input.file_path ?? input.path ?? input.notebook_path;
+  if (typeof filePath === "string") {
+    return filePath.split("/").pop() ?? filePath;
+  }
+  // Bash / shell — show command
+  if (typeof input.command === "string") {
+    return input.command.slice(0, 60).replace(/\n/g, " ");
+  }
+  // Search tools — show pattern
+  if (typeof input.pattern === "string") {
+    return input.pattern.slice(0, 60);
+  }
+  // Web tools — show URL
+  if (typeof input.url === "string") {
+    return input.url.slice(0, 60);
+  }
+  // Generic — first string value
+  for (const v of Object.values(input)) {
+    if (typeof v === "string" && v.trim()) return v.slice(0, 60).replace(/\n/g, " ");
+  }
+  return name;
+}
+
+function StepRow({
+  msg,
+  prevTimestamp,
+}: {
+  msg: TranscriptMessage;
+  prevTimestamp?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isProcess = isProcessMessage(msg.role, msg.content);
+  const toolUses = msg.content.filter(
+    (c): c is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
+      c.type === "tool_use",
+  );
+  const toolResults = msg.content.filter(
+    (c): c is { type: "tool_result"; tool_use_id: string; content: unknown; is_error?: boolean } =>
+      c.type === "tool_result",
+  );
+  const textParts = msg.content.filter(
+    (c): c is { type: "text"; text: string } => c.type === "text",
+  );
+  const thinkingParts = msg.content.filter(
+    (c): c is { type: "thinking"; thinking: string } => c.type === "thinking",
+  );
+  const redactedThinking = msg.content.some((c) => c.type === "redacted_thinking");
+  const hasThinking = thinkingParts.length > 0 || redactedThinking;
+  const hasError = toolResults.some((r) => r.is_error);
+  const duration = computeDuration(prevTimestamp, msg.timestamp);
+  const hasDetails =
+    toolUses.length > 0 || toolResults.length > 0 || textParts.length > 0 || hasThinking;
+
+  // For tool steps: name label and key param shown inline
+  const toolLabel = toolUses.length === 1
+    ? (toolUses[0]?.name ?? "")
+    : toolUses.map((t) => t.name).join(" · ");
+  const toolParam = toolUses[0] != null
+    ? getToolKeyParam(toolUses[0].name, toolUses[0].input)
+    : "";
+
+  // Inline preview for non-tool steps
+  const inlinePreview: string | null = (() => {
+    if (isProcess && toolResults[0] != null) {
+      return resultPreview(toolResults[0].content) || null;
+    }
+    if (!isProcess && toolUses.length === 0) {
+      const first = thinkingParts[0]?.thinking ?? textParts[0]?.text ?? null;
+      return first ? first.slice(0, 80).replace(/\n/g, " ") : null;
+    }
+    return null;
+  })();
+
+  return (
+    <div className={`step-row-wrap${hasError ? " error" : ""}`}>
+      <button
+        className="step-row"
+        onClick={() => hasDetails && setExpanded((e) => !e)}
+        style={hasDetails ? undefined : { cursor: "default" }}
+        aria-expanded={hasDetails ? expanded : undefined}
+      >
+        {/* Icon + label */}
+        {isProcess ? (
+          <>
+            <span className={`step-icon${hasError ? " error" : " result"}`}>
+              {hasError ? "✗" : "✓"}
+            </span>
+            <span className="step-label">RESULT</span>
+          </>
+        ) : toolUses.length > 0 ? (
+          <>
+            <span className="step-icon tool">⚙</span>
+            <span className="step-tool-name">{toolLabel}</span>
+          </>
+        ) : hasThinking ? (
+          <>
+            <span className="step-icon text">◈</span>
+            <span className="step-label">THINKING</span>
+          </>
+        ) : (
+          <>
+            <span className="step-icon output">◆</span>
+            <span className="step-label">OUTPUT</span>
+          </>
+        )}
+
+        {/* Key param for tool steps — file name, command, etc. */}
+        {toolUses.length > 0 && toolParam && (
+          <span className="step-inline-preview">{toolParam}</span>
+        )}
+
+        {/* Inline preview for result / thinking / output steps */}
+        {isProcess && !inlinePreview && (
+          <span className="step-detail">
+            {toolResults.length} result{toolResults.length !== 1 ? "s" : ""}
+            {hasError ? " — error" : ""}
+          </span>
+        )}
+        {inlinePreview && (
+          <span className="step-inline-preview">{inlinePreview}</span>
+        )}
+
+        {/* Tokens + duration */}
+        {!isProcess && msg.tokens && msg.tokens.totalTokens > 0 && (
+          <span className="step-tokens">{formatTokenCount(msg.tokens.totalTokens)} tokens</span>
+        )}
+        {duration && <span className="step-duration">{duration}</span>}
+        {hasDetails && (
+          <span className="step-chevron">{expanded ? "▲" : "▼"}</span>
+        )}
+      </button>
+
+      {expanded && (
+        <div className="step-details">
+          {/* Thinking directly — no nested block */}
+          {thinkingParts.map((c, i) => (
+            <pre key={i} className="thinking-body">{c.thinking}</pre>
+          ))}
+          {redactedThinking && (
+            <p className="step-redacted-thinking">◈ thinking redacted</p>
+          )}
+          {/* Tool input directly — no ToolUseBlock wrapper, no extra click needed */}
+          {toolUses.map((c, i) => (
+            <div key={i} className="step-tool-input">
+              {toolUses.length > 1 && (
+                <div className="step-tool-input-name">⚙ {c.name}</div>
+              )}
+              <pre className="tool-block-body">{JSON.stringify(c.input, null, 2)}</pre>
+            </div>
+          ))}
+          {/* Tool results — directly, no nested ToolResultBlock */}
+          {toolResults.map((c, i) => (
+            <pre key={i} className={`step-result-body${c.is_error ? " error" : ""}`}>
+              {getResultText(c.content)}
+            </pre>
+          ))}
+          {/* Plain text */}
+          {textParts.length > 0 && !hasThinking && toolUses.length === 0 && (
+            <pre className="step-text-body">
+              {textParts.map((c) => c.text).join("\n")}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Turn steps panel (collapsible, embedded in Claude bubble) ─
+
+function TurnStepsPanel({
+  steps,
+  autoExpand,
+}: {
+  steps: TranscriptMessage[];
+  autoExpand?: boolean;
+}) {
+  const [expanded, setExpanded] = useState(autoExpand ?? false);
+
+  // Build summary: tool counts, result counts, thinking, output
+  const toolCounts = new Map<string, number>();
+  let resultOkCount = 0;
+  let resultErrCount = 0;
+  let thinkingCount = 0;
+  let outputCount = 0;
+
+  for (const m of steps) {
+    const hasToolUse = m.content.some((c) => c.type === "tool_use");
+    const hasThinkingBlock = m.content.some(
+      (c) => c.type === "thinking" || c.type === "redacted_thinking",
+    );
+    const hasText = m.content.some((c) => c.type === "text");
+    if (m.role === "assistant" && !hasToolUse && !hasThinkingBlock && hasText) {
+      outputCount++;
+    }
+    for (const c of m.content) {
+      if (c.type === "tool_use") {
+        toolCounts.set(c.name, (toolCounts.get(c.name) ?? 0) + 1);
+      } else if (c.type === "tool_result") {
+        if (c.is_error) resultErrCount++;
+        else resultOkCount++;
+      } else if (c.type === "thinking" || c.type === "redacted_thinking") {
+        thinkingCount++;
+      }
+    }
+  }
+
+  const toolEntries = Array.from(toolCounts.entries());
+  const hasAnySummary =
+    toolEntries.length > 0 || resultOkCount > 0 || resultErrCount > 0 ||
+    thinkingCount > 0 || outputCount > 0;
+
+  return (
+    <div className="turn-steps">
+      <button
+        className="turn-steps-toggle"
+        onClick={() => setExpanded((e) => !e)}
+        aria-expanded={expanded}
+      >
+        <span className="turn-steps-icon">⚙</span>
+        <span className="turn-steps-summary">
+          {hasAnySummary ? (
+            <>
+              {toolEntries.map(([name, count], i) => (
+                <span key={name} className="summary-tool">
+                  {i > 0 && <span className="summary-sep">·</span>}
+                  {name}{count > 1 && <span className="summary-count"> ×{count}</span>}
+                </span>
+              ))}
+              {resultOkCount > 0 && (
+                <span className="summary-results">
+                  <span className="summary-sep">·</span>✓ {resultOkCount}
+                </span>
+              )}
+              {resultErrCount > 0 && (
+                <span className="summary-results has-error">
+                  <span className="summary-sep">·</span>✗ {resultErrCount}
+                </span>
+              )}
+              {thinkingCount > 0 && (
+                <span className="summary-thinking">
+                  <span className="summary-sep">·</span>◈ {thinkingCount}
+                </span>
+              )}
+              {outputCount > 0 && (
+                <span className="summary-output">
+                  <span className="summary-sep">·</span>◆ {outputCount}
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="summary-tool">{steps.length} step{steps.length !== 1 ? "s" : ""}</span>
+          )}
+        </span>
+        <span className="turn-steps-chevron">{expanded ? "▲" : "▼"}</span>
+      </button>
+      {expanded && (
+        <div className="turn-steps-list">
+          {steps.map((step, i) => (
+            <StepRow
+              key={i}
+              msg={step}
+              prevTimestamp={i === 0 ? undefined : steps[i - 1]?.timestamp}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Conversation turn view ────────────────────────────────────
+
+function ConversationTurnView({
+  turn,
+  isTarget,
+  targetInSteps,
+  highlightQuery,
+  targetRef,
+}: {
+  turn: ConversationTurn;
+  isTarget?: boolean;
+  targetInSteps?: boolean;
+  highlightQuery?: string;
+  targetRef?: (node: HTMLDivElement | null) => void;
+}) {
+  const duration = computeDuration(turn.input.timestamp, turn.output?.timestamp);
+
+  // Extract output content pieces
+  const outputThinking =
+    turn.output?.content.filter(
+      (c): c is { type: "thinking"; thinking: string } => c.type === "thinking",
+    ) ?? [];
+  const outputRedactedThinking =
+    turn.output?.content.some((c) => c.type === "redacted_thinking") ?? false;
+  const outputTextParts =
+    turn.output?.content.filter(
+      (c): c is { type: "text"; text: string } => c.type === "text",
+    ) ?? [];
+  const outputToolUses =
+    turn.output?.content.filter(
+      (c): c is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
+        c.type === "tool_use",
+    ) ?? [];
+
+  const hasClaudeBubble = turn.steps.length > 0 || turn.output != null;
+
+  return (
+    <div ref={isTarget ? targetRef : undefined} className="conv-turn">
+      {/* User input bubble */}
+      <MessageBubble
+        role={turn.input.role}
+        content={turn.input.content}
+        highlightQuery={isTarget && !targetInSteps ? highlightQuery : undefined}
+      />
+
+      {/* Claude bubble — steps + thinking + response text combined */}
+      {hasClaudeBubble && (
+        <div className="msg-bubble assistant">
+          <div className="msg-meta">
+            <span className="msg-role">CLAUDE</span>
+            {turn.output?.model && (
+              <span className="msg-model">{shortModel(turn.output.model)}</span>
+            )}
+            <div className="msg-meta-right">
+              {turn.output?.tokens && turn.output.tokens.totalTokens > 0 && (
+                <span className="msg-tokens">
+                  {formatTokenCount(turn.output.tokens.totalTokens)} tokens
+                </span>
+              )}
+              {duration && <span className="turn-duration">{duration}</span>}
+            </div>
+          </div>
+
+          {turn.steps.length > 0 && (
+            <TurnStepsPanel steps={turn.steps} autoExpand={targetInSteps} />
+          )}
+
+          {/* Reasoning blocks from the final response — differentiated from mid-step thinking */}
+          {(outputThinking.length > 0 || outputRedactedThinking) && (
+            <div className="output-thinking">
+              {outputThinking.map((c, i) => (
+                <ThinkingBlock key={i} thinking={c.thinking} label="REASONING" />
+              ))}
+              {outputRedactedThinking && <ThinkingBlock redacted label="REASONING" />}
+            </div>
+          )}
+
+          {(outputTextParts.length > 0 || outputToolUses.length > 0) && (
+            <div className="msg-content md-content">
+              {outputTextParts.map((c, i) =>
+                isTarget && !targetInSteps && highlightQuery ? (
+                  <p key={i} className="msg-text">
+                    <HighlightText text={c.text} query={highlightQuery} />
+                  </p>
+                ) : (
+                  <ReactMarkdown key={i} components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>
+                    {c.text}
+                  </ReactMarkdown>
+                ),
+              )}
+              {outputToolUses.map((c, i) => (
+                <ToolUseBlock key={i} name={c.name} input={c.input} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -373,14 +934,32 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
 
   const messages = detail?.messages ?? [];
   const isTruncated = detail != null && detail.totalMessages > messages.length;
+  const turns = useMemo(() => groupIntoTurns(messages), [messages]);
 
   // In search mode we disable virtualisation so scrollIntoView works reliably.
-  // rowVirtualizer.scrollToIndex() relies on estimated heights for unrendered items and
-  // consistently lands at the wrong position when messages vary greatly in size.
   const searchMode = scrollToMessageIndex !== undefined;
 
+  // Map a message index (from search results) to the turn that contains it.
+  const targetTurnInfo = useMemo(() => {
+    if (scrollToMessageIndex === undefined) return null;
+    for (let i = 0; i < turns.length; i++) {
+      const t = turns[i];
+      if (t == null) continue;
+      if (
+        t.inputOriginalIdx === scrollToMessageIndex ||
+        t.outputOriginalIdx === scrollToMessageIndex
+      ) {
+        return { turnIdx: i, inSteps: false };
+      }
+      if (t.stepOriginalIndices.includes(scrollToMessageIndex)) {
+        return { turnIdx: i, inSteps: true };
+      }
+    }
+    return null;
+  }, [turns, scrollToMessageIndex]);
+
   const rowVirtualizer = useVirtualizer({
-    count: searchMode ? 0 : messages.length, // disabled in search mode
+    count: searchMode ? 0 : turns.length, // disabled in search mode
     getScrollElement: () => parentRef.current,
     estimateSize: () => VIRTUAL_ESTIMATE_PX,
     overscan: 8,
@@ -409,14 +988,14 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
   // Handles Load All pixel-restore and normal-mode scroll-to-end.
   // Search-mode scrolling is handled by targetCallbackRef (fires on DOM attach, before effects).
   useEffect(() => {
-    if (!detail || messages.length === 0) return;
+    if (!detail || turns.length === 0) return;
     const pixelTarget = scrollTargetRef.current;
     scrollTargetRef.current = null;
     if (pixelTarget !== null) {
       if (parentRef.current) parentRef.current.scrollTop = pixelTarget;
     } else if (!searchMode) {
       requestAnimationFrame(() => {
-        rowVirtualizer.scrollToIndex(messages.length - 1, { align: "end" });
+        rowVirtualizer.scrollToIndex(turns.length - 1, { align: "end" });
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -517,23 +1096,22 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
 
       <div ref={parentRef} className="transcript-messages">
         {searchMode ? (
-          // Non-virtual rendering: all messages in the DOM so scrollIntoView is accurate.
-          // Virtual list can't reliably scroll to unrendered items with dynamic heights.
+          // Non-virtual rendering: all turns in the DOM so scrollIntoView is accurate.
           <div>
-            {messages.map((msg, idx) => {
-              const isTarget = idx === scrollToMessageIndex;
+            {turns.map((turn, idx) => {
+              const isTarget = targetTurnInfo?.turnIdx === idx;
+              const inSteps = isTarget ? (targetTurnInfo?.inSteps ?? false) : false;
               return (
                 <div
                   key={idx}
-                  ref={isTarget ? targetCallbackRef : undefined}
                   className={`transcript-virtual-row${isTarget ? " search-target" : ""}`}
                 >
-                  <MessageBubble
-                    role={msg.role}
-                    content={msg.content}
-                    tokens={msg.tokens}
-                    model={msg.model}
+                  <ConversationTurnView
+                    turn={turn}
+                    isTarget={isTarget}
+                    targetInSteps={inSteps}
                     highlightQuery={isTarget ? highlightQuery : undefined}
+                    targetRef={isTarget ? targetCallbackRef : undefined}
                   />
                 </div>
               );
@@ -549,8 +1127,8 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const msg = messages[virtualRow.index];
-              if (!msg) return null;
+              const turn = turns[virtualRow.index];
+              if (!turn) return null;
               return (
                 <div
                   key={virtualRow.key}
@@ -565,12 +1143,7 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
                     transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <MessageBubble
-                    role={msg.role}
-                    content={msg.content}
-                    tokens={msg.tokens}
-                    model={msg.model}
-                  />
+                  <ConversationTurnView turn={turn} />
                 </div>
               );
             })}
