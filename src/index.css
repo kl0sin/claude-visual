@@ -811,6 +811,8 @@ body {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  font-family: 'Geist', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.01em;
 }
 
 /* ── Event filter bar ─────────────────────────────── */
@@ -2828,6 +2830,7 @@ body {
   overflow: hidden;
   background: var(--color-cyber-border);
   font-family: 'Geist', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.01em;
 }
 
 .history-columns {
