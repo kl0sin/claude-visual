@@ -38,6 +38,8 @@ export const EVENT_COLORS: Record<string, string> = {
   ConfigChange: "#8892a8",
   WorktreeCreate: "#06b6d4",
   WorktreeRemove: "#06b6d4",
+  Thinking: "#00f0ff",
+  Output: "#a78bfa",
 };
 
 export const EVENT_ICONS: Record<string, string> = {
@@ -54,4 +56,6 @@ export const EVENT_ICONS: Record<string, string> = {
   TaskCompleted: "★",
   PreCompact: "⟐",
   PermissionRequest: "⚠",
+  Thinking: "◈",
+  Output: "◆",
 };

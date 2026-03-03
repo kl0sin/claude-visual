@@ -3,8 +3,9 @@ import { EMPTY_TOKENS } from "../shared/types";
 
 export interface TranscriptData {
   tokens: TokenUsage;
-  model?: string;       // last seen model ID, e.g. "claude-opus-4-6"
-  latestResponse?: string; // text of the most recent assistant message (new since last read)
+  model?: string;           // last seen model ID, e.g. "claude-opus-4-6"
+  latestResponse?: string;  // text of the most recent assistant message (new since last read)
+  latestThinking?: string;  // text of the most recent thinking block (new since last read)
 }
 
 /**
@@ -24,8 +25,8 @@ export interface TranscriptData {
  */
 export class TranscriptTokenReader {
   private lastTotals = new Map<string, TokenUsage>();
-  // Tracks the last response text we already returned, to avoid re-broadcasting the same text.
   private lastResponses = new Map<string, string>();
+  private lastThinkings = new Map<string, string>();
 
   /**
    * Read the transcript file fully, compute total tokens,
@@ -53,7 +54,7 @@ export class TranscriptTokenReader {
       diff.cacheCreationTokens > 0 ||
       diff.cacheReadTokens > 0;
 
-    // Only return latestResponse if it's new (different from what we last reported)
+    // Only return latestResponse if it's new
     const prevResponse = this.lastResponses.get(transcriptPath) ?? "";
     const latestResponse =
       current.latestResponse && current.latestResponse !== prevResponse
@@ -61,8 +62,16 @@ export class TranscriptTokenReader {
         : undefined;
     if (latestResponse) this.lastResponses.set(transcriptPath, latestResponse);
 
-    if (!hasTokenChanges && !latestResponse) return null;
-    return { tokens: diff, model: current.model, latestResponse };
+    // Only return latestThinking if it's new
+    const prevThinking = this.lastThinkings.get(transcriptPath) ?? "";
+    const latestThinking =
+      current.latestThinking && current.latestThinking !== prevThinking
+        ? current.latestThinking
+        : undefined;
+    if (latestThinking) this.lastThinkings.set(transcriptPath, latestThinking);
+
+    if (!hasTokenChanges && !latestResponse && !latestThinking) return null;
+    return { tokens: diff, model: current.model, latestResponse, latestThinking };
   }
 
   /**
@@ -78,6 +87,7 @@ export class TranscriptTokenReader {
       const tokens: TokenUsage = { ...EMPTY_TOKENS };
       let model: string | undefined;
       let latestResponse: string | undefined;
+      let latestThinking: string | undefined;
       let found = false;
 
       for (const line of text.split("\n")) {
@@ -103,14 +113,22 @@ export class TranscriptTokenReader {
 
             if (msg.model) model = msg.model;
 
-            // Extract plain text blocks from the assistant message content
             if (Array.isArray(msg.content)) {
+              // Extract text blocks (final response)
               const responseText = msg.content
                 .filter((b: any) => b.type === "text")
                 .map((b: any) => (b.text as string) || "")
                 .join("\n\n")
                 .trim();
               if (responseText) latestResponse = responseText;
+
+              // Extract thinking blocks
+              const thinkingText = msg.content
+                .filter((b: any) => b.type === "thinking")
+                .map((b: any) => (b.thinking as string) || "")
+                .join("\n\n")
+                .trim();
+              if (thinkingText) latestThinking = thinkingText;
             }
           }
         } catch {
@@ -118,7 +136,7 @@ export class TranscriptTokenReader {
         }
       }
 
-      return found ? { tokens, model, latestResponse } : null;
+      return found ? { tokens, model, latestResponse, latestThinking } : null;
     } catch {
       return null;
     }
@@ -139,5 +157,6 @@ export class TranscriptTokenReader {
   clear() {
     this.lastTotals.clear();
     this.lastResponses.clear();
+    this.lastThinkings.clear();
   }
 }

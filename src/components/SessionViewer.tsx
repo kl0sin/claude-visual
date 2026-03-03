@@ -2,14 +2,17 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { MD_COMPONENTS } from "../lib/mdComponents";
 import type {
   HistoryProject,
   HistorySession,
   HistorySessionDetail,
   TranscriptContent,
   TranscriptMessage,
+  TokenUsage,
   SearchMatch,
   SearchResult,
+  SessionInfo,
 } from "../types";
 import { estimateCost } from "../../shared/tokens";
 import { HistoricalStatsPanel } from "./HistoricalStatsPanel";
@@ -238,38 +241,54 @@ function InstructionBlock({ content }: { content: TranscriptContent[] }) {
   );
 }
 
+// ── Token badge with breakdown tooltip ──────────────────────
+
+function TokenBadge({ tokens, className = "msg-tokens" }: { tokens: TokenUsage; className?: string }) {
+  const hasBreakdown =
+    tokens.inputTokens > 0 || tokens.outputTokens > 0 ||
+    tokens.cacheReadTokens > 0 || tokens.cacheCreationTokens > 0;
+
+  return (
+    <span className="token-badge">
+      <span className={className}>{formatTokenCount(tokens.totalTokens)} tokens</span>
+      {hasBreakdown && (
+        <div className="token-tooltip">
+          {tokens.inputTokens > 0 && (
+            <div className="token-tooltip-row">
+              <span className="token-tooltip-label">Input</span>
+              <span className="token-tooltip-value">{formatTokenCount(tokens.inputTokens)}</span>
+            </div>
+          )}
+          {tokens.outputTokens > 0 && (
+            <div className="token-tooltip-row">
+              <span className="token-tooltip-label">Output</span>
+              <span className="token-tooltip-value">{formatTokenCount(tokens.outputTokens)}</span>
+            </div>
+          )}
+          {tokens.cacheReadTokens > 0 && (
+            <div className="token-tooltip-row">
+              <span className="token-tooltip-label">Cache read</span>
+              <span className="token-tooltip-value">{formatTokenCount(tokens.cacheReadTokens)}</span>
+            </div>
+          )}
+          {tokens.cacheCreationTokens > 0 && (
+            <div className="token-tooltip-row">
+              <span className="token-tooltip-label">Cache write</span>
+              <span className="token-tooltip-value">{formatTokenCount(tokens.cacheCreationTokens)}</span>
+            </div>
+          )}
+          <div className="token-tooltip-row token-tooltip-total">
+            <span className="token-tooltip-label">Total</span>
+            <span className="token-tooltip-value">{formatTokenCount(tokens.totalTokens)}</span>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 // ── Markdown renderer components ────────────────────────────
 
-const MD_COMPONENTS: React.ComponentProps<typeof ReactMarkdown>["components"] = {
-  p:          ({ children }) => <p className="md-p">{children}</p>,
-  h1:         ({ children }) => <h1 className="md-h">{children}</h1>,
-  h2:         ({ children }) => <h2 className="md-h md-h2">{children}</h2>,
-  h3:         ({ children }) => <h3 className="md-h md-h3">{children}</h3>,
-  h4:         ({ children }) => <h4 className="md-h md-h4">{children}</h4>,
-  ul:         ({ children }) => <ul className="md-ul">{children}</ul>,
-  ol:         ({ children }) => <ol className="md-ol">{children}</ol>,
-  li:         ({ children }) => <li className="md-li">{children}</li>,
-  strong:     ({ children }) => <strong className="md-strong">{children}</strong>,
-  em:         ({ children }) => <em className="md-em">{children}</em>,
-  blockquote: ({ children }) => <blockquote className="md-blockquote">{children}</blockquote>,
-  hr:         () => <hr className="md-hr" />,
-  code:       ({ children, className }) => {
-    const isBlock = className?.startsWith("language-");
-    return isBlock
-      ? <code className={`md-code-block ${className ?? ""}`}>{children}</code>
-      : <code className="md-code-inline">{children}</code>;
-  },
-  pre:        ({ children }) => <pre className="md-pre">{children}</pre>,
-  a:          ({ href, children }) => (
-    <a className="md-link" href={href} target="_blank" rel="noreferrer">{children}</a>
-  ),
-  table:  ({ children }) => <div className="md-table-wrap"><table className="md-table">{children}</table></div>,
-  thead:  ({ children }) => <thead className="md-thead">{children}</thead>,
-  tbody:  ({ children }) => <tbody>{children}</tbody>,
-  tr:     ({ children }) => <tr className="md-tr">{children}</tr>,
-  th:     ({ children }) => <th className="md-th">{children}</th>,
-  td:     ({ children }) => <td className="md-td">{children}</td>,
-};
 
 // ── Thinking block ───────────────────────────────────────────
 
@@ -309,7 +328,11 @@ function ThinkingBlock({
         )}
       </button>
       {!redacted && expanded && thinking && (
-        <pre className="thinking-body">{thinking}</pre>
+        <div className="thinking-body md-content">
+          <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>
+            {thinking}
+          </ReactMarkdown>
+        </div>
       )}
     </div>
   );
@@ -481,13 +504,17 @@ function groupIntoTurns(messages: TranscriptMessage[]): ConversationTurn[] {
       }
     }
 
-    // Last assistant message in the range is the output
+    // Last assistant message WITH text content is the output.
+    // Tool-use-only assistant messages are intermediate steps (still processing).
     let outputEntry: { msg: TranscriptMessage; origIdx: number } | null = null;
     for (let i = betweenEntries.length - 1; i >= 0; i--) {
       const entry = betweenEntries[i];
       if (entry != null && entry.msg.role === "assistant") {
-        outputEntry = entry;
-        break;
+        const hasText = entry.msg.content.some((c) => c.type === "text");
+        if (hasText) {
+          outputEntry = entry;
+          break;
+        }
       }
     }
 
@@ -656,7 +683,7 @@ function StepRow({
 
         {/* Tokens + duration */}
         {!isProcess && msg.tokens && msg.tokens.totalTokens > 0 && (
-          <span className="step-tokens">{formatTokenCount(msg.tokens.totalTokens)} tokens</span>
+          <TokenBadge tokens={msg.tokens} className="step-tokens" />
         )}
         {duration && <span className="step-duration">{duration}</span>}
         {hasDetails && (
@@ -668,7 +695,11 @@ function StepRow({
         <div className="step-details">
           {/* Thinking directly — no nested block */}
           {thinkingParts.map((c, i) => (
-            <pre key={i} className="thinking-body">{c.thinking}</pre>
+            <div key={i} className="thinking-body md-content">
+              <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>
+                {c.thinking}
+              </ReactMarkdown>
+            </div>
           ))}
           {redactedThinking && (
             <p className="step-redacted-thinking">◈ thinking redacted</p>
@@ -688,11 +719,13 @@ function StepRow({
               {getResultText(c.content)}
             </pre>
           ))}
-          {/* Plain text */}
+          {/* Plain text — OUTPUT step */}
           {textParts.length > 0 && !hasThinking && toolUses.length === 0 && (
-            <pre className="step-text-body">
-              {textParts.map((c) => c.text).join("\n")}
-            </pre>
+            <div className="step-text-body md-content">
+              <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>
+                {textParts.map((c) => c.text).join("\n")}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
       )}
@@ -858,9 +891,7 @@ function ConversationTurnView({
             )}
             <div className="msg-meta-right">
               {turn.output?.tokens && turn.output.tokens.totalTokens > 0 && (
-                <span className="msg-tokens">
-                  {formatTokenCount(turn.output.tokens.totalTokens)} tokens
-                </span>
+                <TokenBadge tokens={turn.output.tokens} />
               )}
               {duration && <span className="turn-duration">{duration}</span>}
             </div>
@@ -921,10 +952,23 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
   const [loadingAll, setLoadingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [liveStatus, setLiveStatus] = useState<"idle" | "thinking" | "live">("idle");
   const parentRef = useRef<HTMLDivElement>(null);
   // null   → initial/retry load: scroll to end
   // number → Load All: target scrollTop in pixels after prepending (preserves viewport)
   const scrollTargetRef = useRef<number | null>(null);
+  const lastKnownTotalRef = useRef(0);
+  const liveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track whether user is near the bottom (to decide auto-scroll on live update)
+  const isAtBottomRef = useRef(true);
+  const turnsLengthRef = useRef(0);
+
+  const handleScroll = useCallback(() => {
+    if (!parentRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
+    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 100;
+  }, []);
+
   // Callback ref attached to the search-target message.
   // Fires synchronously when the element enters the DOM — avoids useEffect timing issues
   // where setDetail + setLoading may not be batched, leaving targetRef.current null.
@@ -964,6 +1008,64 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
     estimateSize: () => VIRTUAL_ESTIMATE_PX,
     overscan: 8,
   });
+
+  // Keep refs current so polling closure doesn't go stale
+  useEffect(() => { turnsLengthRef.current = turns.length; }, [turns.length]);
+  useEffect(() => { if (detail) lastKnownTotalRef.current = detail.totalMessages; }, [detail?.totalMessages]);
+
+  // Live polling — silent background re-fetch every 2.5s after initial load
+  useEffect(() => {
+    if (!detail) return;
+
+    const showLive = (status: "thinking" | "live") => {
+      setLiveStatus(status);
+      if (liveTimerRef.current) clearTimeout(liveTimerRef.current);
+      liveTimerRef.current = setTimeout(() => setLiveStatus("idle"), 4000);
+    };
+
+    const interval = setInterval(async () => {
+      try {
+        // 1. Check if this session is actively processing (catches Thinking mode)
+        const sessionsR = await fetch(`${apiBase}/api/sessions`, { headers: authHeaders });
+        if (sessionsR.ok) {
+          const sessions: SessionInfo[] = await sessionsR.json();
+          const active = sessions.find((s) => s.id === session.id);
+          if (active?.isProcessing) {
+            showLive("thinking");
+          }
+        }
+
+        // 2. Check for new messages in the transcript
+        const r = await fetch(
+          `${apiBase}/api/history/session?path=${encodeURIComponent(session.filePath)}&limit=${DEFAULT_LIMIT}`,
+          { headers: authHeaders },
+        );
+        if (!r.ok) return;
+        const newData: HistorySessionDetail = await r.json();
+
+        if (newData.totalMessages > lastKnownTotalRef.current) {
+          lastKnownTotalRef.current = newData.totalMessages;
+          setDetail(newData); // silent update — no loading spinner
+          showLive("live");
+
+          // Auto-scroll if user is near the bottom
+          requestAnimationFrame(() => {
+            if (isAtBottomRef.current) {
+              rowVirtualizer.scrollToIndex(turnsLengthRef.current - 1, { align: "end" });
+            }
+          });
+        }
+      } catch {
+        // ignore network errors silently
+      }
+    }, 2500);
+
+    return () => {
+      clearInterval(interval);
+      if (liveTimerRef.current) clearTimeout(liveTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.filePath, !!detail]);
 
   // Fetch on session change, or when toggling between normal (limit=300) and search-nav (limit=all).
   useEffect(() => {
@@ -1058,6 +1160,11 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
           {session.model && (
             <span className="msg-model">{shortModel(session.model)}</span>
           )}
+          {liveStatus !== "idle" && (
+            <span className={`live-badge${liveStatus === "thinking" ? " thinking" : ""}`}>
+              {liveStatus === "thinking" ? "◈ THINKING" : "● LIVE"}
+            </span>
+          )}
         </div>
         <div className="transcript-stats">
           <span className="transcript-stat">
@@ -1094,7 +1201,7 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
         </div>
       )}
 
-      <div ref={parentRef} className="transcript-messages">
+      <div ref={parentRef} className="transcript-messages" onScroll={handleScroll}>
         {searchMode ? (
           // Non-virtual rendering: all turns in the DOM so scrollIntoView is accurate.
           <div>
@@ -1150,6 +1257,15 @@ function TranscriptPanel({ session, scrollToMessageIndex, highlightQuery }: {
           </div>
         )}
       </div>
+
+      {liveStatus !== "idle" && (
+        <div className={`live-bottom-bar${liveStatus === "thinking" ? " thinking" : ""}`}>
+          <span className="live-bottom-dot">{liveStatus === "thinking" ? "◈" : "●"}</span>
+          <span className="live-bottom-text">
+            {liveStatus === "thinking" ? "THINKING..." : "LIVE — receiving updates"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1376,12 +1492,12 @@ function SearchResultsPanel({
   );
 }
 
-// ── Main HistoryBrowser ─────────────────────────────────────
+// ── Main SessionViewer ───────────────────────────────────────
 
 const MIN_WIDTH = 160;
 const MAX_WIDTH = 600;
 
-interface HistoryBrowserProps {
+interface SessionViewerProps {
   projectId?: string;
   sessionId?: string;
   onNavigate: (projectId?: string, sessionId?: string) => void;
@@ -1389,13 +1505,13 @@ interface HistoryBrowserProps {
   authHeaders: Record<string, string>;
 }
 
-export function HistoryBrowser({
+export function SessionViewer({
   projectId: routeProjectId,
   sessionId: routeSessionId,
   onNavigate,
   apiBase,
   authHeaders,
-}: HistoryBrowserProps) {
+}: SessionViewerProps) {
   const [projects, setProjects] = useState<HistoryProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [selectedProject, setSelectedProject] = useState<HistoryProject | null>(

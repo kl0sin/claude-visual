@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { MD_COMPONENTS } from "../lib/mdComponents";
 import type { ClaudeEvent, PendingTool } from "../types";
 import { EVENT_COLORS, EVENT_ICONS } from "../types";
 
@@ -101,12 +104,25 @@ function DetailField({ label, value, variant }: { label: string; value: string; 
 /** Scrollable code-block for multi-line output (Bash stdout, Grep results, etc.) */
 function OutputBlock({ label, value }: { label: string; value: string }) {
   if (!value) return null;
-  // Unescape literal \n and \t that may come from JSON-serialized hook payloads
   const formatted = value.replace(/\\n/g, "\n").replace(/\\t/g, "\t");
+
+  // Try to parse as JSON for syntax-highlighted rendering
+  let parsed: unknown = undefined;
+  const trimmed = formatted.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try { parsed = JSON.parse(trimmed); } catch { /* not JSON */ }
+  }
+
   return (
     <div className="detail-output-block">
       <span className="detail-field-label">{label}</span>
-      <pre className="detail-output-pre">{formatted}</pre>
+      {parsed !== undefined ? (
+        <pre className="detail-output-pre event-detail-json">
+          <JsonValue value={parsed} />
+        </pre>
+      ) : (
+        <pre className="detail-output-pre">{formatted}</pre>
+      )}
     </div>
   );
 }
@@ -305,7 +321,44 @@ function PromptDetail({ event }: { event: ClaudeEvent }) {
   );
 }
 
+/** Inline MD content shown directly for Thinking / Output events (no click needed) */
+function EventInlineContent({ event }: { event: ClaudeEvent }) {
+  const d = event.data;
+  if (event.type === "Thinking") {
+    const text = (d.thinking_text as string) || "";
+    if (!text) return null;
+    return (
+      <div className="event-inline-md thinking-inline">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      </div>
+    );
+  }
+  if (event.type === "Output") {
+    const text = (d.output_text as string) || "";
+    if (!text) return null;
+    return (
+      <div className="event-inline-md output-inline">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+      </div>
+    );
+  }
+  return null;
+}
+
 /** Renders structured detail view for known event types, JSON for the rest */
+/** Extract plain text from a tool response — handles string, {type,text}, [{type,text},...] */
+function extractTextFromToolResponse(raw: unknown): string {
+  if (typeof raw === "string") return raw;
+  const unwrap = (item: unknown): string => {
+    if (typeof item === "string") return item;
+    if (typeof item === "object" && item !== null && "text" in item)
+      return String((item as Record<string, unknown>).text ?? "");
+    return "";
+  };
+  if (Array.isArray(raw)) return raw.map(unwrap).filter(Boolean).join("\n");
+  return unwrap(raw);
+}
+
 function EventDetail({ event }: { event: ClaudeEvent }) {
   const d = event.data;
   const input = d.tool_input;
@@ -428,20 +481,41 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
           </div>
         );
       }
-      if (event.toolName === "Read" || event.toolName === "Write" || event.toolName === "Edit") {
+      if (event.toolName === "Edit") {
         return (
           <div className="event-detail-structured">
             {d.tool_input?.file_path && <DetailField label="FILE" value={d.tool_input.file_path} />}
-            {response && <OutputBlock label="OUTPUT" value={truncate(response, 2000)} />}
+            <DiffView oldText={d.tool_input?.old_string} newText={d.tool_input?.new_string} />
+            {dur && <DetailField label="DURATION" value={dur} />}
+          </div>
+        );
+      }
+      if (event.toolName === "Write") {
+        return (
+          <div className="event-detail-structured">
+            {d.tool_input?.file_path && <DetailField label="FILE" value={d.tool_input.file_path} />}
+            {d.tool_input?.content && <DiffView newText={d.tool_input.content} />}
+            {dur && <DetailField label="DURATION" value={dur} />}
+          </div>
+        );
+      }
+      if (event.toolName === "Read") {
+        const content = extractTextFromToolResponse(d.tool_response);
+        return (
+          <div className="event-detail-structured">
+            {d.tool_input?.file_path && <DetailField label="FILE" value={d.tool_input.file_path} />}
+            {content && <OutputBlock label="CONTENT" value={truncate(content, 4000)} />}
             {dur && <DetailField label="DURATION" value={dur} />}
           </div>
         );
       }
       if (event.toolName === "Grep" || event.toolName === "Glob") {
+        const results = extractTextFromToolResponse(d.tool_response);
         return (
           <div className="event-detail-structured">
             {d.tool_input?.pattern && <DetailField label="PATTERN" value={d.tool_input.pattern} />}
-            {response && <OutputBlock label="RESULTS" value={truncate(response, 2000)} />}
+            {d.tool_input?.path && <DetailField label="PATH" value={d.tool_input.path} />}
+            {results && <OutputBlock label="RESULTS" value={truncate(results, 4000)} />}
             {dur && <DetailField label="DURATION" value={dur} />}
           </div>
         );
@@ -474,6 +548,24 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
           {contextLabel && contextValue && <DetailField label={contextLabel} value={contextValue} />}
           <DetailField label="ERROR" value={truncate(errResponse, 2000)} variant="error" />
           {event.duration != null && <DetailField label="DURATION" value={formatDuration(event.duration)!} />}
+        </div>
+      );
+    }
+
+    case "Thinking": {
+      const text = (d.thinking_text as string) || "";
+      return (
+        <div className="event-inline-md thinking-inline md-content">
+          <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+        </div>
+      );
+    }
+
+    case "Output": {
+      const text = (d.output_text as string) || "";
+      return (
+        <div className="event-inline-md output-inline md-content">
+          <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
         </div>
       );
     }
@@ -538,6 +630,16 @@ function getEventSummary(event: ClaudeEvent): string {
     case "Notification":
       return d.message || "notification";
 
+    case "Thinking": {
+      const text = (d.thinking_text as string) || "";
+      return truncate(text.replace(/\n/g, " "), 120) || "thinking...";
+    }
+
+    case "Output": {
+      const text = (d.output_text as string) || "";
+      return truncate(text.replace(/\n/g, " "), 120) || "output...";
+    }
+
     default:
       return JSON.stringify(d);
   }
@@ -555,7 +657,38 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   Stop: "STOP",
   Notification: "NOTIF",
   TaskCompleted: "DONE",
+  Thinking: "THINK",
+  Output: "OUTPUT",
 };
+
+function EventDetailModal({ event, onClose }: { event: ClaudeEvent; onClose: () => void }) {
+  const color = EVENT_COLORS[event.type] || "#8892a8";
+  const icon = EVENT_ICONS[event.type] || "·";
+  const label = EVENT_TYPE_LABELS[event.type] ?? event.type;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="event-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="event-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="event-modal-header" style={{ "--event-color": color } as React.CSSProperties}>
+          <span className="event-modal-icon" style={{ color }}>{icon}</span>
+          <span className="event-modal-type" style={{ color }}>[{label}]</span>
+          {event.toolName && <span className="event-tool">{event.toolName}</span>}
+          <span className="event-modal-time">{formatTime(event.timestamp)}</span>
+          <button className="event-modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <div className="event-modal-body">
+          <EventDetail event={event} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function EventFeed({ events, truncated, isProcessing, pendingTools }: EventFeedProps) {
   const feedRef = useRef<HTMLDivElement>(null);
@@ -563,7 +696,7 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
   const autoScrollRef = useRef(true);
   const [pillsScroll, setPillsScroll] = useState({ left: false, right: false });
   const [processingMsgIdx, setProcessingMsgIdx] = useState(0);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [modalEvent, setModalEvent] = useState<ClaudeEvent | null>(null);
   const [filterTypes, setFilterTypes] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("cv-filter-types");
@@ -596,8 +729,8 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
     return () => clearInterval(id);
   }, [isProcessing]);
 
-  const toggleExpand = useCallback((id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id));
+  const openModal = useCallback((event: ClaudeEvent) => {
+    setModalEvent(event);
   }, []);
 
   const toggleFilter = useCallback((type: string) => {
@@ -662,10 +795,6 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
     overscan: 20,
   });
 
-  // Re-measure when expanded item changes
-  useEffect(() => {
-    virtualizer.measure();
-  }, [expandedId, virtualizer]);
 
   // Auto-scroll to bottom when new events arrive
   useEffect(() => {
@@ -771,7 +900,7 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
               const event = filteredEvents[virtualRow.index]!;
               const color = EVENT_COLORS[event.type] || "#8892a8";
               const icon = EVENT_ICONS[event.type] || "·";
-              const isExpanded = expandedId === event.id;
+              const hasDetail = event.type !== "SessionStart" && event.type !== "SessionEnd";
 
               return (
                 <div
@@ -779,7 +908,7 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                   data-index={virtualRow.index}
                   ref={virtualizer.measureElement}
                   role="listitem"
-                  className={`event-item${isExpanded ? " expanded" : ""}`}
+                  className="event-item"
                   style={{
                     "--event-color": color,
                     position: "absolute",
@@ -790,12 +919,11 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                   } as React.CSSProperties}
                 >
                   <div
-                    className="event-row"
-                    role="button"
-                    tabIndex={0}
-                    aria-expanded={isExpanded}
-                    onClick={() => toggleExpand(event.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleExpand(event.id); } }}
+                    className={`event-row${hasDetail ? " clickable" : ""}`}
+                    role={hasDetail ? "button" : undefined}
+                    tabIndex={hasDetail ? 0 : undefined}
+                    onClick={() => hasDetail && openModal(event)}
+                    onKeyDown={(e) => { if (hasDetail && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openModal(event); } }}
                   >
                     <span className="event-time">{formatTime(event.timestamp)}</span>
                     <span className="event-icon" aria-hidden="true" style={{ color }}>{icon}</span>
@@ -804,12 +932,7 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                       <span className="event-tool">{event.toolName}</span>
                     )}
                     <span className="event-summary">{getEventSummary(event)}</span>
-                    <span className="event-expand-icon" aria-hidden="true" style={{ color }}>{isExpanded ? "▾" : "▸"}</span>
-                  </div>
-                  <div className="event-detail-wrapper">
-                    <div className="event-detail">
-                      {isExpanded && <EventDetail event={event} />}
-                    </div>
+                    {hasDetail && <span className="event-expand-icon" aria-hidden="true" style={{ color }}>›</span>}
                   </div>
                 </div>
               );
@@ -817,6 +940,10 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
           </div>
         )}
       </div>
+
+      {modalEvent && (
+        <EventDetailModal event={modalEvent} onClose={() => setModalEvent(null)} />
+      )}
 
       {isProcessing && (
         <div className="feed-processing-banner" role="status" aria-live="polite">

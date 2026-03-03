@@ -103,7 +103,7 @@ export function Header({
             aria-pressed={mode === "history"}
             onClick={() => onModeChange("history")}
           >
-            HISTORY
+            SESSIONS
           </button>
         </div>
       </div>

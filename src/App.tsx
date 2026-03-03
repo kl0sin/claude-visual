@@ -7,7 +7,7 @@ import { StatsPanel } from "./components/StatsPanel";
 import { TokenPanel } from "./components/TokenPanel";
 import { SessionSelector } from "./components/SessionSelector";
 import { HookInstallBanner } from "./components/HookInstallBanner";
-import { HistoryBrowser } from "./components/HistoryBrowser";
+import { SessionViewer } from "./components/SessionViewer";
 import { SettingsPage } from "./components/SettingsPage";
 import { ToastContainer } from "./components/ToastContainer";
 import { useWebSocket } from "./hooks/useWebSocket";
@@ -132,7 +132,7 @@ export default function App() {
       )}
 
       {mode === "history" && (
-        <HistoryBrowser
+        <SessionViewer
           projectId={"projectId" in route ? route.projectId : undefined}
           sessionId={"sessionId" in route ? route.sessionId : undefined}
           onNavigate={(projectId, sessionId) =>
@@ -164,7 +164,7 @@ export default function App() {
               : "◎ AWAITING CONNECTION"
             : mode === "settings"
               ? "◈ SETTINGS"
-              : "◉ HISTORY MODE"}
+              : "◉ SESSIONS"}
         </span>
       </footer>
     </div>

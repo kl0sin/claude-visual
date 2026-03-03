@@ -65,6 +65,22 @@ app.post("/api/events", async (c) => {
     // Read token usage + model from transcript file (hooks don't include token data directly)
     const transcriptPath = raw.transcript_path;
 
+    // Emit a synthetic event (Thinking / Output) and broadcast it immediately.
+    // Pass as a raw-event-shaped object so eventStore.add() stores data correctly —
+    // spreading data fields at the top level ensures event.data.thinking_text etc. survive a DB round-trip.
+    const broadcastSynthetic = (type: string, data: Record<string, unknown>) => {
+      const rawSynthetic: Record<string, unknown> = {
+        event_type: type,
+        session_id: event.sessionId,
+        ...data,
+      };
+      const se = eventStore.add(rawSynthetic);
+      const msg = JSON.stringify({ type: "event", data: se, stats: eventStore.getStats(), sessions: eventStore.getSessions() });
+      for (const ws of clients) {
+        try { ws.send(msg); } catch { clients.delete(ws); }
+      }
+    };
+
     const broadcastEventPatch = (patched: ReturnType<typeof eventStore.patchEventData>) => {
       if (!patched) return;
       const msg = JSON.stringify({ type: "eventPatch", events: [patched] });
@@ -88,9 +104,15 @@ app.post("/api/events", async (c) => {
       const newData = await transcriptReader.readNewData(transcriptPath);
       if (newData) {
         eventStore.addTranscriptData(newData, event.sessionId);
-        // Attach response text to Stop events so the frontend can display it
-        if (event.type === "Stop" && newData.latestResponse) {
-          broadcastEventPatch(eventStore.patchEventData(event.id, { response_text: newData.latestResponse }));
+
+        // Emit Thinking synthetic event when new thinking content is detected
+        if (newData.latestThinking) {
+          broadcastSynthetic("Thinking", { thinking_text: newData.latestThinking });
+        }
+
+        // Emit Output synthetic event when new response text is detected
+        if (newData.latestResponse) {
+          broadcastSynthetic("Output", { output_text: newData.latestResponse });
         }
       }
     }
@@ -108,9 +130,8 @@ app.post("/api/events", async (c) => {
         const extra = await transcriptReader.readNewData(transcriptPath);
         if (extra) {
           eventStore.addTranscriptData(extra, sessionId);
-          if (event.type === "Stop" && extra.latestResponse) {
-            broadcastEventPatch(eventStore.patchEventData(eventId, { response_text: extra.latestResponse }));
-          }
+          if (extra.latestThinking) broadcastSynthetic("Thinking", { thinking_text: extra.latestThinking });
+          if (extra.latestResponse) broadcastSynthetic("Output", { output_text: extra.latestResponse });
           broadcastStats();
         }
       };
