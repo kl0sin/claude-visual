@@ -678,7 +678,7 @@ function EventDetailModal({ event, onClose }: { event: ClaudeEvent; onClose: () 
         <div className="event-modal-header" style={{ "--event-color": color } as React.CSSProperties}>
           <span className="event-modal-icon" style={{ color }}>{icon}</span>
           <span className="event-modal-type" style={{ color }}>[{label}]</span>
-          {event.toolName && <span className="event-tool">{event.toolName}</span>}
+          {event.toolName && <span className="event-tool" data-tooltip={event.toolName}>{event.toolName}</span>}
           <span className="event-modal-time">{formatTime(event.timestamp)}</span>
           <button className="event-modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
@@ -929,9 +929,9 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                     <span className="event-icon" aria-hidden="true" style={{ color }}>{icon}</span>
                     <span className="event-type" style={{ color }}>[{event.type}]</span>
                     {event.toolName && (
-                      <span className="event-tool">{event.toolName}</span>
+                      <span className="event-tool" data-tooltip={event.toolName}>{event.toolName}</span>
                     )}
-                    <span className="event-summary">{getEventSummary(event)}</span>
+                    <span className="event-summary" data-tooltip={getEventSummary(event)}>{getEventSummary(event)}</span>
                     {hasDetail && <span className="event-expand-icon" aria-hidden="true" style={{ color }}>›</span>}
                   </div>
                 </div>

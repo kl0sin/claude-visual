@@ -10,6 +10,7 @@ import { HookInstallBanner } from "./components/HookInstallBanner";
 import { SessionViewer } from "./components/SessionViewer";
 import { SettingsPage } from "./components/SettingsPage";
 import { ToastContainer } from "./components/ToastContainer";
+import { TooltipOverlay } from "./components/TooltipOverlay";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { useRouter } from "./hooks/useRouter";
 import { useNotifications } from "./hooks/useNotifications";
@@ -151,6 +152,7 @@ export default function App() {
       )}
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <TooltipOverlay />
 
       <footer className="footer">
         <span className="footer-text">

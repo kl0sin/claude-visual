@@ -77,7 +77,7 @@ function ToolUseBlock({
       >
         <span className="tool-block-icon">⚙</span>
         <span className="tool-block-name">{name}</span>
-        {preview && <span className="tool-block-preview">{preview}</span>}
+        {preview && <span className="tool-block-preview" data-tooltip={preview}>{preview}</span>}
         <span className="tool-block-chevron">{expanded ? "▲" : "▼"}</span>
       </button>
       {expanded && <pre className="tool-block-body">{inputStr}</pre>}
@@ -318,7 +318,7 @@ function ThinkingBlock({
         {redacted ? (
           <span className="thinking-preview redacted">redacted</span>
         ) : (
-          <span className="thinking-preview">
+          <span className="thinking-preview" data-tooltip={!expanded && isLong ? thinking : undefined}>
             {!expanded && preview}
             {!expanded && isLong ? "…" : ""}
           </span>
@@ -651,7 +651,7 @@ function StepRow({
         ) : toolUses.length > 0 ? (
           <>
             <span className="step-icon tool">⚙</span>
-            <span className="step-tool-name">{toolLabel}</span>
+            <span className="step-tool-name" data-tooltip={toolLabel}>{toolLabel}</span>
           </>
         ) : hasThinking ? (
           <>
@@ -667,7 +667,7 @@ function StepRow({
 
         {/* Key param for tool steps — file name, command, etc. */}
         {toolUses.length > 0 && toolParam && (
-          <span className="step-inline-preview">{toolParam}</span>
+          <span className="step-inline-preview" data-tooltip={toolParam}>{toolParam}</span>
         )}
 
         {/* Inline preview for result / thinking / output steps */}
@@ -678,7 +678,7 @@ function StepRow({
           </span>
         )}
         {inlinePreview && (
-          <span className="step-inline-preview">{inlinePreview}</span>
+          <span className="step-inline-preview" data-tooltip={inlinePreview}>{inlinePreview}</span>
         )}
 
         {/* Tokens + duration */}

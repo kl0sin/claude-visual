@@ -31,7 +31,16 @@ function formatTime(ts: number): string {
 
 function shortId(id: string): string {
   if (id.length <= 12) return id;
-  return id.slice(0, 6) + "..." + id.slice(-4);
+  return id.slice(0, 6) + "…" + id.slice(-4);
+}
+
+function projectLabel(session: { id: string; cwd?: string }): string {
+  if (session.cwd) {
+    const parts = session.cwd.replace(/\\/g, "/").split("/").filter(Boolean);
+    const name = parts[parts.length - 1];
+    if (name) return name;
+  }
+  return shortId(session.id);
 }
 
 function formatDuration(from: number, to: number): string {
@@ -83,10 +92,10 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
               className={`session-tab ${isSelected ? "active" : ""} session-${state}`}
               aria-pressed={isSelected}
               onClick={() => onSelect(isSelected ? null : session.id)}
-              title={`Session: ${session.id}\nStatus: ${state}\nEvents: ${session.eventCount}\nStarted: ${new Date(session.firstEvent).toLocaleString()}`}
+              data-tooltip={`${session.cwd ?? session.id}\nStatus: ${state} · Events: ${session.eventCount}\nStarted: ${new Date(session.firstEvent).toLocaleString()}`}
             >
               <span className={`session-status-dot ${state}`} aria-hidden="true" />
-              <span className="session-tab-label">{shortId(session.id)}</span>
+              <span className="session-tab-label">{projectLabel(session)}</span>
               <span className="session-tab-time">{formatTime(session.firstEvent)}</span>
               <span className="session-tab-duration">
                 {formatDuration(session.firstEvent, state === "ended" ? session.lastEvent : now)}

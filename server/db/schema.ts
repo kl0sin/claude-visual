@@ -32,9 +32,12 @@ export function initSchema(db: Database): void {
         last_event    INTEGER NOT NULL,
         event_count   INTEGER NOT NULL DEFAULT 0,
         status        TEXT    NOT NULL DEFAULT 'active',
-        is_processing INTEGER NOT NULL DEFAULT 0
+        is_processing INTEGER NOT NULL DEFAULT 0,
+        cwd           TEXT
       )
     `).run();
+    // Migration: add cwd to existing databases that predate this column
+    try { db.query("ALTER TABLE sessions ADD COLUMN cwd TEXT").run(); } catch { /* already exists */ }
 
     db.query(`
       CREATE TABLE IF NOT EXISTS session_tokens (

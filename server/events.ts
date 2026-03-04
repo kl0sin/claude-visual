@@ -62,13 +62,14 @@ export class EventStore {
     `);
 
     this.stmtUpsertSession = this.db.prepare(`
-      INSERT INTO sessions (id, first_event, last_event, event_count, status, is_processing)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO sessions (id, first_event, last_event, event_count, status, is_processing, cwd)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         last_event    = excluded.last_event,
         event_count   = excluded.event_count,
         status        = excluded.status,
-        is_processing = excluded.is_processing
+        is_processing = excluded.is_processing,
+        cwd           = COALESCE(excluded.cwd, cwd)
     `);
 
     this.stmtUpsertAgent = this.db.prepare(`
@@ -116,6 +117,7 @@ export class EventStore {
         eventCount: r.event_count,
         status: r.status as "active" | "ended",
         isProcessing: r.is_processing === 1,
+        cwd: r.cwd ?? undefined,
       });
     }
 
@@ -169,6 +171,9 @@ export class EventStore {
         } else if (eventType === "Stop") {
           existing.isProcessing = false;
         }
+        if (!existing.cwd && typeof raw.cwd === "string") {
+          existing.cwd = raw.cwd;
+        }
         this._persistSession(existing);
       } else {
         const s: SessionInfo = {
@@ -178,6 +183,7 @@ export class EventStore {
           eventCount: 1,
           status: eventType === "SessionEnd" ? "ended" : "active",
           isProcessing: eventType === "UserPromptSubmit",
+          cwd: typeof raw.cwd === "string" ? raw.cwd : undefined,
         };
         this.sessions.set(sessionId, s);
         this._persistSession(s);
@@ -565,6 +571,7 @@ export class EventStore {
       s.eventCount,
       s.status,
       s.isProcessing ? 1 : 0,
+      s.cwd ?? null,
     );
   }
 

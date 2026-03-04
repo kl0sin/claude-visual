@@ -34,6 +34,7 @@ export interface SessionInfo {
   eventCount: number;
   status: "active" | "ended";
   isProcessing: boolean;
+  cwd?: string;
 }
 
 export interface PendingTool {

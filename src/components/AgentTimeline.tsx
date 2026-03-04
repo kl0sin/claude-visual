@@ -179,7 +179,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                                 ? "✗"
                                 : "✓"}
                             </span>
-                            <span className="agent-action-name" style={{ color: toolColor }}>
+                            <span className="agent-action-name" style={{ color: toolColor }} data-tooltip={action.tool}>
                               {action.tool}
                             </span>
                             <div className="agent-action-bar">
