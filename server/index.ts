@@ -14,6 +14,22 @@ const clients = new Set<ServerWebSocket<unknown>>();
 // Prevents accumulation of fire-and-forget setTimeouts under high load.
 const catchUpTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+// ── Search rate limiter (sliding window, per IP) ─────────────
+// Limits /api/history/search to 10 req/s per IP to prevent runaway JSONL scans.
+const SEARCH_RL_LIMIT = 10;
+const SEARCH_RL_WINDOW_MS = 1000;
+const searchRateMap = new Map<string, number[]>();
+
+function checkSearchRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const cutoff = now - SEARCH_RL_WINDOW_MS;
+  const hits = (searchRateMap.get(ip) ?? []).filter((t) => t > cutoff);
+  if (hits.length >= SEARCH_RL_LIMIT) return false;
+  hits.push(now);
+  searchRateMap.set(ip, hits);
+  return true;
+}
+
 const isProduction = process.env.NODE_ENV === "production";
 
 // Optional auth token — set CLAUDE_VISUAL_TOKEN env var to enable
@@ -236,6 +252,12 @@ app.get("/api/history/stats", async (c) => {
 });
 
 app.get("/api/history/search", async (c) => {
+  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? c.req.header("x-real-ip")
+    ?? "local";
+  if (!checkSearchRateLimit(ip)) {
+    return c.json({ error: "Too Many Requests" }, 429);
+  }
   const q = c.req.query("q")?.trim() ?? "";
   const projectId = c.req.query("project") || undefined;
   if (q.length < 2) return c.json([]);

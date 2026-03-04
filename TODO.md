@@ -78,7 +78,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ### Low Priority
 
-- [ ] **No rate limiting on `/api/history/search`**: The search endpoint scans JSONL files across all sessions — no rate limiting. Add basic rate limiting (e.g. 10 req/s per IP).
+- [x] **No rate limiting on `/api/history/search`**: The search endpoint scans JSONL files across all sessions — no rate limiting. Add basic rate limiting (e.g. 10 req/s per IP).
 
 - [ ] **Landing page TypeScript errors**: 5 TS errors in `landing/src/`: `DemoAlerts.tsx:67`, `DemoHistory.tsx:123,188,190`, `DemoTerminal.tsx:188`. Does not affect the main app.
 
