@@ -52,6 +52,48 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ---
 
+---
+
+## 🔧 Bug Fixes & Tech Debt (2026-03-04)
+
+### High Priority
+
+- [ ] **`useNotifications.ts` — memory leak in `seenIdsRef`**: The `seenIdsRef` Set (tracks seen event IDs for deduplication) grows unbounded — all event IDs are retained for the lifetime of the page. In long-running sessions with thousands of events, this wastes significant memory. Replace with a size-bounded LRU cache (max ~1000 entries).
+
+- [ ] **`useWebSocket.ts:145` — missing `response.ok` check**: Per-session token fetch does not check HTTP status before calling `.json()`. A 500 response silently results in zero token display. Add `if (!r.ok) throw new Error(...)` before `.json()`.
+
+- [ ] **`useWebSocket.ts:57` — reconnect timeout leak**: A new `setTimeout` for reconnect is set without clearing the previous one. Rapid server config changes can cause multiple parallel reconnection loops. Always `clearTimeout(reconnectTimeout.current)` before setting a new one.
+
+### Medium Priority
+
+- [ ] **`SessionViewer.tsx` — refactor (1866 lines)**: The component handles too many responsibilities. Split into focused sub-components: `ProjectBrowser`, `TranscriptPanel`, `SearchResultsPanel`, `HistoricalStatsPanel`.
+
+- [ ] **`server/history.ts` — search result limit**: `searchTranscripts()` returns all matching sessions without an upper bound. Common search terms can produce MB-scale responses. Add `maxSessions = 50` parameter.
+
+- [ ] **Duplicated cost calculation logic**: Cost calculation exists in 3 places: `useNotifications.ts`, `HistoricalStatsPanel.tsx`, and `server/history.ts`. Consolidate around the shared `estimateCost()` in `shared/tokens.ts`.
+
+- [ ] **Hardcoded 2000-event limit**: The max-events cap is baked into SQL queries and frontend logic. Make it configurable via `MAX_EVENTS` env var.
+
+- [ ] **`server/index.ts:138` — timeout accumulation on `Stop`/`SessionEnd`**: Each `Stop`/`SessionEnd` creates two fire-and-forget `setTimeout` calls to catch delayed transcript writes. Under high load, these accumulate. Replace with per-`transcriptPath` debounce.
+
+### Low Priority
+
+- [ ] **No rate limiting on `/api/history/search`**: The search endpoint scans JSONL files across all sessions — no rate limiting. Add basic rate limiting (e.g. 10 req/s per IP).
+
+- [ ] **Landing page TypeScript errors**: 5 TS errors in `landing/src/`: `DemoAlerts.tsx:67`, `DemoHistory.tsx:123,188,190`, `DemoTerminal.tsx:188`. Does not affect the main app.
+
+- [ ] **No ESLint / Prettier configured**: Add `eslint` + `prettier` for consistent code style enforcement.
+
+- [ ] **SQLite `Database` never explicitly closed**: `EventStore` opens a DB connection that is never explicitly closed (relies on Bun cleanup on process exit). Add a `close()` method and call it on shutdown signals.
+
+### Missing Features (carry-over)
+
+- [ ] **Session export** — download JSON/CSV of all events from the selected session. *(already tracked above, repeated for visibility)*
+
+- [ ] **Replay mode** — replay a session at ×1/×5/×10 speed. *(already tracked above)*
+
+---
+
 ## Suggested implementation order
 
 1. Diff view for Edit/Write — big quick win, no architectural changes required
