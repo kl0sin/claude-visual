@@ -55,6 +55,19 @@ function computeCost(tokens: SessionStats["tokens"], modelId?: string): number {
 
 let toastSeq = 0;
 
+const SEEN_IDS_MAX = 1000;
+
+/** Add id to a size-bounded Set. Returns true if it was newly added.
+ *  When capacity is exceeded the oldest (first-inserted) entry is evicted. */
+function seenAdd(set: Set<string>, id: string): boolean {
+  if (set.has(id)) return false;
+  if (set.size >= SEEN_IDS_MAX) {
+    set.delete(set.values().next().value as string);
+  }
+  set.add(id);
+  return true;
+}
+
 export function useNotifications(
   allEvents: ClaudeEvent[],
   globalStats: SessionStats | null,
@@ -102,11 +115,8 @@ export function useNotifications(
 
     const newEvents: ClaudeEvent[] = [];
     for (const evt of allEvents) {
-      if (!seenIdsRef.current.has(evt.id)) {
-        seenIdsRef.current.add(evt.id);
-        if (initializedRef.current) {
-          newEvents.push(evt);
-        }
+      if (seenAdd(seenIdsRef.current, evt.id) && initializedRef.current) {
+        newEvents.push(evt);
       }
     }
 

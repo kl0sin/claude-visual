@@ -58,11 +58,11 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ### High Priority
 
-- [ ] **`useNotifications.ts` — memory leak in `seenIdsRef`**: The `seenIdsRef` Set (tracks seen event IDs for deduplication) grows unbounded — all event IDs are retained for the lifetime of the page. In long-running sessions with thousands of events, this wastes significant memory. Replace with a size-bounded LRU cache (max ~1000 entries).
+- [x] **`useNotifications.ts` — memory leak in `seenIdsRef`**: The `seenIdsRef` Set (tracks seen event IDs for deduplication) grows unbounded — all event IDs are retained for the lifetime of the page. In long-running sessions with thousands of events, this wastes significant memory. Fixed: replaced with a size-bounded Set (max 1000 entries) using JS insertion-order eviction via `seenAdd()` helper.
 
-- [ ] **`useWebSocket.ts:145` — missing `response.ok` check**: Per-session token fetch does not check HTTP status before calling `.json()`. A 500 response silently results in zero token display. Add `if (!r.ok) throw new Error(...)` before `.json()`.
+- [x] **`useWebSocket.ts:145` — missing `response.ok` check**: Per-session token fetch does not check HTTP status before calling `.json()`. A 500 response silently results in zero token display. Fixed: added `if (!r.ok) throw new Error(...)` before `.json()`.
 
-- [ ] **`useWebSocket.ts:57` — reconnect timeout leak**: A new `setTimeout` for reconnect is set without clearing the previous one. Rapid server config changes can cause multiple parallel reconnection loops. Always `clearTimeout(reconnectTimeout.current)` before setting a new one.
+- [x] **`useWebSocket.ts:57` — reconnect timeout leak**: A new `setTimeout` for reconnect is set without clearing the previous one. Rapid server config changes can cause multiple parallel reconnection loops. Fixed: added `clearTimeout(reconnectTimeout.current)` before each new `setTimeout`.
 
 ### Medium Priority
 

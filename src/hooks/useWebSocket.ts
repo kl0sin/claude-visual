@@ -54,6 +54,7 @@ export function useWebSocket(
     ws.onclose = () => {
       setConnected(false);
       console.log("[NEURAL LINK] Disconnected, reconnecting...");
+      clearTimeout(reconnectTimeout.current);
       reconnectTimeout.current = setTimeout(connect, 2000);
     };
 
@@ -145,7 +146,10 @@ export function useWebSocket(
     fetch(`${apiBase}/api/stats?session=${encodeURIComponent(selectedSession)}`, {
       headers: authHeaders,
     })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data: SessionStats) => setSessionTokens(data.tokens))
       .catch(() => setSessionTokens(null));
   }, [selectedSession, globalStats]);
