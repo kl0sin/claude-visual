@@ -45,19 +45,6 @@ function saveAlertSettings(s: AlertSettings): void {
 
 let toastSeq = 0;
 
-const SEEN_IDS_MAX = 1000;
-
-/** Add id to a size-bounded Set. Returns true if it was newly added.
- *  When capacity is exceeded the oldest (first-inserted) entry is evicted. */
-function seenAdd(set: Set<string>, id: string): boolean {
-  if (set.has(id)) return false;
-  if (set.size >= SEEN_IDS_MAX) {
-    set.delete(set.values().next().value as string);
-  }
-  set.add(id);
-  return true;
-}
-
 export function useNotifications(
   allEvents: ClaudeEvent[],
   globalStats: SessionStats | null,
@@ -66,8 +53,8 @@ export function useNotifications(
   const [settings, setSettings] = useState<AlertSettings>(loadAlertSettings);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // Tracks event IDs already seen — prevents re-notification on re-render
-  const seenIdsRef = useRef<Set<string>>(new Set());
+  // Previous allEvents reference — diff against it to find truly new events
+  const prevAllEventsRef = useRef<ClaudeEvent[]>([]);
   // true after first snapshot has been processed
   const initializedRef = useRef(false);
   // Cost level at which we last notified (multiple of threshold)
@@ -103,17 +90,21 @@ export function useNotifications(
   useEffect(() => {
     if (!settings.enabled) return;
 
-    const newEvents: ClaudeEvent[] = [];
-    for (const evt of allEvents) {
-      if (seenAdd(seenIdsRef.current, evt.id) && initializedRef.current) {
-        newEvents.push(evt);
-      }
-    }
+    const prev = prevAllEventsRef.current;
+    prevAllEventsRef.current = allEvents;
 
     if (!initializedRef.current) {
       initializedRef.current = true;
       return;
     }
+
+    // Only events not present in the previous array are truly new.
+    // Using ID-based diff avoids the bounded-set eviction bug where old IDs
+    // get dropped from a capped Set and re-trigger notifications.
+    const prevIds = new Set(prev.map((e) => e.id));
+    const newEvents = allEvents.filter((e) => !prevIds.has(e.id));
+
+    if (newEvents.length === 0) return;
 
     for (const evt of newEvents) {
       if (settings.toolFailures && evt.type === "PostToolUseFailure") {
@@ -180,7 +171,7 @@ export function useNotifications(
   // Reset tracking when events are cleared
   useEffect(() => {
     if (allEvents.length === 0) {
-      seenIdsRef.current = new Set();
+      prevAllEventsRef.current = [];
       initializedRef.current = false;
       notifiedCostLevelRef.current = 0;
       notifiedDurationRef.current = new Set();

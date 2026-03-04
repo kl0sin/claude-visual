@@ -34,7 +34,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Alerts / desktop notifications** — fixed: `useNotifications` hook watches all events and fires Web Notifications API + in-app toasts for: `PostToolUseFailure` (tool failures), `PermissionRequest`, `SessionEnd`. Threshold alerts for cost (`$N`) and session duration (`N` minutes). `AlertSettingsModal` (button ALERTS in Header) lets user toggle each trigger, request browser notification permission, and set numeric thresholds. Settings persist via `localStorage`. `ToastContainer` renders stacked toasts (bottom-right, auto-dismiss 5s, cyberpunk-styled). Initial snapshot events are silently skipped — only new live events trigger notifications.
 
-- [ ] **Session export** — download button for JSON/CSV of events from the selected session. Useful for external analysis or reporting.
+- [x] **Session export** — download button for JSON/CSV of events from the selected session. Useful for external analysis or reporting.
 
 - [x] **Historical statistics** — in History Browser: token and session count charts over time, most frequently used tools per project, average session cost. Fixed: `getProjectStats()` w `server/history.ts` agreguje dane z metadanych sesji (dwa przebiegi: tokeny/koszty/model + skan JSONL dla narzędzi). Endpoint `/api/history/stats?project=`. Komponent `HistoricalStatsPanel` z KPI cards (sesje, tokeny, koszt, avg/sesja), sparkline 30 dni, model breakdown z barami, top 10 tools. Panel pojawia się w prawym obszarze gdy projekt wybrany bez sesji; przycisk STATS/TRANSCRIPT w nagłówku pozwala przełączyć widok gdy sesja jest otwarta.
 
@@ -88,7 +88,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ### Missing Features (carry-over)
 
-- [ ] **Session export** — download JSON/CSV of all events from the selected session. *(already tracked above, repeated for visibility)*
+- [x] **Session export** — download JSON/CSV of all events from the selected session. *(already tracked above, repeated for visibility)*
 
 - [ ] **Replay mode** — replay a session at ×1/×5/×10 speed. *(already tracked above)*
 

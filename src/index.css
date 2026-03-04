@@ -3211,12 +3211,11 @@ body {
 
 .transcript-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
+  flex-direction: column;
+  padding: 8px 16px 10px;
   border-bottom: 1px solid var(--color-cyber-border);
   flex-shrink: 0;
-  gap: 16px;
+  gap: 6px;
 }
 
 .transcript-meta {
@@ -3361,6 +3360,32 @@ body {
 .transcript-load-all-btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+.transcript-export-btns {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.transcript-export-btn {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  color: var(--color-cyber-cyan);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border-radius: 2px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.transcript-export-btn:hover {
+  background: rgba(0, 240, 255, 0.07);
+  border-color: rgba(0, 240, 255, 0.5);
 }
 
 .transcript-messages::-webkit-scrollbar {

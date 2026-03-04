@@ -700,6 +700,91 @@ const ConversationTurnView = memo(function ConversationTurnView({
   );
 });
 
+// ── Session export ───────────────────────────────────────────
+
+function buildMarkdown(session: HistorySession, detail: HistorySessionDetail): string {
+  const lines: string[] = [];
+  lines.push(`# Session: ${session.id.slice(0, 8)}`);
+  lines.push(
+    `**Date:** ${formatDate(session.lastModified)} · **Model:** ${shortModel(session.model) || "—"} · **Turns:** ${session.userTurns} · **Tokens:** ${formatTokenCount(session.tokens.totalTokens)} · **Cost:** ${estimateCost(session.tokens, session.model)}`,
+  );
+  lines.push("");
+
+  const turns = groupIntoTurns(detail.messages);
+
+  for (const turn of turns) {
+    lines.push("---");
+    lines.push("");
+
+    // User input
+    const inputText = turn.input.content
+      .filter((c): c is { type: "text"; text: string } => c.type === "text")
+      .map((c) => c.text)
+      .join("\n");
+    lines.push("**YOU**");
+    lines.push("");
+    lines.push(inputText || "*(no text)*");
+    lines.push("");
+
+    // Steps summary
+    if (turn.steps.length > 0) {
+      for (const step of turn.steps) {
+        const tools = step.content.filter(
+          (c): c is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
+            c.type === "tool_use",
+        );
+        const results = step.content.filter(
+          (c): c is { type: "tool_result"; tool_use_id: string; content: unknown; is_error?: boolean } =>
+            c.type === "tool_result",
+        );
+        for (const t of tools) {
+          const param = getToolKeyParam(t.name, t.input);
+          lines.push(`> ⚙ **${t.name}** ${param ? `— \`${param}\`` : ""}`);
+        }
+        for (const r of results) {
+          const preview = getResultText(r.content).slice(0, 120).replace(/\n/g, " ");
+          lines.push(`> ${r.is_error ? "✗" : "✓"} ${preview || "(empty)"}`);
+        }
+      }
+      lines.push("");
+    }
+
+    // Claude response
+    if (turn.output) {
+      const duration = computeDuration(turn.input.timestamp, turn.output.timestamp);
+      const meta = [
+        shortModel(turn.output.model),
+        turn.output.tokens ? `${formatTokenCount(turn.output.tokens.totalTokens)} tokens` : null,
+        duration,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      lines.push(`**CLAUDE**${meta ? ` *(${meta})*` : ""}`);
+      lines.push("");
+      const outputText = turn.output.content
+        .filter((c): c is { type: "text"; text: string } => c.type === "text")
+        .map((c) => c.text)
+        .join("\n");
+      if (outputText) {
+        lines.push(outputText);
+        lines.push("");
+      }
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function triggerDownload(content: string, filename: string, mimeType: string): void {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Transcript panel ─────────────────────────────────────────
 
 const DEFAULT_LIMIT = 300;
@@ -881,6 +966,24 @@ export function TranscriptPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detail]);
 
+  const handleExport = useCallback(
+    (format: "json" | "md") => {
+      if (!detail) return;
+      const slug = session.id.slice(0, 8);
+      if (format === "json") {
+        const payload = JSON.stringify(
+          { id: session.id, model: session.model, lastModified: session.lastModified, tokens: session.tokens, totalMessages: detail.totalMessages, messages: detail.messages, exportedAt: new Date().toISOString() },
+          null,
+          2,
+        );
+        triggerDownload(payload, `session-${slug}.json`, "application/json");
+      } else {
+        triggerDownload(buildMarkdown(session, detail), `session-${slug}.md`, "text/markdown");
+      }
+    },
+    [session, detail],
+  );
+
   const handleLoadAll = useCallback(() => {
     // Convert current scroll position to the equivalent position after prepending.
     // New items (detail.offset of them) each have estimated height VIRTUAL_ESTIMATE_PX.
@@ -931,11 +1034,22 @@ export function TranscriptPanel({
           <span className="transcript-id">{session.id.slice(0, 8)}…</span>
           <span className="transcript-date">{formatDate(session.lastModified)}</span>
           {session.model && <span className="msg-model">{shortModel(session.model)}</span>}
-          {liveStatus !== "idle" && (
-            <span className={`live-badge${liveStatus === "thinking" ? " thinking" : ""}`}>
-              {liveStatus === "thinking" ? "◈ THINKING" : "● LIVE"}
-            </span>
-          )}
+          <div className="transcript-export-btns">
+            <button
+              className="transcript-export-btn"
+              onClick={() => handleExport("json")}
+              title="Export session as JSON"
+            >
+              ↓ JSON
+            </button>
+            <button
+              className="transcript-export-btn"
+              onClick={() => handleExport("md")}
+              title="Export session as Markdown"
+            >
+              ↓ MD
+            </button>
+          </div>
         </div>
         <div className="transcript-stats">
           <span className="transcript-stat">
@@ -952,6 +1066,11 @@ export function TranscriptPanel({
             <span className="stat-label">COST</span>
             <span className="stat-value yellow">{estimateCost(session.tokens, session.model)}</span>
           </span>
+          {liveStatus !== "idle" && (
+            <span className={`live-badge${liveStatus === "thinking" ? " thinking" : ""}`} style={{ marginLeft: "auto" }}>
+              {liveStatus === "thinking" ? "◈ THINKING" : "● LIVE"}
+            </span>
+          )}
         </div>
       </div>
 
