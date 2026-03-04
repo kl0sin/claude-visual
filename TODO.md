@@ -66,9 +66,9 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 ### Medium Priority
 
-- [ ] **`SessionViewer.tsx` — refactor (1866 lines)**: The component handles too many responsibilities. Split into focused sub-components: `ProjectBrowser`, `TranscriptPanel`, `SearchResultsPanel`, `HistoricalStatsPanel`.
+- [x] **`SessionViewer.tsx` — refactor (1866 lines)**: The component handles too many responsibilities. Split into focused sub-components: `ProjectBrowser`, `TranscriptPanel`, `SearchResultsPanel`, `HistoricalStatsPanel`.
 
-- [ ] **`server/history.ts` — search result limit**: `searchTranscripts()` returns all matching sessions without an upper bound. Common search terms can produce MB-scale responses. Add `maxSessions = 50` parameter.
+- [x] **`server/history.ts` — search result limit**: `searchTranscripts()` returns all matching sessions without an upper bound. Common search terms can produce MB-scale responses. Add `maxSessions = 50` parameter.
 
 - [ ] **Duplicated cost calculation logic**: Cost calculation exists in 3 places: `useNotifications.ts`, `HistoricalStatsPanel.tsx`, and `server/history.ts`. Consolidate around the shared `estimateCost()` in `shared/tokens.ts`.
 

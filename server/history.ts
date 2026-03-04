@@ -463,6 +463,7 @@ export async function searchTranscripts(
   query: string,
   projectId?: string,
   maxMatchesPerSession = 3,
+  maxSessions = 50,
 ): Promise<SearchResult[]> {
   const queryLow = query.toLowerCase();
   const allProjects = await listProjects();
@@ -588,7 +589,11 @@ export async function searchTranscripts(
         projectName: project.name,
         matches,
       });
+
+      if (results.length >= maxSessions) break;
     }
+
+    if (results.length >= maxSessions) break;
   }
 
   return results.sort((a, b) => b.session.lastModified - a.session.lastModified);
