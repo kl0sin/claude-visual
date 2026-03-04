@@ -72,7 +72,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Duplicated cost calculation logic**: Cost calculation exists in 3 places: `useNotifications.ts`, `HistoricalStatsPanel.tsx`, and `server/history.ts`. Consolidate around the shared `estimateCost()` in `shared/tokens.ts`.
 
-- [ ] **Hardcoded 2000-event limit**: The max-events cap is baked into SQL queries and frontend logic. Make it configurable via `MAX_EVENTS` env var.
+- [x] **Hardcoded 2000-event limit**: The max-events cap is baked into SQL queries and frontend logic. Make it configurable via `MAX_EVENTS` env var.
 
 - [ ] **`server/index.ts:138` — timeout accumulation on `Stop`/`SessionEnd`**: Each `Stop`/`SessionEnd` creates two fire-and-forget `setTimeout` calls to catch delayed transcript writes. Under high load, these accumulate. Replace with per-`transcriptPath` debounce.
 

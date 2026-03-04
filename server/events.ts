@@ -21,6 +21,8 @@ const DB_PATH =
   process.env.CLAUDE_VISUAL_DB ??
   path.join(process.env.HOME ?? "~", ".claude", "claude-visual.db");
 
+export const MAX_EVENTS = parseInt(process.env.MAX_EVENTS ?? "2000", 10);
+
 export class EventStore {
   private db: Database;
 
@@ -317,17 +319,17 @@ export class EventStore {
     );
   }
 
-  /** Returns up to 2000 most recent events (optionally filtered by session). */
+  /** Returns up to MAX_EVENTS most recent events (optionally filtered by session). */
   getAll(sessionId?: string): ClaudeEvent[] {
     const rows = (
       sessionId
         ? this.db
             .query(
-              "SELECT * FROM events WHERE session_id = ? ORDER BY timestamp DESC LIMIT 2000"
+              `SELECT * FROM events WHERE session_id = ? ORDER BY timestamp DESC LIMIT ${MAX_EVENTS}`
             )
             .all(sessionId)
         : this.db
-            .query("SELECT * FROM events ORDER BY timestamp DESC LIMIT 2000")
+            .query(`SELECT * FROM events ORDER BY timestamp DESC LIMIT ${MAX_EVENTS}`)
             .all()
     ) as DbEvent[];
     // Reverse so chronological order is preserved in the returned array
@@ -496,6 +498,7 @@ export class EventStore {
 
     return {
       totalEvents: totalRow?.total ?? 0,
+      maxEvents: MAX_EVENTS,
       toolCounts,
       toolFailCounts,
       agentCounts,

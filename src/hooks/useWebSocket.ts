@@ -17,6 +17,7 @@ interface UseWebSocketReturn {
 
 const DEFAULT_STATS: SessionStats = {
   totalEvents: 0,
+  maxEvents: 2000,
   toolCounts: {},
   toolFailCounts: {},
   agentCounts: {},
@@ -191,6 +192,7 @@ export function useWebSocket(
 
     return {
       totalEvents: events.length,
+      maxEvents: globalStats?.maxEvents ?? 2000,
       toolCounts,
       toolFailCounts,
       agentCounts,
@@ -203,8 +205,7 @@ export function useWebSocket(
     };
   }, [selectedSession, events, globalStats, sessionTokens]);
 
-  // Matches SQL LIMIT 2000 in server/events.ts
-  const truncated = (globalStats?.totalEvents ?? 0) > 2000;
+  const truncated = (globalStats?.totalEvents ?? 0) > (globalStats?.maxEvents ?? 2000);
 
   return { events, allEvents, stats, globalStats, sessions, selectedSession, setSelectedSession, connected, clearEvents, truncated };
 }
