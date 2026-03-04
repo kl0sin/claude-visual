@@ -185,7 +185,7 @@ export function DemoTerminal() {
       timersRef.current.push(t);
     });
 
-    const lastDelay = FAKE_SCENARIO[FAKE_SCENARIO.length - 1].delay;
+    const lastDelay = FAKE_SCENARIO[FAKE_SCENARIO.length - 1]!.delay;
 
     // pause at end
     const pauseT = setTimeout(() => {

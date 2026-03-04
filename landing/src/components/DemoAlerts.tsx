@@ -60,7 +60,7 @@ export function DemoAlerts() {
 
   useEffect(() => {
     const addToast = () => {
-      const alert = ALERTS[indexRef.current % ALERTS.length];
+      const alert = ALERTS[indexRef.current % ALERTS.length]!;
       indexRef.current++;
       const id = ++counterRef.current;
 

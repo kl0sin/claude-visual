@@ -120,7 +120,7 @@ export function DemoHistory() {
     setVisibleEvents([]);
     setIsReplaying(true);
 
-    const events = SESSIONS[activeIndex].events;
+    const events = SESSIONS[activeIndex]!.events;
     events.forEach((ev, i) => {
       const t = setTimeout(() => {
         setVisibleEvents((prev) => [...prev, ev]);
@@ -150,7 +150,7 @@ export function DemoHistory() {
     }
   }, [visibleEvents]);
 
-  const session = SESSIONS[activeIndex];
+  const session = SESSIONS[activeIndex]!;
 
   return (
     <div className="demo-terminal">
