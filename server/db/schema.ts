@@ -6,7 +6,8 @@ import { Database } from "bun:sqlite";
  */
 export function initSchema(db: Database): void {
   db.transaction(() => {
-    db.query(`
+    db.query(
+      `
       CREATE TABLE IF NOT EXISTS events (
         id          TEXT    PRIMARY KEY,
         type        TEXT    NOT NULL,
@@ -17,15 +18,17 @@ export function initSchema(db: Database): void {
         duration    INTEGER,
         data        TEXT    NOT NULL
       )
-    `).run();
+    `,
+    ).run();
     db.query("CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id)").run();
     db.query("CREATE INDEX IF NOT EXISTS idx_events_ts     ON events(timestamp)").run();
     db.query("CREATE INDEX IF NOT EXISTS idx_events_type   ON events(type)").run();
     db.query(
-      "CREATE INDEX IF NOT EXISTS idx_events_tool ON events(tool_name) WHERE tool_name IS NOT NULL"
+      "CREATE INDEX IF NOT EXISTS idx_events_tool ON events(tool_name) WHERE tool_name IS NOT NULL",
     ).run();
 
-    db.query(`
+    db.query(
+      `
       CREATE TABLE IF NOT EXISTS sessions (
         id            TEXT    PRIMARY KEY,
         first_event   INTEGER NOT NULL,
@@ -35,11 +38,17 @@ export function initSchema(db: Database): void {
         is_processing INTEGER NOT NULL DEFAULT 0,
         cwd           TEXT
       )
-    `).run();
+    `,
+    ).run();
     // Migration: add cwd to existing databases that predate this column
-    try { db.query("ALTER TABLE sessions ADD COLUMN cwd TEXT").run(); } catch { /* already exists */ }
+    try {
+      db.query("ALTER TABLE sessions ADD COLUMN cwd TEXT").run();
+    } catch {
+      /* already exists */
+    }
 
-    db.query(`
+    db.query(
+      `
       CREATE TABLE IF NOT EXISTS session_tokens (
         session_id              TEXT    PRIMARY KEY,
         model                   TEXT,
@@ -49,9 +58,11 @@ export function initSchema(db: Database): void {
         cache_read_tokens       INTEGER NOT NULL DEFAULT 0,
         total_tokens            INTEGER NOT NULL DEFAULT 0
       )
-    `).run();
+    `,
+    ).run();
 
-    db.query(`
+    db.query(
+      `
       CREATE TABLE IF NOT EXISTS agents (
         id          TEXT    PRIMARY KEY,
         type        TEXT    NOT NULL,
@@ -61,6 +72,7 @@ export function initSchema(db: Database): void {
         status      TEXT    NOT NULL DEFAULT 'active',
         session_id  TEXT
       )
-    `).run();
+    `,
+    ).run();
   })();
 }

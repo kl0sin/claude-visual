@@ -3,9 +3,9 @@ import { EMPTY_TOKENS } from "../shared/types";
 
 export interface TranscriptData {
   tokens: TokenUsage;
-  model?: string;           // last seen model ID, e.g. "claude-opus-4-6"
-  latestResponse?: string;  // text of the most recent assistant message (new since last read)
-  latestThinking?: string;  // text of the most recent thinking block (new since last read)
+  model?: string; // last seen model ID, e.g. "claude-opus-4-6"
+  latestResponse?: string; // text of the most recent assistant message (new since last read)
+  latestThinking?: string; // text of the most recent thinking block (new since last read)
 }
 
 /**

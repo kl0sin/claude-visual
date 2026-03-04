@@ -22,7 +22,12 @@ interface HistoricalStatsPanelProps {
   authHeaders: Record<string, string>;
 }
 
-export function HistoricalStatsPanel({ projectId, projectName, apiBase, authHeaders }: HistoricalStatsPanelProps) {
+export function HistoricalStatsPanel({
+  projectId,
+  projectName: _projectName,
+  apiBase,
+  authHeaders,
+}: HistoricalStatsPanelProps) {
   const [stats, setStats] = useState<ProjectStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +37,9 @@ export function HistoricalStatsPanel({ projectId, projectName, apiBase, authHead
     setError(null);
     setStats(null);
 
-    fetch(`${apiBase}/api/history/stats?project=${encodeURIComponent(projectId)}`, { headers: authHeaders })
+    fetch(`${apiBase}/api/history/stats?project=${encodeURIComponent(projectId)}`, {
+      headers: authHeaders,
+    })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json() as Promise<ProjectStats>;
@@ -98,7 +105,9 @@ export function HistoricalStatsPanel({ projectId, projectName, apiBase, authHead
             <div className="stat-label">SESSIONS</div>
           </div>
           <div className="stat-card">
-            <div className="stat-card-value yellow">{formatTokenCount(stats.totalTokens.totalTokens)}</div>
+            <div className="stat-card-value yellow">
+              {formatTokenCount(stats.totalTokens.totalTokens)}
+            </div>
             <div className="stat-label">TOKENS</div>
           </div>
           <div className="stat-card">

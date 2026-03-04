@@ -18,8 +18,7 @@ import type { DbEvent, DbSession, DbAgent, DbTokenRow } from "./db/types";
 export type { ClaudeEvent, AgentProcess, TokenUsage, SessionInfo, SessionStats };
 
 const DB_PATH =
-  process.env.CLAUDE_VISUAL_DB ??
-  path.join(process.env.HOME ?? "~", ".claude", "claude-visual.db");
+  process.env.CLAUDE_VISUAL_DB ?? path.join(process.env.HOME ?? "~", ".claude", "claude-visual.db");
 
 export const MAX_EVENTS = parseInt(process.env.MAX_EVENTS ?? "2000", 10);
 
@@ -105,8 +104,10 @@ export class EventStore {
   private _loadWarmState(): void {
     // Restore ID counter from the highest evt_N in the DB
     const maxRow = this.db
-      .query(`SELECT MAX(CAST(SUBSTR(id, 5) AS INTEGER)) AS n
-              FROM events WHERE id LIKE 'evt_%'`)
+      .query(
+        `SELECT MAX(CAST(SUBSTR(id, 5) AS INTEGER)) AS n
+              FROM events WHERE id LIKE 'evt_%'`,
+      )
       .get() as { n: number | null };
     this.idCounter = maxRow?.n ?? 0;
 
@@ -223,7 +224,6 @@ export class EventStore {
       };
       this.agents.set(agentId, agent);
       this._persistAgent(agent);
-
     } else if (eventType === "SubagentStop") {
       const agentId: string | undefined = raw.agent_id;
       const agent = agentId ? this.agents.get(agentId) : undefined;
@@ -252,16 +252,11 @@ export class EventStore {
       // Ensure every SubagentStop has a visible SubagentStart in the same session
       const sid = event.sessionId;
       if (sid) {
-        const hasStart = !!(
-          this.db
-            .query(
-              "SELECT 1 FROM events WHERE type = 'SubagentStart' AND session_id = ? LIMIT 1"
-            )
-            .get(sid)
-        );
+        const hasStart = !!this.db
+          .query("SELECT 1 FROM events WHERE type = 'SubagentStart' AND session_id = ? LIMIT 1")
+          .get(sid);
         if (!hasStart) this._adoptOrSynthSubagentStart(event, sid);
       }
-
     } else if (eventType === "SessionEnd" && sessionId) {
       // Complete any active agents that were started in this session.
       // Covers agents emitted by the SessionStart hook (agent_type "session") which
@@ -325,21 +320,17 @@ export class EventStore {
       sessionId
         ? this.db
             .query(
-              `SELECT * FROM events WHERE session_id = ? ORDER BY timestamp DESC LIMIT ${MAX_EVENTS}`
+              `SELECT * FROM events WHERE session_id = ? ORDER BY timestamp DESC LIMIT ${MAX_EVENTS}`,
             )
             .all(sessionId)
-        : this.db
-            .query(`SELECT * FROM events ORDER BY timestamp DESC LIMIT ${MAX_EVENTS}`)
-            .all()
+        : this.db.query(`SELECT * FROM events ORDER BY timestamp DESC LIMIT ${MAX_EVENTS}`).all()
     ) as DbEvent[];
     // Reverse so chronological order is preserved in the returned array
     return rows.reverse().map((r) => rowToEvent(r));
   }
 
   getSessions(): SessionInfo[] {
-    return Array.from(this.sessions.values()).sort(
-      (a, b) => b.lastEvent - a.lastEvent
-    );
+    return Array.from(this.sessions.values()).sort((a, b) => b.lastEvent - a.lastEvent);
   }
 
   getStats(sessionId?: string): SessionStats {
@@ -348,25 +339,21 @@ export class EventStore {
     const typeCountRows = (
       sessionId
         ? this.db
-            .query(
-              "SELECT type, COUNT(*) as cnt FROM events WHERE session_id = ? GROUP BY type"
-            )
+            .query("SELECT type, COUNT(*) as cnt FROM events WHERE session_id = ? GROUP BY type")
             .all(sessionId)
-        : this.db
-            .query("SELECT type, COUNT(*) as cnt FROM events GROUP BY type")
-            .all()
+        : this.db.query("SELECT type, COUNT(*) as cnt FROM events GROUP BY type").all()
     ) as Array<{ type: string; cnt: number }>;
 
     const toolCountRows = (
       sessionId
         ? this.db
             .query(
-              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE session_id = ? AND tool_name IS NOT NULL GROUP BY tool_name"
+              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE session_id = ? AND tool_name IS NOT NULL GROUP BY tool_name",
             )
             .all(sessionId)
         : this.db
             .query(
-              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE tool_name IS NOT NULL GROUP BY tool_name"
+              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE tool_name IS NOT NULL GROUP BY tool_name",
             )
             .all()
     ) as Array<{ tool_name: string; cnt: number }>;
@@ -375,12 +362,12 @@ export class EventStore {
       sessionId
         ? this.db
             .query(
-              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE session_id = ? AND type = 'PostToolUseFailure' AND tool_name IS NOT NULL GROUP BY tool_name"
+              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE session_id = ? AND type = 'PostToolUseFailure' AND tool_name IS NOT NULL GROUP BY tool_name",
             )
             .all(sessionId)
         : this.db
             .query(
-              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE type = 'PostToolUseFailure' AND tool_name IS NOT NULL GROUP BY tool_name"
+              "SELECT tool_name, COUNT(*) as cnt FROM events WHERE type = 'PostToolUseFailure' AND tool_name IS NOT NULL GROUP BY tool_name",
             )
             .all()
     ) as Array<{ tool_name: string; cnt: number }>;
@@ -389,21 +376,19 @@ export class EventStore {
       sessionId
         ? this.db
             .query(
-              "SELECT agent_type, COUNT(*) as cnt FROM events WHERE session_id = ? AND agent_type IS NOT NULL GROUP BY agent_type"
+              "SELECT agent_type, COUNT(*) as cnt FROM events WHERE session_id = ? AND agent_type IS NOT NULL GROUP BY agent_type",
             )
             .all(sessionId)
         : this.db
             .query(
-              "SELECT agent_type, COUNT(*) as cnt FROM events WHERE agent_type IS NOT NULL GROUP BY agent_type"
+              "SELECT agent_type, COUNT(*) as cnt FROM events WHERE agent_type IS NOT NULL GROUP BY agent_type",
             )
             .all()
     ) as Array<{ agent_type: string; cnt: number }>;
 
     const totalRow = (
       sessionId
-        ? this.db
-            .query("SELECT COUNT(*) as total FROM events WHERE session_id = ?")
-            .get(sessionId)
+        ? this.db.query("SELECT COUNT(*) as total FROM events WHERE session_id = ?").get(sessionId)
         : this.db.query("SELECT COUNT(*) as total FROM events").get()
     ) as { total: number } | null;
 
@@ -411,14 +396,10 @@ export class EventStore {
       sessionId
         ? this.db
             .query(
-              "SELECT MIN(timestamp) as first, MAX(timestamp) as last FROM events WHERE session_id = ?"
+              "SELECT MIN(timestamp) as first, MAX(timestamp) as last FROM events WHERE session_id = ?",
             )
             .get(sessionId)
-        : this.db
-            .query(
-              "SELECT MIN(timestamp) as first, MAX(timestamp) as last FROM events"
-            )
-            .get()
+        : this.db.query("SELECT MIN(timestamp) as first, MAX(timestamp) as last FROM events").get()
     ) as { first: number | null; last: number | null } | null;
 
     // ── Build result maps ─────────────────────────────────────────────────
@@ -445,7 +426,8 @@ export class EventStore {
       tokens = r ? tokenRowToUsage(r) : { ...EMPTY_TOKENS };
     } else {
       const r = this.db
-        .query(`
+        .query(
+          `
           SELECT
             SUM(input_tokens)          AS i,
             SUM(output_tokens)         AS o,
@@ -455,8 +437,15 @@ export class EventStore {
           FROM session_tokens
           WHERE session_id != '__global__'
             OR session_id IS NULL
-        `)
-        .get() as { i: number | null; o: number | null; cc: number | null; cr: number | null; t: number | null } | null;
+        `,
+        )
+        .get() as {
+        i: number | null;
+        o: number | null;
+        cc: number | null;
+        cr: number | null;
+        t: number | null;
+      } | null;
       // Also include __global__ bucket
       const g = this.db
         .query("SELECT * FROM session_tokens WHERE session_id = '__global__'")
@@ -475,13 +464,11 @@ export class EventStore {
     const modelRow = (
       sessionId
         ? this.db
-            .query(
-              "SELECT model FROM session_tokens WHERE session_id = ? AND model IS NOT NULL"
-            )
+            .query("SELECT model FROM session_tokens WHERE session_id = ? AND model IS NOT NULL")
             .get(sessionId)
         : this.db
             .query(
-              "SELECT model FROM session_tokens WHERE model IS NOT NULL ORDER BY rowid DESC LIMIT 1"
+              "SELECT model FROM session_tokens WHERE model IS NOT NULL ORDER BY rowid DESC LIMIT 1",
             )
             .get()
     ) as { model: string } | null;
@@ -517,15 +504,13 @@ export class EventStore {
    * Returns the updated ClaudeEvent, or null if the event doesn't exist.
    */
   patchEventData(id: string, patch: Record<string, any>): ClaudeEvent | null {
-    const row = this.db
-      .query("SELECT * FROM events WHERE id = ?")
-      .get(id) as import("./db/types").DbEvent | null;
+    const row = this.db.query("SELECT * FROM events WHERE id = ?").get(id) as
+      | import("./db/types").DbEvent
+      | null;
     if (!row) return null;
 
     const merged = { ...JSON.parse(row.data), ...patch };
-    this.db
-      .query("UPDATE events SET data = ? WHERE id = ?")
-      .run(JSON.stringify(merged), id);
+    this.db.query("UPDATE events SET data = ? WHERE id = ?").run(JSON.stringify(merged), id);
 
     const event = rowToEvent(row);
     event.data = merged;
@@ -601,23 +586,23 @@ export class EventStore {
 
     // Look for an unmatched SubagentStart from any other session within a generous window
     const orphanRow = this.db
-      .query(`
+      .query(
+        `
         SELECT * FROM events
         WHERE type = 'SubagentStart'
           AND (session_id IS NULL OR session_id != ?)
           AND timestamp >= ? AND timestamp <= ?
         ORDER BY timestamp DESC
         LIMIT 1
-      `)
+      `,
+      )
       .get(sessionId, sessionFirstTs - 5_000, stopEvent.timestamp + 30_000) as DbEvent | null;
 
     if (orphanRow) {
       const orphan = rowToEvent(orphanRow);
       orphan.sessionId = sessionId;
       stopEvent.duration = stopEvent.timestamp - orphan.timestamp;
-      this.db
-        .query("UPDATE events SET session_id = ? WHERE id = ?")
-        .run(sessionId, orphanRow.id);
+      this.db.query("UPDATE events SET session_id = ? WHERE id = ?").run(sessionId, orphanRow.id);
       this.sideEffects.push({ ...orphan });
       return;
     }

@@ -3,8 +3,8 @@ import { useState, useCallback, useMemo } from "react";
 export interface ServerInstance {
   id: string;
   name: string;
-  url: string;     // HTTP base, e.g. "http://192.168.1.5:3200"
-  token?: string;  // Optional auth token
+  url: string; // HTTP base, e.g. "http://192.168.1.5:3200"
+  token?: string; // Optional auth token
 }
 
 interface StoredConfig {

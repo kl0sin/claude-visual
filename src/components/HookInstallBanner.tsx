@@ -14,7 +14,10 @@ export function HookInstallBanner({ onInstalled, apiBase, authHeaders }: HookIns
     setInstalling(true);
     setError(null);
     try {
-      const res = await fetch(`${apiBase}/api/hooks/install`, { method: "POST", headers: authHeaders });
+      const res = await fetch(`${apiBase}/api/hooks/install`, {
+        method: "POST",
+        headers: authHeaders,
+      });
       const data = await res.json();
       if (data.ok) {
         onInstalled();
@@ -31,11 +34,14 @@ export function HookInstallBanner({ onInstalled, apiBase, authHeaders }: HookIns
   return (
     <div className="hook-install-banner">
       <div className="hook-install-content">
-        <div className="hook-install-icon" aria-hidden="true">⬡</div>
+        <div className="hook-install-icon" aria-hidden="true">
+          ⬡
+        </div>
         <div className="hook-install-text">
           <span className="hook-install-title">HOOKS NOT DETECTED</span>
           <span className="hook-install-desc">
-            Claude Code hooks are required for live monitoring. Install them to start capturing events.
+            Claude Code hooks are required for live monitoring. Install them to start capturing
+            events.
           </span>
         </div>
         <button
@@ -49,7 +55,10 @@ export function HookInstallBanner({ onInstalled, apiBase, authHeaders }: HookIns
       </div>
       {error && (
         <div className="hook-install-error" role="alert">
-          INSTALL FAILED — {error.startsWith("TypeError") || error.startsWith("SyntaxError") ? "Could not reach server. Is Claude Visual running?" : error}
+          INSTALL FAILED —{" "}
+          {error.startsWith("TypeError") || error.startsWith("SyntaxError")
+            ? "Could not reach server. Is Claude Visual running?"
+            : error}
         </div>
       )}
     </div>

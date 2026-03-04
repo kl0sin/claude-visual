@@ -57,12 +57,15 @@ function JsonValue({ value, indent = 0 }: { value: unknown; indent?: number }): 
         <span className="json-bracket">[</span>
         {value.map((item, i) => (
           <span key={i}>
-            {"\n"}{"  ".repeat(indent + 1)}
+            {"\n"}
+            {"  ".repeat(indent + 1)}
             <JsonValue value={item} indent={indent + 1} />
             {i < value.length - 1 && <span className="json-punct">,</span>}
           </span>
         ))}
-        {"\n"}{"  ".repeat(indent)}<span className="json-bracket">]</span>
+        {"\n"}
+        {"  ".repeat(indent)}
+        <span className="json-bracket">]</span>
       </span>
     );
   }
@@ -75,14 +78,17 @@ function JsonValue({ value, indent = 0 }: { value: unknown; indent?: number }): 
         <span className="json-bracket">{"{"}</span>
         {entries.map(([k, v], i) => (
           <span key={k}>
-            {"\n"}{"  ".repeat(indent + 1)}
+            {"\n"}
+            {"  ".repeat(indent + 1)}
             <span className="json-key">"{k}"</span>
             <span className="json-punct">: </span>
             <JsonValue value={v} indent={indent + 1} />
             {i < entries.length - 1 && <span className="json-punct">,</span>}
           </span>
         ))}
-        {"\n"}{"  ".repeat(indent)}<span className="json-bracket">{"}"}</span>
+        {"\n"}
+        {"  ".repeat(indent)}
+        <span className="json-bracket">{"}"}</span>
       </span>
     );
   }
@@ -91,11 +97,23 @@ function JsonValue({ value, indent = 0 }: { value: unknown; indent?: number }): 
 }
 
 /** Labeled key-value field */
-function DetailField({ label, value, variant }: { label: string; value: string; variant?: "error" }) {
+function DetailField({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: string;
+  variant?: "error";
+}) {
   if (!value) return null;
   return (
     <div className={`detail-field${variant === "error" ? " detail-field-error" : ""}`}>
-      <span className={`detail-field-label${variant === "error" ? " detail-field-label-error" : ""}`}>{label}</span>
+      <span
+        className={`detail-field-label${variant === "error" ? " detail-field-label-error" : ""}`}
+      >
+        {label}
+      </span>
       <span className="detail-field-value">{value}</span>
     </div>
   );
@@ -110,7 +128,11 @@ function OutputBlock({ label, value }: { label: string; value: string }) {
   let parsed: unknown = undefined;
   const trimmed = formatted.trim();
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    try { parsed = JSON.parse(trimmed); } catch { /* not JSON */ }
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      /* not JSON */
+    }
   }
 
   return (
@@ -167,11 +189,15 @@ function computeDiff(oldText: string, newText: string): DiffLine[] {
   }
 
   const result: DiffLine[] = [];
-  let i = 0, j = 0, oldLine = 1, newLine = 1;
+  let i = 0,
+    j = 0,
+    oldLine = 1,
+    newLine = 1;
   while (i < m || j < n) {
     if (i < m && j < n && oldLines[i]! === newLines[j]!) {
       result.push({ type: "ctx", text: oldLines[i]!, oldLine: oldLine++, newLine: newLine++ });
-      i++; j++;
+      i++;
+      j++;
     } else if (j < n && (i >= m || dp[i + 1]![j]! >= dp[i]![j + 1]!)) {
       result.push({ type: "add", text: newLines[j]!, newLine: newLine++ });
       j++;
@@ -212,7 +238,11 @@ function DiffView({ oldText, newText }: { oldText?: string; newText?: string }) 
   const visible = new Set<number>();
   lines.forEach((line, i) => {
     if (line.type !== "ctx") {
-      for (let k = Math.max(0, i - DIFF_CONTEXT); k <= Math.min(lines.length - 1, i + DIFF_CONTEXT); k++) {
+      for (
+        let k = Math.max(0, i - DIFF_CONTEXT);
+        k <= Math.min(lines.length - 1, i + DIFF_CONTEXT);
+        k++
+      ) {
         visible.add(k);
       }
     }
@@ -223,7 +253,11 @@ function DiffView({ oldText, newText }: { oldText?: string; newText?: string }) 
   lines.forEach((line, i) => {
     if (!visible.has(i)) {
       if (prevVisible) {
-        rendered.push(<div key={`sep-${i}`} className="diff-separator">···</div>);
+        rendered.push(
+          <div key={`sep-${i}`} className="diff-separator">
+            ···
+          </div>,
+        );
       }
       prevVisible = false;
       return;
@@ -235,7 +269,7 @@ function DiffView({ oldText, newText }: { oldText?: string; newText?: string }) 
           <span className="diff-gutter"> </span>
           <span className="diff-linenum">{line.oldLine}</span>
           <span className="diff-text">{line.text || " "}</span>
-        </div>
+        </div>,
       );
     } else if (line.type === "del") {
       rendered.push(
@@ -243,7 +277,7 @@ function DiffView({ oldText, newText }: { oldText?: string; newText?: string }) 
           <span className="diff-gutter">−</span>
           <span className="diff-linenum">{line.oldLine}</span>
           <span className="diff-text">{line.text || " "}</span>
-        </div>
+        </div>,
       );
     } else {
       rendered.push(
@@ -251,7 +285,7 @@ function DiffView({ oldText, newText }: { oldText?: string; newText?: string }) 
           <span className="diff-gutter">+</span>
           <span className="diff-linenum">{line.newLine}</span>
           <span className="diff-text">{line.text || " "}</span>
-        </div>
+        </div>,
       );
     }
   });
@@ -308,41 +342,21 @@ function PromptDetail({ event }: { event: ClaudeEvent }) {
           <button
             className={`prompt-raw-toggle${showRaw ? " active" : ""}`}
             onClick={() => setShowRaw((v) => !v)}
-            title={showRaw ? "Show cleaned prompt" : "Show raw prompt including system-reminder blocks"}
+            title={
+              showRaw ? "Show cleaned prompt" : "Show raw prompt including system-reminder blocks"
+            }
           >
             {showRaw ? "CLEAN" : "RAW"}
           </button>
         )}
       </div>
-      {showRaw
-        ? <pre className="prompt-raw-content">{raw.trim()}</pre>
-        : <span className="detail-field-value">{cleaned || "(empty)"}</span>}
+      {showRaw ? (
+        <pre className="prompt-raw-content">{raw.trim()}</pre>
+      ) : (
+        <span className="detail-field-value">{cleaned || "(empty)"}</span>
+      )}
     </div>
   );
-}
-
-/** Inline MD content shown directly for Thinking / Output events (no click needed) */
-function EventInlineContent({ event }: { event: ClaudeEvent }) {
-  const d = event.data;
-  if (event.type === "Thinking") {
-    const text = (d.thinking_text as string) || "";
-    if (!text) return null;
-    return (
-      <div className="event-inline-md thinking-inline">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-      </div>
-    );
-  }
-  if (event.type === "Output") {
-    const text = (d.output_text as string) || "";
-    if (!text) return null;
-    return (
-      <div className="event-inline-md output-inline">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-      </div>
-    );
-  }
-  return null;
 }
 
 /** Renders structured detail view for known event types, JSON for the rest */
@@ -374,7 +388,10 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
           </div>
         );
       }
-      if ((event.toolName === "Read" || event.toolName === "Write" || event.toolName === "Edit") && input?.file_path) {
+      if (
+        (event.toolName === "Read" || event.toolName === "Write" || event.toolName === "Edit") &&
+        input?.file_path
+      ) {
         const hasDiff = input.old_string != null || input.new_string != null;
         return (
           <div className="event-detail-structured">
@@ -404,7 +421,11 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
           </div>
         );
       }
-      return <pre className="event-detail-json"><JsonValue value={input || d} /></pre>;
+      return (
+        <pre className="event-detail-json">
+          <JsonValue value={input || d} />
+        </pre>
+      );
 
     case "UserPromptSubmit":
       return <PromptDetail event={event} />;
@@ -419,9 +440,16 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
     case "SubagentStart":
       return (
         <div className="event-detail-structured">
-          <DetailField label="TYPE" value={d.agent_type || d.subagent_type || d.tool_input?.subagent_type || "unknown"} />
-          {(d.description || d.tool_input?.description) && <DetailField label="TASK" value={d.description || d.tool_input?.description} />}
-          {d.tool_input?.prompt && <DetailField label="PROMPT" value={truncate(d.tool_input.prompt, 500)} />}
+          <DetailField
+            label="TYPE"
+            value={d.agent_type || d.subagent_type || d.tool_input?.subagent_type || "unknown"}
+          />
+          {(d.description || d.tool_input?.description) && (
+            <DetailField label="TASK" value={d.description || d.tool_input?.description} />
+          )}
+          {d.tool_input?.prompt && (
+            <DetailField label="PROMPT" value={truncate(d.tool_input.prompt, 500)} />
+          )}
         </div>
       );
 
@@ -430,7 +458,9 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
         <div className="event-detail-structured">
           <DetailField label="TYPE" value={d.agent_type || d.subagent_type || "unknown"} />
           {d.description && <DetailField label="TASK" value={d.description} />}
-          {event.duration != null && <DetailField label="DURATION" value={formatDuration(event.duration)!} />}
+          {event.duration != null && (
+            <DetailField label="DURATION" value={formatDuration(event.duration)!} />
+          )}
         </div>
       );
 
@@ -439,9 +469,11 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
       return (
         <div className="event-detail-structured">
           {d.stop_reason && <DetailField label="REASON" value={d.stop_reason} />}
-          {responseText
-            ? <OutputBlock label="RESPONSE" value={truncate(responseText, 4000)} />
-            : !d.stop_reason && <DetailField label="STATUS" value="Response generation complete" />}
+          {responseText ? (
+            <OutputBlock label="RESPONSE" value={truncate(responseText, 4000)} />
+          ) : (
+            !d.stop_reason && <DetailField label="STATUS" value="Response generation complete" />
+          )}
         </div>
       );
     }
@@ -471,7 +503,12 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
 
     case "PostToolUse": {
       const dur = formatDuration(event.duration);
-      const response = typeof d.tool_response === "string" ? d.tool_response : d.tool_response != null ? JSON.stringify(d.tool_response, null, 2) : "";
+      const response =
+        typeof d.tool_response === "string"
+          ? d.tool_response
+          : d.tool_response != null
+            ? JSON.stringify(d.tool_response, null, 2)
+            : "";
       if (event.toolName === "Bash") {
         return (
           <div className="event-detail-structured">
@@ -523,7 +560,9 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
       if (event.toolName === "Task") {
         return (
           <div className="event-detail-structured">
-            {d.tool_input?.description && <DetailField label="TASK" value={d.tool_input.description} />}
+            {d.tool_input?.description && (
+              <DetailField label="TASK" value={d.tool_input.description} />
+            )}
             {response && <OutputBlock label="RESULT" value={truncate(response, 2000)} />}
             {dur && <DetailField label="DURATION" value={dur} />}
           </div>
@@ -531,23 +570,49 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
       }
       return (
         <div className="event-detail-structured">
-          {response
-            ? <OutputBlock label="OUTPUT" value={truncate(response, 2000)} />
-            : <pre className="event-detail-json"><JsonValue value={d} /></pre>}
+          {response ? (
+            <OutputBlock label="OUTPUT" value={truncate(response, 2000)} />
+          ) : (
+            <pre className="event-detail-json">
+              <JsonValue value={d} />
+            </pre>
+          )}
           {dur && <DetailField label="DURATION" value={dur} />}
         </div>
       );
     }
 
     case "PostToolUseFailure": {
-      const errResponse = typeof d.tool_response === "string" ? d.tool_response : d.error || (d.tool_response != null ? JSON.stringify(d.tool_response) : "Unknown error");
-      const contextLabel = event.toolName === "Bash" ? "COMMAND" : (event.toolName === "Read" || event.toolName === "Write" || event.toolName === "Edit") ? "FILE" : (event.toolName === "Grep" || event.toolName === "Glob") ? "PATTERN" : null;
-      const contextValue = contextLabel === "COMMAND" ? d.tool_input?.command : contextLabel === "FILE" ? d.tool_input?.file_path : contextLabel === "PATTERN" ? d.tool_input?.pattern : null;
+      const errResponse =
+        typeof d.tool_response === "string"
+          ? d.tool_response
+          : d.error ||
+            (d.tool_response != null ? JSON.stringify(d.tool_response) : "Unknown error");
+      const contextLabel =
+        event.toolName === "Bash"
+          ? "COMMAND"
+          : event.toolName === "Read" || event.toolName === "Write" || event.toolName === "Edit"
+            ? "FILE"
+            : event.toolName === "Grep" || event.toolName === "Glob"
+              ? "PATTERN"
+              : null;
+      const contextValue =
+        contextLabel === "COMMAND"
+          ? d.tool_input?.command
+          : contextLabel === "FILE"
+            ? d.tool_input?.file_path
+            : contextLabel === "PATTERN"
+              ? d.tool_input?.pattern
+              : null;
       return (
         <div className="event-detail-structured event-detail-error">
-          {contextLabel && contextValue && <DetailField label={contextLabel} value={contextValue} />}
+          {contextLabel && contextValue && (
+            <DetailField label={contextLabel} value={contextValue} />
+          )}
           <DetailField label="ERROR" value={truncate(errResponse, 2000)} variant="error" />
-          {event.duration != null && <DetailField label="DURATION" value={formatDuration(event.duration)!} />}
+          {event.duration != null && (
+            <DetailField label="DURATION" value={formatDuration(event.duration)!} />
+          )}
         </div>
       );
     }
@@ -556,7 +621,9 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
       const text = (d.thinking_text as string) || "";
       return (
         <div className="event-inline-md thinking-inline md-content">
-          <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>
+            {text}
+          </ReactMarkdown>
         </div>
       );
     }
@@ -565,13 +632,19 @@ function EventDetail({ event }: { event: ClaudeEvent }) {
       const text = (d.output_text as string) || "";
       return (
         <div className="event-inline-md output-inline md-content">
-          <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          <ReactMarkdown components={MD_COMPONENTS} remarkPlugins={[remarkGfm]}>
+            {text}
+          </ReactMarkdown>
         </div>
       );
     }
 
     default:
-      return <pre className="event-detail-json"><JsonValue value={d} /></pre>;
+      return (
+        <pre className="event-detail-json">
+          <JsonValue value={d} />
+        </pre>
+      );
   }
 }
 
@@ -581,16 +654,22 @@ function getEventSummary(event: ClaudeEvent): string {
   switch (event.type) {
     case "PreToolUse":
       if (event.toolName === "Bash") return d.tool_input?.command || "executing...";
-      if (event.toolName === "Read") return d.tool_input?.file_path?.split("/").pop() || "reading...";
-      if (event.toolName === "Write") return d.tool_input?.file_path?.split("/").pop() || "writing...";
-      if (event.toolName === "Edit") return d.tool_input?.file_path?.split("/").pop() || "editing...";
+      if (event.toolName === "Read")
+        return d.tool_input?.file_path?.split("/").pop() || "reading...";
+      if (event.toolName === "Write")
+        return d.tool_input?.file_path?.split("/").pop() || "writing...";
+      if (event.toolName === "Edit")
+        return d.tool_input?.file_path?.split("/").pop() || "editing...";
       if (event.toolName === "Glob") return d.tool_input?.pattern || "searching...";
       if (event.toolName === "Grep") return d.tool_input?.pattern || "searching...";
       if (event.toolName === "Task") return d.tool_input?.description || "spawning agent...";
       return event.toolName || "unknown tool";
 
     case "PostToolUse": {
-      const dur = event.duration != null ? ` (${event.duration < 1000 ? `${event.duration}ms` : `${(event.duration / 1000).toFixed(2)}s`})` : "";
+      const dur =
+        event.duration != null
+          ? ` (${event.duration < 1000 ? `${event.duration}ms` : `${(event.duration / 1000).toFixed(2)}s`})`
+          : "";
       return `${event.toolName || "tool"} → ok${dur}`;
     }
 
@@ -667,7 +746,9 @@ function EventDetailModal({ event, onClose }: { event: ClaudeEvent; onClose: () 
   const label = EVENT_TYPE_LABELS[event.type] ?? event.type;
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
@@ -675,12 +756,25 @@ function EventDetailModal({ event, onClose }: { event: ClaudeEvent; onClose: () 
   return (
     <div className="event-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="event-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="event-modal-header" style={{ "--event-color": color } as React.CSSProperties}>
-          <span className="event-modal-icon" style={{ color }}>{icon}</span>
-          <span className="event-modal-type" style={{ color }}>[{label}]</span>
-          {event.toolName && <span className="event-tool" data-tooltip={event.toolName}>{event.toolName}</span>}
+        <div
+          className="event-modal-header"
+          style={{ "--event-color": color } as React.CSSProperties}
+        >
+          <span className="event-modal-icon" style={{ color }}>
+            {icon}
+          </span>
+          <span className="event-modal-type" style={{ color }}>
+            [{label}]
+          </span>
+          {event.toolName && (
+            <span className="event-tool" data-tooltip={event.toolName}>
+              {event.toolName}
+            </span>
+          )}
           <span className="event-modal-time">{formatTime(event.timestamp)}</span>
-          <button className="event-modal-close" onClick={onClose} aria-label="Close">✕</button>
+          <button className="event-modal-close" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
         </div>
         <div className="event-modal-body">
           <EventDetail event={event} />
@@ -701,15 +795,22 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
     try {
       const stored = localStorage.getItem("cv-filter-types");
       return stored ? new Set<string>(JSON.parse(stored)) : new Set();
-    } catch { return new Set(); }
+    } catch {
+      return new Set();
+    }
   });
   const [searchQuery, setSearchQuery] = useState(() => {
-    try { return localStorage.getItem("cv-search-query") || ""; } catch { return ""; }
+    try {
+      return localStorage.getItem("cv-search-query") || "";
+    } catch {
+      return "";
+    }
   });
 
   useEffect(() => {
     try {
-      if (filterTypes.size > 0) localStorage.setItem("cv-filter-types", JSON.stringify([...filterTypes]));
+      if (filterTypes.size > 0)
+        localStorage.setItem("cv-filter-types", JSON.stringify([...filterTypes]));
       else localStorage.removeItem("cv-filter-types");
     } catch {}
   }, [filterTypes]);
@@ -795,7 +896,6 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
     overscan: 20,
   });
 
-
   // Auto-scroll to bottom when new events arrive
   useEffect(() => {
     if (!autoScrollRef.current || filteredEvents.length === 0) return;
@@ -812,9 +912,14 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
   return (
     <div className="panel event-feed" role="region" aria-label="Event Stream">
       <div className="panel-header">
-        <span className="panel-icon" aria-hidden="true">▹</span>
+        <span className="panel-icon" aria-hidden="true">
+          ▹
+        </span>
         EVENT STREAM
-        <span className="panel-count">{filteredEvents.length}{filteredEvents.length !== events.length ? `/${events.length}` : ""}</span>
+        <span className="panel-count">
+          {filteredEvents.length}
+          {filteredEvents.length !== events.length ? `/${events.length}` : ""}
+        </span>
       </div>
       {truncated && (
         <div className="feed-truncation-banner">
@@ -854,7 +959,8 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                   aria-pressed={isActive}
                   onClick={() => toggleFilter(type)}
                 >
-                  {label}<span className="event-filter-pill-count">{count}</span>
+                  {label}
+                  <span className="event-filter-pill-count">{count}</span>
                 </button>
               );
             })}
@@ -889,10 +995,17 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
           )}
         </div>
       </div>
-      <div className="event-feed-list" ref={feedRef} onScroll={handleScroll} role="list" aria-label="Events">
+      <div
+        className="event-feed-list"
+        ref={feedRef}
+        onScroll={handleScroll}
+        role="list"
+        aria-label="Events"
+      >
         {filteredEvents.length === 0 ? (
           <div className="event-empty">
-            <span className="blink">▊</span> {events.length === 0 ? "Awaiting neural signals..." : "No matching events"}
+            <span className="blink">▊</span>{" "}
+            {events.length === 0 ? "Awaiting neural signals..." : "No matching events"}
           </div>
         ) : (
           <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
@@ -909,30 +1022,49 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
                   ref={virtualizer.measureElement}
                   role="listitem"
                   className="event-item"
-                  style={{
-                    "--event-color": color,
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualRow.start}px)`,
-                  } as React.CSSProperties}
+                  style={
+                    {
+                      "--event-color": color,
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                    } as React.CSSProperties
+                  }
                 >
                   <div
                     className={`event-row${hasDetail ? " clickable" : ""}`}
                     role={hasDetail ? "button" : undefined}
                     tabIndex={hasDetail ? 0 : undefined}
                     onClick={() => hasDetail && openModal(event)}
-                    onKeyDown={(e) => { if (hasDetail && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openModal(event); } }}
+                    onKeyDown={(e) => {
+                      if (hasDetail && (e.key === "Enter" || e.key === " ")) {
+                        e.preventDefault();
+                        openModal(event);
+                      }
+                    }}
                   >
                     <span className="event-time">{formatTime(event.timestamp)}</span>
-                    <span className="event-icon" aria-hidden="true" style={{ color }}>{icon}</span>
-                    <span className="event-type" style={{ color }}>[{event.type}]</span>
+                    <span className="event-icon" aria-hidden="true" style={{ color }}>
+                      {icon}
+                    </span>
+                    <span className="event-type" style={{ color }}>
+                      [{event.type}]
+                    </span>
                     {event.toolName && (
-                      <span className="event-tool" data-tooltip={event.toolName}>{event.toolName}</span>
+                      <span className="event-tool" data-tooltip={event.toolName}>
+                        {event.toolName}
+                      </span>
                     )}
-                    <span className="event-summary" data-tooltip={getEventSummary(event)}>{getEventSummary(event)}</span>
-                    {hasDetail && <span className="event-expand-icon" aria-hidden="true" style={{ color }}>›</span>}
+                    <span className="event-summary" data-tooltip={getEventSummary(event)}>
+                      {getEventSummary(event)}
+                    </span>
+                    {hasDetail && (
+                      <span className="event-expand-icon" aria-hidden="true" style={{ color }}>
+                        ›
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -941,9 +1073,7 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
         )}
       </div>
 
-      {modalEvent && (
-        <EventDetailModal event={modalEvent} onClose={() => setModalEvent(null)} />
-      )}
+      {modalEvent && <EventDetailModal event={modalEvent} onClose={() => setModalEvent(null)} />}
 
       {isProcessing && (
         <div className="feed-processing-banner" role="status" aria-live="polite">

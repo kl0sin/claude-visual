@@ -25,12 +25,7 @@ const DEFAULT_TOKENS = {
 };
 
 export default function App() {
-  const {
-    activeId: activeServerId,
-    wsUrl,
-    apiBase,
-    authHeaders,
-  } = useServerConfig();
+  const { activeId: activeServerId, wsUrl, apiBase, authHeaders } = useServerConfig();
 
   const {
     events,
@@ -50,8 +45,12 @@ export default function App() {
 
   const [hooksInstalled, setHooksInstalled] = useState<boolean | null>(null);
 
-  const { toasts, dismissToast, settings: alertSettings, updateSettings: updateAlertSettings } =
-    useNotifications(allEvents, globalStats, sessions);
+  const {
+    toasts,
+    dismissToast,
+    settings: alertSettings,
+    updateSettings: updateAlertSettings,
+  } = useNotifications(allEvents, globalStats, sessions);
 
   const checkHookStatus = () => {
     fetch(`${apiBase}/api/hooks/status`, { headers: authHeaders })
@@ -122,10 +121,7 @@ export default function App() {
             </div>
 
             <div className="dashboard-right">
-              <TokenPanel
-                tokens={stats?.tokens || DEFAULT_TOKENS}
-                model={stats?.model}
-              />
+              <TokenPanel tokens={stats?.tokens || DEFAULT_TOKENS} model={stats?.model} />
               <StatsPanel stats={stats} events={events} />
             </div>
           </main>
@@ -136,19 +132,14 @@ export default function App() {
         <SessionViewer
           projectId={"projectId" in route ? route.projectId : undefined}
           sessionId={"sessionId" in route ? route.sessionId : undefined}
-          onNavigate={(projectId, sessionId) =>
-            navigate({ mode: "history", projectId, sessionId })
-          }
+          onNavigate={(projectId, sessionId) => navigate({ mode: "history", projectId, sessionId })}
           apiBase={apiBase}
           authHeaders={authHeaders}
         />
       )}
 
       {mode === "settings" && (
-        <SettingsPage
-          alertSettings={alertSettings}
-          onUpdateAlerts={updateAlertSettings}
-        />
+        <SettingsPage alertSettings={alertSettings} onUpdateAlerts={updateAlertSettings} />
       )}
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

@@ -53,19 +53,14 @@ export function SearchResultsPanel({
         {results.length} SESSION{results.length !== 1 ? "S" : ""} MATCHED
       </div>
       {results.map((result) => (
-        <div
-          key={`${result.projectId}-${result.session.id}`}
-          className="search-result-item"
-        >
+        <div key={`${result.projectId}-${result.session.id}`} className="search-result-item">
           <button
             className="search-result-header search-result-header-btn"
             onClick={() => onSelect(result, result.matches[0]?.messageIndex ?? 0)}
             title="Jump to first match"
           >
             <span className="search-result-project">{result.projectName}</span>
-            <span className="search-result-date">
-              {formatDate(result.session.lastModified)}
-            </span>
+            <span className="search-result-date">{formatDate(result.session.lastModified)}</span>
             {result.session.model && (
               <span className="msg-model">{shortModel(result.session.model)}</span>
             )}

@@ -7,7 +7,13 @@ import { tmpdir } from "node:os";
 let tmpDir: string;
 let reader: TranscriptTokenReader;
 
-function assistantEntry(input: number, output: number, cacheCreate = 0, cacheRead = 0, model?: string) {
+function assistantEntry(
+  input: number,
+  output: number,
+  cacheCreate = 0,
+  cacheRead = 0,
+  model?: string,
+) {
   const msg: Record<string, any> = {
     usage: {
       input_tokens: input,
@@ -46,10 +52,7 @@ afterAll(async () => {
 });
 
 test("readNewTokens returns tokens from assistant entries", async () => {
-  const path = await writeTranscript("basic.jsonl", [
-    userEntry(),
-    assistantEntry(100, 50),
-  ]);
+  const path = await writeTranscript("basic.jsonl", [userEntry(), assistantEntry(100, 50)]);
 
   const tokens = await reader.readNewTokens(path);
   expect(tokens).not.toBeNull();
@@ -59,18 +62,13 @@ test("readNewTokens returns tokens from assistant entries", async () => {
 });
 
 test("readNewTokens returns only incremental tokens on subsequent calls", async () => {
-  const path = await writeTranscript("incremental.jsonl", [
-    assistantEntry(100, 50),
-  ]);
+  const path = await writeTranscript("incremental.jsonl", [assistantEntry(100, 50)]);
 
   const first = await reader.readNewTokens(path);
   expect(first!.totalTokens).toBe(150);
 
   // Append more entries
-  await appendToTranscript(path, [
-    userEntry(),
-    assistantEntry(200, 80),
-  ]);
+  await appendToTranscript(path, [userEntry(), assistantEntry(200, 80)]);
 
   const second = await reader.readNewTokens(path);
   expect(second).not.toBeNull();
@@ -80,9 +78,7 @@ test("readNewTokens returns only incremental tokens on subsequent calls", async 
 });
 
 test("readNewTokens returns null when no new tokens", async () => {
-  const path = await writeTranscript("nonew.jsonl", [
-    assistantEntry(100, 50),
-  ]);
+  const path = await writeTranscript("nonew.jsonl", [assistantEntry(100, 50)]);
 
   await reader.readNewTokens(path);
   const second = await reader.readNewTokens(path);
@@ -93,9 +89,7 @@ test("readNewTokens handles partial line at EOF without losing data", async () =
   // This is the critical bug fix test:
   // If the last line is incomplete JSON, it should NOT be permanently lost.
 
-  const path = await writeTranscript("partial.jsonl", [
-    assistantEntry(100, 50),
-  ]);
+  const path = await writeTranscript("partial.jsonl", [assistantEntry(100, 50)]);
 
   // Append a partial line (incomplete JSON)
   const file = Bun.file(path);
@@ -108,10 +102,7 @@ test("readNewTokens handles partial line at EOF without losing data", async () =
   expect(first!.outputTokens).toBe(50);
 
   // Now "complete" the partial line by rewriting the file with the full entry
-  await Bun.write(
-    path,
-    existing + assistantEntry(300, 120) + "\n"
-  );
+  await Bun.write(path, existing + assistantEntry(300, 120) + "\n");
 
   // Second read: should now pick up the previously-partial entry
   const second = await reader.readNewTokens(path);
@@ -137,9 +128,7 @@ test("readNewTokens accumulates multiple assistant entries", async () => {
 });
 
 test("readNewTokens tracks cache tokens", async () => {
-  const path = await writeTranscript("cache.jsonl", [
-    assistantEntry(100, 50, 30, 20),
-  ]);
+  const path = await writeTranscript("cache.jsonl", [assistantEntry(100, 50, 30, 20)]);
 
   const tokens = await reader.readNewTokens(path);
   expect(tokens!.cacheCreationTokens).toBe(30);
@@ -168,9 +157,7 @@ test("readNewTokens returns null for nonexistent file", async () => {
 });
 
 test("clear resets state so next read returns full total", async () => {
-  const path = await writeTranscript("clear.jsonl", [
-    assistantEntry(100, 50),
-  ]);
+  const path = await writeTranscript("clear.jsonl", [assistantEntry(100, 50)]);
 
   await reader.readNewTokens(path);
   reader.clear();
@@ -218,9 +205,7 @@ test("readAllData returns last seen model", async () => {
 });
 
 test("readAllData returns undefined model when not present", async () => {
-  const path = await writeTranscript("no-model.jsonl", [
-    assistantEntry(100, 50),
-  ]);
+  const path = await writeTranscript("no-model.jsonl", [assistantEntry(100, 50)]);
 
   const data = await reader.readAllData(path);
   expect(data).not.toBeNull();

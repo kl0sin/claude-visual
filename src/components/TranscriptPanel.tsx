@@ -31,23 +31,20 @@ import {
 
 // ── Tool use block ──────────────────────────────────────────
 
-function ToolUseBlock({
-  name,
-  input,
-}: {
-  name: string;
-  input: Record<string, unknown>;
-}) {
+function ToolUseBlock({ name, input }: { name: string; input: Record<string, unknown> }) {
   const [expanded, setExpanded] = useState(false);
   const inputStr = useMemo(() => JSON.stringify(input, null, 2), [input]);
-  const preview = useMemo(() => Object.entries(input)
-    .slice(0, 2)
-    .map(([k, v]) => {
-      const val =
-        typeof v === "string" ? v.slice(0, 40) : JSON.stringify(v).slice(0, 40);
-      return `${k}: ${val}`;
-    })
-    .join(", "), [input]);
+  const preview = useMemo(
+    () =>
+      Object.entries(input)
+        .slice(0, 2)
+        .map(([k, v]) => {
+          const val = typeof v === "string" ? v.slice(0, 40) : JSON.stringify(v).slice(0, 40);
+          return `${k}: ${val}`;
+        })
+        .join(", "),
+    [input],
+  );
 
   return (
     <div className="tool-block">
@@ -58,7 +55,11 @@ function ToolUseBlock({
       >
         <span className="tool-block-icon">⚙</span>
         <span className="tool-block-name">{name}</span>
-        {preview && <span className="tool-block-preview" data-tooltip={preview}>{preview}</span>}
+        {preview && (
+          <span className="tool-block-preview" data-tooltip={preview}>
+            {preview}
+          </span>
+        )}
         <span className="tool-block-chevron">{expanded ? "▲" : "▼"}</span>
       </button>
       {expanded && <pre className="tool-block-body">{inputStr}</pre>}
@@ -68,13 +69,7 @@ function ToolUseBlock({
 
 // ── Tool result block ───────────────────────────────────────
 
-function ToolResultBlock({
-  content,
-  isError,
-}: {
-  content: unknown;
-  isError?: boolean;
-}) {
+function ToolResultBlock({ content, isError }: { content: unknown; isError?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const text =
     typeof content === "string"
@@ -105,9 +100,7 @@ function ToolResultBlock({
           {preview}
           {needsExpand && !expanded ? "…" : ""}
         </span>
-        {needsExpand && (
-          <span className="tool-block-chevron">{expanded ? "▲" : "▼"}</span>
-        )}
+        {needsExpand && <span className="tool-block-chevron">{expanded ? "▲" : "▼"}</span>}
       </button>
       {expanded && <pre className="tool-block-body">{text}</pre>}
     </div>
@@ -142,10 +135,18 @@ function InstructionBlock({ content }: { content: TranscriptContent[] }) {
 
 // ── Token badge with breakdown tooltip ──────────────────────
 
-function TokenBadge({ tokens, className = "msg-tokens" }: { tokens: TokenUsage; className?: string }) {
+function TokenBadge({
+  tokens,
+  className = "msg-tokens",
+}: {
+  tokens: TokenUsage;
+  className?: string;
+}) {
   const hasBreakdown =
-    tokens.inputTokens > 0 || tokens.outputTokens > 0 ||
-    tokens.cacheReadTokens > 0 || tokens.cacheCreationTokens > 0;
+    tokens.inputTokens > 0 ||
+    tokens.outputTokens > 0 ||
+    tokens.cacheReadTokens > 0 ||
+    tokens.cacheCreationTokens > 0;
 
   return (
     <span className="token-badge">
@@ -167,13 +168,17 @@ function TokenBadge({ tokens, className = "msg-tokens" }: { tokens: TokenUsage; 
           {tokens.cacheReadTokens > 0 && (
             <div className="token-tooltip-row">
               <span className="token-tooltip-label">Cache read</span>
-              <span className="token-tooltip-value">{formatTokenCount(tokens.cacheReadTokens)}</span>
+              <span className="token-tooltip-value">
+                {formatTokenCount(tokens.cacheReadTokens)}
+              </span>
             </div>
           )}
           {tokens.cacheCreationTokens > 0 && (
             <div className="token-tooltip-row">
               <span className="token-tooltip-label">Cache write</span>
-              <span className="token-tooltip-value">{formatTokenCount(tokens.cacheCreationTokens)}</span>
+              <span className="token-tooltip-value">
+                {formatTokenCount(tokens.cacheCreationTokens)}
+              </span>
             </div>
           )}
           <div className="token-tooltip-row token-tooltip-total">
@@ -214,14 +219,15 @@ function ThinkingBlock({
         {redacted ? (
           <span className="thinking-preview redacted">redacted</span>
         ) : (
-          <span className="thinking-preview" data-tooltip={!expanded && isLong ? thinking : undefined}>
+          <span
+            className="thinking-preview"
+            data-tooltip={!expanded && isLong ? thinking : undefined}
+          >
             {!expanded && preview}
             {!expanded && isLong ? "…" : ""}
           </span>
         )}
-        {!redacted && (
-          <span className="tool-block-chevron">{expanded ? "▲" : "▼"}</span>
-        )}
+        {!redacted && <span className="tool-block-chevron">{expanded ? "▲" : "▼"}</span>}
       </button>
       {!redacted && expanded && thinking && (
         <div className="thinking-body md-content">
@@ -244,7 +250,9 @@ function HighlightText({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark key={i} className="search-highlight">{part}</mark>
+          <mark key={i} className="search-highlight">
+            {part}
+          </mark>
         ) : (
           part
         ),
@@ -274,9 +282,7 @@ const MessageBubble = memo(function MessageBubble({
 
   const isProcess = isProcessMessage(role, content);
 
-  const textParts = content.filter(
-    (c): c is { type: "text"; text: string } => c.type === "text",
-  );
+  const textParts = content.filter((c): c is { type: "text"; text: string } => c.type === "text");
   const toolUses = content.filter(
     (
       c,
@@ -318,9 +324,7 @@ const MessageBubble = memo(function MessageBubble({
             <span className="msg-role">CLAUDE</span>
             {model && <span className="msg-model">{shortModel(model)}</span>}
             {tokens && tokens.totalTokens > 0 && (
-              <span className="msg-tokens">
-                {formatTokenCount(tokens.totalTokens)} tokens
-              </span>
+              <span className="msg-tokens">{formatTokenCount(tokens.totalTokens)} tokens</span>
             )}
             {duration && <span className="turn-duration">{duration}</span>}
           </>
@@ -347,13 +351,7 @@ const MessageBubble = memo(function MessageBubble({
 
 // ── Step row (expandable) ────────────────────────────────────
 
-function StepRow({
-  msg,
-  prevTimestamp,
-}: {
-  msg: TranscriptMessage;
-  prevTimestamp?: string;
-}) {
+function StepRow({ msg, prevTimestamp }: { msg: TranscriptMessage; prevTimestamp?: string }) {
   const [expanded, setExpanded] = useState(false);
   const isProcess = isProcessMessage(msg.role, msg.content);
   const toolUses = msg.content.filter(
@@ -378,12 +376,9 @@ function StepRow({
     toolUses.length > 0 || toolResults.length > 0 || textParts.length > 0 || hasThinking;
 
   // For tool steps: name label and key param shown inline
-  const toolLabel = toolUses.length === 1
-    ? (toolUses[0]?.name ?? "")
-    : toolUses.map((t) => t.name).join(" · ");
-  const toolParam = toolUses[0] != null
-    ? getToolKeyParam(toolUses[0].name, toolUses[0].input)
-    : "";
+  const toolLabel =
+    toolUses.length === 1 ? (toolUses[0]?.name ?? "") : toolUses.map((t) => t.name).join(" · ");
+  const toolParam = toolUses[0] != null ? getToolKeyParam(toolUses[0].name, toolUses[0].input) : "";
 
   // Inline preview for non-tool steps
   const inlinePreview: string | null = (() => {
@@ -416,7 +411,9 @@ function StepRow({
         ) : toolUses.length > 0 ? (
           <>
             <span className="step-icon tool">⚙</span>
-            <span className="step-tool-name" data-tooltip={toolLabel}>{toolLabel}</span>
+            <span className="step-tool-name" data-tooltip={toolLabel}>
+              {toolLabel}
+            </span>
           </>
         ) : hasThinking ? (
           <>
@@ -432,7 +429,9 @@ function StepRow({
 
         {/* Key param for tool steps — file name, command, etc. */}
         {toolUses.length > 0 && toolParam && (
-          <span className="step-inline-preview" data-tooltip={toolParam}>{toolParam}</span>
+          <span className="step-inline-preview" data-tooltip={toolParam}>
+            {toolParam}
+          </span>
         )}
 
         {/* Inline preview for result / thinking / output steps */}
@@ -443,7 +442,9 @@ function StepRow({
           </span>
         )}
         {inlinePreview && (
-          <span className="step-inline-preview" data-tooltip={inlinePreview}>{inlinePreview}</span>
+          <span className="step-inline-preview" data-tooltip={inlinePreview}>
+            {inlinePreview}
+          </span>
         )}
 
         {/* Tokens + duration */}
@@ -451,9 +452,7 @@ function StepRow({
           <TokenBadge tokens={msg.tokens} className="step-tokens" />
         )}
         {duration && <span className="step-duration">{duration}</span>}
-        {hasDetails && (
-          <span className="step-chevron">{expanded ? "▲" : "▼"}</span>
-        )}
+        {hasDetails && <span className="step-chevron">{expanded ? "▲" : "▼"}</span>}
       </button>
 
       {expanded && (
@@ -466,15 +465,11 @@ function StepRow({
               </ReactMarkdown>
             </div>
           ))}
-          {redactedThinking && (
-            <p className="step-redacted-thinking">◈ thinking redacted</p>
-          )}
+          {redactedThinking && <p className="step-redacted-thinking">◈ thinking redacted</p>}
           {/* Tool input directly — no ToolUseBlock wrapper, no extra click needed */}
           {toolUses.map((c, i) => (
             <div key={i} className="step-tool-input">
-              {toolUses.length > 1 && (
-                <div className="step-tool-input-name">⚙ {c.name}</div>
-              )}
+              {toolUses.length > 1 && <div className="step-tool-input-name">⚙ {c.name}</div>}
               <pre className="tool-block-body">{JSON.stringify(c.input, null, 2)}</pre>
             </div>
           ))}
@@ -539,8 +534,11 @@ function TurnStepsPanel({
 
   const toolEntries = Array.from(toolCounts.entries());
   const hasAnySummary =
-    toolEntries.length > 0 || resultOkCount > 0 || resultErrCount > 0 ||
-    thinkingCount > 0 || outputCount > 0;
+    toolEntries.length > 0 ||
+    resultOkCount > 0 ||
+    resultErrCount > 0 ||
+    thinkingCount > 0 ||
+    outputCount > 0;
 
   return (
     <div className="turn-steps">
@@ -556,7 +554,8 @@ function TurnStepsPanel({
               {toolEntries.map(([name, count], i) => (
                 <span key={name} className="summary-tool">
                   {i > 0 && <span className="summary-sep">·</span>}
-                  {name}{count > 1 && <span className="summary-count"> ×{count}</span>}
+                  {name}
+                  {count > 1 && <span className="summary-count"> ×{count}</span>}
                 </span>
               ))}
               {resultOkCount > 0 && (
@@ -581,7 +580,9 @@ function TurnStepsPanel({
               )}
             </>
           ) : (
-            <span className="summary-tool">{steps.length} step{steps.length !== 1 ? "s" : ""}</span>
+            <span className="summary-tool">
+              {steps.length} step{steps.length !== 1 ? "s" : ""}
+            </span>
           )}
         </span>
         <span className="turn-steps-chevron">{expanded ? "▲" : "▼"}</span>
@@ -626,9 +627,8 @@ const ConversationTurnView = memo(function ConversationTurnView({
   const outputRedactedThinking =
     turn.output?.content.some((c) => c.type === "redacted_thinking") ?? false;
   const outputTextParts =
-    turn.output?.content.filter(
-      (c): c is { type: "text"; text: string } => c.type === "text",
-    ) ?? [];
+    turn.output?.content.filter((c): c is { type: "text"; text: string } => c.type === "text") ??
+    [];
   const outputToolUses =
     turn.output?.content.filter(
       (c): c is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
@@ -784,8 +784,12 @@ export function TranscriptPanel({
   });
 
   // Keep refs current so polling closure doesn't go stale
-  useEffect(() => { turnsLengthRef.current = turns.length; }, [turns.length]);
-  useEffect(() => { if (detail) lastKnownTotalRef.current = detail.totalMessages; }, [detail?.totalMessages]);
+  useEffect(() => {
+    turnsLengthRef.current = turns.length;
+  }, [turns.length]);
+  useEffect(() => {
+    if (detail) lastKnownTotalRef.current = detail.totalMessages;
+  }, [detail?.totalMessages]);
 
   // Live polling — silent background re-fetch every 2.5s after initial load
   useEffect(() => {
@@ -913,10 +917,7 @@ export function TranscriptPanel({
       <div className="history-empty">
         <span className="history-empty-icon">✗</span>
         <span>FAILED TO LOAD: {error}</span>
-        <button
-          className="history-retry-btn"
-          onClick={() => setRetryKey((k) => k + 1)}
-        >
+        <button className="history-retry-btn" onClick={() => setRetryKey((k) => k + 1)}>
           RETRY
         </button>
       </div>
@@ -928,12 +929,8 @@ export function TranscriptPanel({
       <div className="transcript-header">
         <div className="transcript-meta">
           <span className="transcript-id">{session.id.slice(0, 8)}…</span>
-          <span className="transcript-date">
-            {formatDate(session.lastModified)}
-          </span>
-          {session.model && (
-            <span className="msg-model">{shortModel(session.model)}</span>
-          )}
+          <span className="transcript-date">{formatDate(session.lastModified)}</span>
+          {session.model && <span className="msg-model">{shortModel(session.model)}</span>}
           {liveStatus !== "idle" && (
             <span className={`live-badge${liveStatus === "thinking" ? " thinking" : ""}`}>
               {liveStatus === "thinking" ? "◈ THINKING" : "● LIVE"}
@@ -953,9 +950,7 @@ export function TranscriptPanel({
           </span>
           <span className="transcript-stat">
             <span className="stat-label">COST</span>
-            <span className="stat-value yellow">
-              {estimateCost(session.tokens, session.model)}
-            </span>
+            <span className="stat-value yellow">{estimateCost(session.tokens, session.model)}</span>
           </span>
         </div>
       </div>
@@ -965,11 +960,7 @@ export function TranscriptPanel({
           <span>
             Showing last {messages.length} of {detail.totalMessages} messages
           </span>
-          <button
-            className="transcript-load-all-btn"
-            onClick={handleLoadAll}
-            disabled={loadingAll}
-          >
+          <button className="transcript-load-all-btn" onClick={handleLoadAll} disabled={loadingAll}>
             {loadingAll ? "LOADING..." : "LOAD ALL"}
           </button>
         </div>

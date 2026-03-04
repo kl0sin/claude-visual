@@ -82,7 +82,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Landing page TypeScript errors**: 5 TS errors in `landing/src/`: `DemoAlerts.tsx:67`, `DemoHistory.tsx:123,188,190`, `DemoTerminal.tsx:188`. Does not affect the main app.
 
-- [ ] **No ESLint / Prettier configured**: Add `eslint` + `prettier` for consistent code style enforcement.
+- [x] **No ESLint / Prettier configured**: Add `eslint` + `prettier` for consistent code style enforcement.
 
 - [ ] **SQLite `Database` never explicitly closed**: `EventStore` opens a DB connection that is never explicitly closed (relies on Bun cleanup on process exit). Add a `close()` method and call it on shutdown signals.
 

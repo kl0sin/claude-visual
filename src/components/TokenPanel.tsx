@@ -18,9 +18,9 @@ export function TokenPanel({ tokens, model }: TokenPanelProps) {
   const pricing = getPricing(model);
 
   // Per-row cost helpers
-  const inputCost  = formatCost((tokens.inputTokens         / 1_000_000) * pricing.input);
-  const outputCost = formatCost((tokens.outputTokens        / 1_000_000) * pricing.output);
-  const cacheRCost = formatCost((tokens.cacheReadTokens     / 1_000_000) * pricing.cacheRead);
+  const inputCost = formatCost((tokens.inputTokens / 1_000_000) * pricing.input);
+  const outputCost = formatCost((tokens.outputTokens / 1_000_000) * pricing.output);
+  const cacheRCost = formatCost((tokens.cacheReadTokens / 1_000_000) * pricing.cacheRead);
   const cacheWCost = formatCost((tokens.cacheCreationTokens / 1_000_000) * pricing.cacheWrite);
 
   // IO bar: input vs output relative to each other
@@ -36,7 +36,9 @@ export function TokenPanel({ tokens, model }: TokenPanelProps) {
   return (
     <div className="panel token-panel" role="region" aria-label="Token Consumption">
       <div className="panel-header">
-        <span className="panel-icon" aria-hidden="true">◈</span>
+        <span className="panel-icon" aria-hidden="true">
+          ◈
+        </span>
         TOKEN CONSUMPTION
       </div>
 
@@ -44,9 +46,7 @@ export function TokenPanel({ tokens, model }: TokenPanelProps) {
         <div className="token-total-value">{formatTokenCount(total)}</div>
         <div className="token-total-label">TOTAL TOKENS</div>
         <div className="token-cost">{estimateCost(tokens, model)}</div>
-        {model && (
-          <div className="token-model">{getModelLabel(model).toUpperCase()}</div>
-        )}
+        {model && <div className="token-model">{getModelLabel(model).toUpperCase()}</div>}
       </div>
 
       <div className="token-bars">
@@ -114,7 +114,9 @@ export function TokenPanel({ tokens, model }: TokenPanelProps) {
             <span className="token-label">CACHE WRITE</span>
             <span className="token-dots" />
             <span className="token-row-cost">({cacheWCost})</span>
-            <span className="token-value cache-write">{formatTokenCount(tokens.cacheCreationTokens)}</span>
+            <span className="token-value cache-write">
+              {formatTokenCount(tokens.cacheCreationTokens)}
+            </span>
           </div>
         )}
       </div>

@@ -76,7 +76,9 @@ export function Header({
     <header className="header">
       {bannerVisible && pendingTools.length > 0 && (
         <div className="attention-banner" role="alert" aria-live="assertive">
-          <span className="attention-icon" aria-hidden="true">&#9888;</span>
+          <span className="attention-icon" aria-hidden="true">
+            &#9888;
+          </span>
           <span className="attention-text">AWAITING ACTION — {toolNames}</span>
         </div>
       )}
@@ -121,11 +123,7 @@ export function Header({
           </span>
         </div>
 
-        <button
-          className="btn-clear"
-          onClick={onClear}
-          title="Clear all events"
-        >
+        <button className="btn-clear" onClick={onClear} title="Clear all events">
           PURGE
         </button>
 

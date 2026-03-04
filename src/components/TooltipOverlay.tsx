@@ -18,7 +18,11 @@ export function TooltipOverlay() {
 
     function onMouseOver(e: MouseEvent) {
       const target = getTooltipTarget(e);
-      if (!target) { setTooltip(null); currentTarget.current = null; return; }
+      if (!target) {
+        setTooltip(null);
+        currentTarget.current = null;
+        return;
+      }
       const text = target.getAttribute("data-tooltip");
       if (!text) return;
       currentTarget.current = target;
@@ -27,7 +31,7 @@ export function TooltipOverlay() {
 
     function onMouseMove(e: MouseEvent) {
       if (!currentTarget.current) return;
-      setTooltip((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null);
+      setTooltip((prev) => (prev ? { ...prev, x: e.clientX, y: e.clientY } : null));
     }
 
     function onMouseOut(e: MouseEvent) {
@@ -50,13 +54,9 @@ export function TooltipOverlay() {
   if (!tooltip) return null;
 
   return createPortal(
-    <div
-      className="tooltip-overlay"
-      style={{ left: tooltip.x, top: tooltip.y }}
-      role="tooltip"
-    >
+    <div className="tooltip-overlay" style={{ left: tooltip.x, top: tooltip.y }} role="tooltip">
       {tooltip.text}
     </div>,
-    document.body
+    document.body,
   );
 }

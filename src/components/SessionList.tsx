@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import type { HistorySession } from "../types";
 import { estimateCost } from "../../shared/tokens";
-import {
-  formatDate,
-  formatTime,
-  formatTokenCount,
-  shortModel,
-} from "../lib/transcriptUtils";
+import { formatDate, formatTime, formatTokenCount, shortModel } from "../lib/transcriptUtils";
 
 interface SessionListProps {
   projectId: string;
@@ -35,10 +30,9 @@ export function SessionList({
     setLoading(true);
     setSessions([]);
     didAutoSelect.current = undefined;
-    fetch(
-      `${apiBase}/api/history/sessions?project=${encodeURIComponent(projectId)}`,
-      { headers: authHeaders },
-    )
+    fetch(`${apiBase}/api/history/sessions?project=${encodeURIComponent(projectId)}`, {
+      headers: authHeaders,
+    })
       .then((r) => r.json())
       .then((data: HistorySession[]) => setSessions(data))
       .catch(() => setSessions([]))

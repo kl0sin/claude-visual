@@ -27,9 +27,7 @@ function routeToPath(route: AppRoute): string {
 }
 
 export function useRouter() {
-  const [route, setRoute] = useState<AppRoute>(() =>
-    parsePath(window.location.pathname)
-  );
+  const [route, setRoute] = useState<AppRoute>(() => parsePath(window.location.pathname));
 
   useEffect(() => {
     const handler = () => setRoute(parsePath(window.location.pathname));

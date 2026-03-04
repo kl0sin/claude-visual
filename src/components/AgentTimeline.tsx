@@ -45,10 +45,7 @@ function computeToolActions(events: ClaudeEvent[]): ToolAction[] {
   for (const e of events) {
     if (e.type === "PreToolUse" && e.toolName) {
       pending.push(e);
-    } else if (
-      (e.type === "PostToolUse" || e.type === "PostToolUseFailure") &&
-      e.toolName
-    ) {
+    } else if ((e.type === "PostToolUse" || e.type === "PostToolUseFailure") && e.toolName) {
       const idx = pending.findIndex((p) => p.toolName === e.toolName);
       if (idx >= 0) {
         const pre = pending.splice(idx, 1)[0]!;
@@ -104,7 +101,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
       agents
         .filter((a) => a.status === "active")
         .map((a) => a.sessionId)
-        .filter(Boolean) as string[]
+        .filter(Boolean) as string[],
     );
     for (const sid of sessionIds) {
       map.set(sid, computeToolActions(events.filter((e) => e.sessionId === sid)));
@@ -118,7 +115,9 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
     <div className="panel agent-timeline" role="region" aria-label="Agent Processes">
       <div className="panel-header">
         <div className="flex gap-2 items-center">
-          <span className="panel-icon" aria-hidden="true">◈</span>
+          <span className="panel-icon" aria-hidden="true">
+            ◈
+          </span>
           AGENT PROCESSES
           {totalCount > 0 && <span className="panel-count">({totalCount})</span>}
         </div>
@@ -136,9 +135,13 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
               const type = formatAgentType(agent.type);
               const color = AGENT_COLORS[agent.type] ?? AGENT_COLORS[type] ?? "#00f0ff";
               const elapsed = now - agent.startTime;
-              const actions = (agent.sessionId ? actionsBySession.get(agent.sessionId) : undefined) ?? [];
+              const actions =
+                (agent.sessionId ? actionsBySession.get(agent.sessionId) : undefined) ?? [];
               const recent = actions.slice(-5);
-              const maxDur = Math.max(...recent.map((a) => (a.endTime ? a.endTime - a.startTime : 0)), 500);
+              const maxDur = Math.max(
+                ...recent.map((a) => (a.endTime ? a.endTime - a.startTime : 0)),
+                500,
+              );
 
               return (
                 <div
@@ -147,12 +150,18 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                   style={{ "--agent-color": color } as React.CSSProperties}
                 >
                   <div className="agent-card-header">
-                    <span className="agent-status-indicator pulse" style={{ background: color }} aria-hidden="true" />
+                    <span
+                      className="agent-status-indicator pulse"
+                      style={{ background: color }}
+                      aria-hidden="true"
+                    />
                     <span className="agent-type">{type}</span>
                     <span className="agent-elapsed">{formatDuration(elapsed)}</span>
                   </div>
                   {agent.description && (
-                    <div className="agent-description" title={agent.description}>{agent.description}</div>
+                    <div className="agent-description" title={agent.description}>
+                      {agent.description}
+                    </div>
                   )}
 
                   {recent.length > 0 ? (
@@ -176,10 +185,14 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                               {action.status === "running"
                                 ? "●"
                                 : action.status === "failed"
-                                ? "✗"
-                                : "✓"}
+                                  ? "✗"
+                                  : "✓"}
                             </span>
-                            <span className="agent-action-name" style={{ color: toolColor }} data-tooltip={action.tool}>
+                            <span
+                              className="agent-action-name"
+                              style={{ color: toolColor }}
+                              data-tooltip={action.tool}
+                            >
                               {action.tool}
                             </span>
                             <div className="agent-action-bar">
@@ -200,7 +213,11 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                             </div>
                             <span className="agent-action-dur">
                               {formatDuration(
-                                action.status === "running" ? dur : (action.endTime ? action.endTime - action.startTime : 0)
+                                action.status === "running"
+                                  ? dur
+                                  : action.endTime
+                                    ? action.endTime - action.startTime
+                                    : 0,
                               )}
                             </span>
                           </div>
@@ -245,7 +262,9 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                     </span>
                   </div>
                   {agent.description && (
-                    <div className="agent-description" title={agent.description}>{agent.description}</div>
+                    <div className="agent-description" title={agent.description}>
+                      {agent.description}
+                    </div>
                   )}
                 </div>
               );

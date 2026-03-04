@@ -74,7 +74,9 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
         aria-pressed={selectedSession === null}
         onClick={() => onSelect(null)}
       >
-        <span className="session-tab-icon" aria-hidden="true">◈</span>
+        <span className="session-tab-icon" aria-hidden="true">
+          ◈
+        </span>
         <span className="session-tab-label">ALL</span>
         <span className="session-tab-count">{sessions.reduce((s, x) => s + x.eventCount, 0)}</span>
       </button>

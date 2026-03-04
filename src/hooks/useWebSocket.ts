@@ -207,5 +207,16 @@ export function useWebSocket(
 
   const truncated = (globalStats?.totalEvents ?? 0) > (globalStats?.maxEvents ?? 2000);
 
-  return { events, allEvents, stats, globalStats, sessions, selectedSession, setSelectedSession, connected, clearEvents, truncated };
+  return {
+    events,
+    allEvents,
+    stats,
+    globalStats,
+    sessions,
+    selectedSession,
+    setSelectedSession,
+    connected,
+    clearEvents,
+    truncated,
+  };
 }

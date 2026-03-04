@@ -7,7 +7,7 @@ export interface AlertSettings {
   toolFailures: boolean;
   permissionRequests: boolean;
   sessionComplete: boolean;
-  costThreshold: number;       // USD, 0 = disabled
+  costThreshold: number; // USD, 0 = disabled
   sessionDurationMins: number; // minutes, 0 = disabled
 }
 
@@ -42,7 +42,6 @@ function saveAlertSettings(s: AlertSettings): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
   } catch {}
 }
-
 
 let toastSeq = 0;
 
@@ -119,9 +118,7 @@ export function useNotifications(
     for (const evt of newEvents) {
       if (settings.toolFailures && evt.type === "PostToolUseFailure") {
         const tool = evt.toolName ?? "unknown tool";
-        const errorMsg = evt.data?.error
-          ? `: ${String(evt.data.error).slice(0, 100)}`
-          : "";
+        const errorMsg = evt.data?.error ? `: ${String(evt.data.error).slice(0, 100)}` : "";
         notify("TOOL FAILURE", `${tool} failed${errorMsg}`, "#ff0040");
       }
 

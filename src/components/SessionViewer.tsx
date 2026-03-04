@@ -11,11 +11,7 @@ const MAX_WIDTH = 600;
 
 // ── Resize handle ───────────────────────────────────────────
 
-function ResizeHandle({
-  onMouseDown,
-}: {
-  onMouseDown: (e: React.MouseEvent) => void;
-}) {
+function ResizeHandle({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
   return (
     <div className="resize-handle" onMouseDown={onMouseDown}>
       <div className="resize-handle-bar" />
@@ -25,13 +21,7 @@ function ResizeHandle({
 
 // ── Collapsed sidebar strip ─────────────────────────────────
 
-function CollapsedStrip({
-  label,
-  onExpand,
-}: {
-  label: string;
-  onExpand: () => void;
-}) {
+function CollapsedStrip({ label, onExpand }: { label: string; onExpand: () => void }) {
   return (
     <div className="history-panel-collapsed">
       <button
@@ -66,12 +56,8 @@ export function SessionViewer({
 }: SessionViewerProps) {
   const [projects, setProjects] = useState<HistoryProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
-  const [selectedProject, setSelectedProject] = useState<HistoryProject | null>(
-    null,
-  );
-  const [selectedSession, setSelectedSession] = useState<HistorySession | null>(
-    null,
-  );
+  const [selectedProject, setSelectedProject] = useState<HistoryProject | null>(null);
+  const [selectedSession, setSelectedSession] = useState<HistorySession | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -96,10 +82,7 @@ export function SessionViewer({
     const onMove = (e: MouseEvent) => {
       if (!dragRef.current) return;
       const delta = e.clientX - dragRef.current.startX;
-      const newWidth = Math.max(
-        MIN_WIDTH,
-        Math.min(MAX_WIDTH, dragRef.current.startWidth + delta),
-      );
+      const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, dragRef.current.startWidth + delta));
       if (dragRef.current.panel === "projects") {
         setProjectsWidth(newWidth);
       } else {
@@ -117,15 +100,14 @@ export function SessionViewer({
     };
   }, []);
 
-  const startDrag =
-    (panel: "projects" | "sessions") => (e: React.MouseEvent) => {
-      dragRef.current = {
-        panel,
-        startX: e.clientX,
-        startWidth: panel === "projects" ? projectsWidth : sessionsWidth,
-      };
-      e.preventDefault();
+  const startDrag = (panel: "projects" | "sessions") => (e: React.MouseEvent) => {
+    dragRef.current = {
+      panel,
+      startX: e.clientX,
+      startWidth: panel === "projects" ? projectsWidth : sessionsWidth,
     };
+    e.preventDefault();
+  };
 
   // Debounced search
   useEffect(() => {
@@ -191,13 +173,16 @@ export function SessionViewer({
     }
   };
 
-  const handleSessionSelect = useCallback((s: HistorySession) => {
-    setScrollToIdx(undefined);
-    setHighlightQuery(undefined);
-    setSelectedSession(s);
-    setShowStats(false);
-    onNavigate(selectedProject?.name, s.id);
-  }, [onNavigate, selectedProject?.name]);
+  const handleSessionSelect = useCallback(
+    (s: HistorySession) => {
+      setScrollToIdx(undefined);
+      setHighlightQuery(undefined);
+      setSelectedSession(s);
+      setShowStats(false);
+      onNavigate(selectedProject?.name, s.id);
+    },
+    [onNavigate, selectedProject?.name],
+  );
 
   // Used by SessionList auto-select (URL-driven) — does NOT clear scrollToIdx so that
   // search navigation state is preserved when SessionList reconciles with the URL.
@@ -222,10 +207,7 @@ export function SessionViewer({
         />
         {searching && <span className="history-search-spinner">⟳</span>}
         {searchQuery && !searching && (
-          <button
-            className="history-search-clear"
-            onClick={() => setSearchQuery("")}
-          >
+          <button className="history-search-clear" onClick={() => setSearchQuery("")}>
             ✕
           </button>
         )}
@@ -250,170 +232,162 @@ export function SessionViewer({
           }}
         />
       ) : (
-      <div className="history-columns">
-      {/* Left: Projects */}
-      {projectsCollapsed ? (
-        <CollapsedStrip
-          label="PROJECTS"
-          onExpand={() => setProjectsCollapsed(false)}
-        />
-      ) : (
-        <>
-          <div className="history-panel" style={{ width: projectsWidth }}>
-            <div className="panel-header">
-              <span className="panel-title">PROJECTS</span>
-              {!loadingProjects && (
-                <span className="panel-count">{projects.length}</span>
-              )}
-              <button
-                className="panel-collapse-btn"
-                onClick={() => setProjectsCollapsed(true)}
-                title="Collapse panel"
-                aria-label="Collapse PROJECTS panel"
-              >
-                ‹
-              </button>
-            </div>
-
-            {loadingProjects ? (
-              <div className="history-empty">
-                <span className="history-empty-icon">⟳</span>
-                <span>SCANNING...</span>
-              </div>
-            ) : projects.length === 0 ? (
-              <div className="history-empty">
-                <span className="history-empty-icon">∅</span>
-                <span>NO PROJECTS FOUND</span>
-                <span className="history-empty-hint">
-                  ~/.claude/projects/ is empty
-                </span>
-              </div>
-            ) : (
-              <div className="history-list">
-                {projects.map((p) => (
+        <div className="history-columns">
+          {/* Left: Projects */}
+          {projectsCollapsed ? (
+            <CollapsedStrip label="PROJECTS" onExpand={() => setProjectsCollapsed(false)} />
+          ) : (
+            <>
+              <div className="history-panel" style={{ width: projectsWidth }}>
+                <div className="panel-header">
+                  <span className="panel-title">PROJECTS</span>
+                  {!loadingProjects && <span className="panel-count">{projects.length}</span>}
                   <button
-                    key={p.id}
-                    className={`history-item ${selectedProject?.id === p.id ? "active" : ""}`}
-                    onClick={() => handleProjectSelect(p)}
-                    title={p.fullPath}
+                    className="panel-collapse-btn"
+                    onClick={() => setProjectsCollapsed(true)}
+                    title="Collapse panel"
+                    aria-label="Collapse PROJECTS panel"
                   >
-                    <div className="history-item-top">
-                      <span className="history-item-name">{p.name}</span>
-                      <span className="history-item-turns">{p.sessionCount}</span>
-                    </div>
-                    <div className="history-item-path">{shortParentPath(p.fullPath)}</div>
-                    <div className="history-item-bottom">
-                      <span className="history-item-meta">
-                        {p.lastActivity ? formatDate(p.lastActivity) : "—"}
-                      </span>
-                    </div>
+                    ‹
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <ResizeHandle onMouseDown={startDrag("projects")} />
-        </>
-      )}
+                </div>
 
-      {/* Center: Sessions */}
-      {sessionsCollapsed ? (
-        <CollapsedStrip
-          label="SESSIONS"
-          onExpand={() => setSessionsCollapsed(false)}
-        />
-      ) : (
-        <>
-          <div className="history-panel" style={{ width: sessionsWidth }}>
+                {loadingProjects ? (
+                  <div className="history-empty">
+                    <span className="history-empty-icon">⟳</span>
+                    <span>SCANNING...</span>
+                  </div>
+                ) : projects.length === 0 ? (
+                  <div className="history-empty">
+                    <span className="history-empty-icon">∅</span>
+                    <span>NO PROJECTS FOUND</span>
+                    <span className="history-empty-hint">~/.claude/projects/ is empty</span>
+                  </div>
+                ) : (
+                  <div className="history-list">
+                    {projects.map((p) => (
+                      <button
+                        key={p.id}
+                        className={`history-item ${selectedProject?.id === p.id ? "active" : ""}`}
+                        onClick={() => handleProjectSelect(p)}
+                        title={p.fullPath}
+                      >
+                        <div className="history-item-top">
+                          <span className="history-item-name">{p.name}</span>
+                          <span className="history-item-turns">{p.sessionCount}</span>
+                        </div>
+                        <div className="history-item-path">{shortParentPath(p.fullPath)}</div>
+                        <div className="history-item-bottom">
+                          <span className="history-item-meta">
+                            {p.lastActivity ? formatDate(p.lastActivity) : "—"}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <ResizeHandle onMouseDown={startDrag("projects")} />
+            </>
+          )}
+
+          {/* Center: Sessions */}
+          {sessionsCollapsed ? (
+            <CollapsedStrip label="SESSIONS" onExpand={() => setSessionsCollapsed(false)} />
+          ) : (
+            <>
+              <div className="history-panel" style={{ width: sessionsWidth }}>
+                <div className="panel-header">
+                  <span className="panel-title">SESSIONS</span>
+                  {selectedProject && (
+                    <span className="panel-subtitle">{selectedProject.name}</span>
+                  )}
+                  <button
+                    className="panel-collapse-btn"
+                    onClick={() => setSessionsCollapsed(true)}
+                    title="Collapse panel"
+                    aria-label="Collapse SESSIONS panel"
+                  >
+                    ‹
+                  </button>
+                </div>
+
+                {!selectedProject ? (
+                  <div className="history-empty">
+                    <span className="history-empty-icon">←</span>
+                    <span>SELECT A PROJECT</span>
+                  </div>
+                ) : (
+                  <SessionList
+                    projectId={selectedProject.id}
+                    selectedSessionId={selectedSession?.id || null}
+                    autoSelectId={routeSessionId}
+                    onSelect={handleSessionSelect}
+                    onAutoSelect={handleAutoSessionSelect}
+                    apiBase={apiBase}
+                    authHeaders={authHeaders}
+                  />
+                )}
+              </div>
+              <ResizeHandle onMouseDown={startDrag("sessions")} />
+            </>
+          )}
+
+          {/* Right: Transcript / Stats */}
+          <div className="history-panel history-panel-wide">
             <div className="panel-header">
-              <span className="panel-title">SESSIONS</span>
-              {selectedProject && (
+              <span className="panel-title">
+                {showStats || !selectedSession ? "PROJECT STATS" : "TRANSCRIPT"}
+              </span>
+              {showStats && selectedProject ? (
                 <span className="panel-subtitle">{selectedProject.name}</span>
+              ) : selectedSession && !showStats ? (
+                <span className="panel-subtitle">{selectedSession.id.slice(0, 8)}…</span>
+              ) : null}
+              {selectedProject && selectedSession && (
+                <button
+                  className="hist-stats-toggle"
+                  onClick={() => setShowStats((v) => !v)}
+                  title={showStats ? "Show transcript" : "Show project statistics"}
+                >
+                  {showStats ? "TRANSCRIPT" : "STATS"}
+                </button>
               )}
-              <button
-                className="panel-collapse-btn"
-                onClick={() => setSessionsCollapsed(true)}
-                title="Collapse panel"
-                aria-label="Collapse SESSIONS panel"
-              >
-                ‹
-              </button>
             </div>
 
-            {!selectedProject ? (
-              <div className="history-empty">
-                <span className="history-empty-icon">←</span>
-                <span>SELECT A PROJECT</span>
-              </div>
-            ) : (
-              <SessionList
+            {!selectedSession ? (
+              selectedProject ? (
+                <HistoricalStatsPanel
+                  projectId={selectedProject.id}
+                  projectName={selectedProject.name}
+                  apiBase={apiBase}
+                  authHeaders={authHeaders}
+                />
+              ) : (
+                <div className="history-empty">
+                  <span className="history-empty-icon">←</span>
+                  <span>SELECT A SESSION</span>
+                </div>
+              )
+            ) : showStats && selectedProject ? (
+              <HistoricalStatsPanel
                 projectId={selectedProject.id}
-                selectedSessionId={selectedSession?.id || null}
-                autoSelectId={routeSessionId}
-                onSelect={handleSessionSelect}
-                onAutoSelect={handleAutoSessionSelect}
+                projectName={selectedProject.name}
+                apiBase={apiBase}
+                authHeaders={authHeaders}
+              />
+            ) : (
+              <TranscriptPanel
+                key={selectedSession.filePath}
+                session={selectedSession}
+                scrollToMessageIndex={scrollToIdx}
+                highlightQuery={highlightQuery}
                 apiBase={apiBase}
                 authHeaders={authHeaders}
               />
             )}
           </div>
-          <ResizeHandle onMouseDown={startDrag("sessions")} />
-        </>
-      )}
-
-      {/* Right: Transcript / Stats */}
-      <div className="history-panel history-panel-wide">
-        <div className="panel-header">
-          <span className="panel-title">{showStats || !selectedSession ? "PROJECT STATS" : "TRANSCRIPT"}</span>
-          {showStats && selectedProject ? (
-            <span className="panel-subtitle">{selectedProject.name}</span>
-          ) : selectedSession && !showStats ? (
-            <span className="panel-subtitle">{selectedSession.id.slice(0, 8)}…</span>
-          ) : null}
-          {selectedProject && selectedSession && (
-            <button
-              className="hist-stats-toggle"
-              onClick={() => setShowStats((v) => !v)}
-              title={showStats ? "Show transcript" : "Show project statistics"}
-            >
-              {showStats ? "TRANSCRIPT" : "STATS"}
-            </button>
-          )}
         </div>
-
-        {!selectedSession ? (
-          selectedProject ? (
-            <HistoricalStatsPanel
-              projectId={selectedProject.id}
-              projectName={selectedProject.name}
-              apiBase={apiBase}
-              authHeaders={authHeaders}
-            />
-          ) : (
-            <div className="history-empty">
-              <span className="history-empty-icon">←</span>
-              <span>SELECT A SESSION</span>
-            </div>
-          )
-        ) : showStats && selectedProject ? (
-          <HistoricalStatsPanel
-            projectId={selectedProject.id}
-            projectName={selectedProject.name}
-            apiBase={apiBase}
-            authHeaders={authHeaders}
-          />
-        ) : (
-          <TranscriptPanel
-            key={selectedSession.filePath}
-            session={selectedSession}
-            scrollToMessageIndex={scrollToIdx}
-            highlightQuery={highlightQuery}
-            apiBase={apiBase}
-            authHeaders={authHeaders}
-          />
-        )}
-      </div>
-      </div>
       )}
     </div>
   );

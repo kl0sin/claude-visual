@@ -3,7 +3,15 @@ import { cors } from "hono/cors";
 import type { ServerWebSocket } from "bun";
 import { EventStore } from "./events";
 import { TranscriptTokenReader } from "./transcript";
-import { listProjects, listSessions, readSession, searchTranscripts, getHookStatus, installHooks, getProjectStats } from "./history";
+import {
+  listProjects,
+  listSessions,
+  readSession,
+  searchTranscripts,
+  getHookStatus,
+  installHooks,
+  getProjectStats,
+} from "./history";
 
 const app = new Hono();
 const eventStore = new EventStore();
@@ -44,8 +52,8 @@ app.use(
       ? { origin: "*", allowHeaders: ["Authorization", "Content-Type"] }
       : isProduction
         ? { origin: [`http://localhost:${process.env.PORT || 3200}`] }
-        : { origin: "*" }
-  )
+        : { origin: "*" },
+  ),
 );
 
 // Auth middleware — skip /api/health and /api/info so connectivity can be tested
@@ -95,9 +103,18 @@ app.post("/api/events", async (c) => {
         ...data,
       };
       const se = eventStore.add(rawSynthetic);
-      const msg = JSON.stringify({ type: "event", data: se, stats: eventStore.getStats(), sessions: eventStore.getSessions() });
+      const msg = JSON.stringify({
+        type: "event",
+        data: se,
+        stats: eventStore.getStats(),
+        sessions: eventStore.getSessions(),
+      });
       for (const ws of clients) {
-        try { ws.send(msg); } catch { clients.delete(ws); }
+        try {
+          ws.send(msg);
+        } catch {
+          clients.delete(ws);
+        }
       }
     };
 
@@ -108,7 +125,11 @@ app.post("/api/events", async (c) => {
         sessions: eventStore.getSessions(),
       });
       for (const ws of clients) {
-        try { ws.send(msg); } catch { clients.delete(ws); }
+        try {
+          ws.send(msg);
+        } catch {
+          clients.delete(ws);
+        }
       }
     };
 
@@ -145,8 +166,10 @@ app.post("/api/events", async (c) => {
         const extra = await transcriptReader.readNewData(transcriptPath);
         if (extra) {
           eventStore.addTranscriptData(extra, sessionId);
-          if (extra.latestThinking) broadcastSynthetic("Thinking", { thinking_text: extra.latestThinking });
-          if (extra.latestResponse) broadcastSynthetic("Output", { output_text: extra.latestResponse });
+          if (extra.latestThinking)
+            broadcastSynthetic("Thinking", { thinking_text: extra.latestThinking });
+          if (extra.latestResponse)
+            broadcastSynthetic("Output", { output_text: extra.latestResponse });
           broadcastStats();
         }
       }, 3000);
@@ -158,7 +181,11 @@ app.post("/api/events", async (c) => {
     if (sideEffects.length > 0) {
       const patchMsg = JSON.stringify({ type: "eventPatch", events: sideEffects });
       for (const ws of clients) {
-        try { ws.send(patchMsg); } catch { clients.delete(ws); }
+        try {
+          ws.send(patchMsg);
+        } catch {
+          clients.delete(ws);
+        }
       }
     }
 
@@ -252,9 +279,8 @@ app.get("/api/history/stats", async (c) => {
 });
 
 app.get("/api/history/search", async (c) => {
-  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim()
-    ?? c.req.header("x-real-ip")
-    ?? "local";
+  const ip =
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? c.req.header("x-real-ip") ?? "local";
   if (!checkSearchRateLimit(ip)) {
     return c.json({ error: "Too Many Requests" }, 429);
   }
@@ -321,7 +347,12 @@ Bun.serve({
         stats: eventStore.getStats(),
         sessions: eventStore.getSessions(),
       });
-      try { ws.send(snapshot); } catch { clients.delete(ws); return; }
+      try {
+        ws.send(snapshot);
+      } catch {
+        clients.delete(ws);
+        return;
+      }
       console.log(`\x1b[36m[NEURAL LINK]\x1b[0m Client connected (${clients.size} active)`);
     },
     close(ws) {

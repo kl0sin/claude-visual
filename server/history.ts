@@ -52,7 +52,7 @@ async function dirExists(p: string): Promise<boolean> {
 async function resolveSegmentTokens(
   tokens: string[],
   startIdx: number,
-  basePath: string
+  basePath: string,
 ): Promise<string | null> {
   if (startIdx >= tokens.length) return basePath;
 
@@ -330,7 +330,13 @@ export async function readSession(
 
           const content = parseContent(entry.message?.content);
           if (content.length > 0) {
-            allMessages.push({ role: "assistant", content, tokens: msgTokens, model: msgModel, timestamp: entry.timestamp });
+            allMessages.push({
+              role: "assistant",
+              content,
+              tokens: msgTokens,
+              model: msgModel,
+              timestamp: entry.timestamp,
+            });
           }
         }
       } catch {}
@@ -385,9 +391,7 @@ function extractFirstUserSnippet(lines: string[]): string | undefined {
       if (entry.type !== "user") continue;
       const content = parseContent(entry.message?.content);
       if (content.some((c) => c.type === "tool_result")) continue;
-      const textBlock = content.find(
-        (c): c is { type: "text"; text: string } => c.type === "text",
-      );
+      const textBlock = content.find((c): c is { type: "text"; text: string } => c.type === "text");
       if (!textBlock) continue;
       const text = textBlock.text.trim();
       if (!text || isSystemText(text)) continue;
@@ -467,9 +471,7 @@ export async function searchTranscripts(
 ): Promise<SearchResult[]> {
   const queryLow = query.toLowerCase();
   const allProjects = await listProjects();
-  const targetProjects = projectId
-    ? allProjects.filter((p) => p.id === projectId)
-    : allProjects;
+  const targetProjects = projectId ? allProjects.filter((p) => p.id === projectId) : allProjects;
 
   const results: SearchResult[] = [];
 
@@ -506,11 +508,7 @@ export async function searchTranscripts(
         }
 
         const role: "user" | "assistant" | undefined =
-          entry.type === "user"
-            ? "user"
-            : entry.type === "assistant"
-              ? "assistant"
-              : undefined;
+          entry.type === "user" ? "user" : entry.type === "assistant" ? "assistant" : undefined;
         if (!role) continue;
 
         // Use parseContent() — same function as readSession() — to decide whether
@@ -633,10 +631,7 @@ export async function installHooks(): Promise<{ ok: boolean; error?: string }> {
 
 // ── HISTORICAL STATISTICS ────────────────────────────────────
 
-async function countToolsFromFile(
-  filePath: string,
-  counts: Map<string, number>,
-): Promise<void> {
+async function countToolsFromFile(filePath: string, counts: Map<string, number>): Promise<void> {
   let text: string;
   try {
     text = await Bun.file(filePath).text();

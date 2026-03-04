@@ -46,7 +46,13 @@ function Sparkline({ events }: { events: ClaudeEvent[] }) {
   return (
     <div className="sparkline-container">
       <div className="sparkline-label">EVENT RATE</div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="sparkline-svg" preserveAspectRatio="none" role="img" aria-label="Event rate over time">
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        className="sparkline-svg"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="Event rate over time"
+      >
         <title>Event rate over time</title>
         {buckets.map((count, i) => {
           const barH = (count / max) * h;
@@ -76,23 +82,23 @@ function Sparkline({ events }: { events: ClaudeEvent[] }) {
 export function StatsPanel({ stats, events = [] }: StatsPanelProps) {
   if (!stats) return null;
 
-  const eventTypeEntries = Object.entries(stats.eventTypeCounts).sort(
-    (a, b) => b[1] - a[1]
-  );
+  const eventTypeEntries = Object.entries(stats.eventTypeCounts).sort((a, b) => b[1] - a[1]);
 
-  const activeCount = stats.activeAgents.filter(
-    (a) => a.status === "active"
-  ).length;
+  const activeCount = stats.activeAgents.filter((a) => a.status === "active").length;
 
   return (
     <div className="panel stats-panel" role="region" aria-label="System Diagnostics">
       <div className="panel-header">
-        <span className="panel-icon" aria-hidden="true">◉</span>
+        <span className="panel-icon" aria-hidden="true">
+          ◉
+        </span>
         SYSTEM DIAGNOSTICS
       </div>
       <div className="stats-grid">
         <div className="stat-card">
-          <div key={stats.totalEvents} className="stat-card-value cyan">{stats.totalEvents}</div>
+          <div key={stats.totalEvents} className="stat-card-value cyan">
+            {stats.totalEvents}
+          </div>
           <div className="stat-card-label">TOTAL EVENTS</div>
         </div>
         <div className="stat-card">
@@ -102,7 +108,10 @@ export function StatsPanel({ stats, events = [] }: StatsPanelProps) {
           <div className="stat-card-label">UNIQUE TOOLS</div>
         </div>
         <div className="stat-card">
-          <div key={activeCount} className={`stat-card-value ${activeCount > 0 ? "green pulse" : "dim"}`}>
+          <div
+            key={activeCount}
+            className={`stat-card-value ${activeCount > 0 ? "green pulse" : "dim"}`}
+          >
             {activeCount}
           </div>
           <div className="stat-card-label">ACTIVE AGENTS</div>

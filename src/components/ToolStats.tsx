@@ -47,7 +47,9 @@ export function ToolStats({ toolCounts, toolFailCounts = {} }: ToolStatsProps) {
   return (
     <div className="panel tool-stats" role="region" aria-label="Tool Usage">
       <div className="panel-header">
-        <span className="panel-icon" aria-hidden="true">⚡</span>
+        <span className="panel-icon" aria-hidden="true">
+          ⚡
+        </span>
         TOOL USAGE
       </div>
       <div className="tool-list">

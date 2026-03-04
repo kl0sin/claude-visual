@@ -75,15 +75,15 @@ export const EMPTY_TOKENS: TokenUsage = {
 // ── HISTORY BROWSER TYPES ──────────────────────────────────
 
 export interface HistoryProject {
-  id: string;           // encoded directory name
-  name: string;         // display name (last path component)
-  fullPath: string;     // decoded full path
+  id: string; // encoded directory name
+  name: string; // display name (last path component)
+  fullPath: string; // decoded full path
   sessionCount: number;
   lastActivity?: number;
 }
 
 export interface HistorySession {
-  id: string;           // UUID (filename without .jsonl)
+  id: string; // UUID (filename without .jsonl)
   projectId: string;
   filePath: string;
   messageCount: number;
@@ -91,7 +91,7 @@ export interface HistorySession {
   tokens: TokenUsage;
   model?: string;
   lastModified: number;
-  snippet?: string;     // first real user message text (truncated)
+  snippet?: string; // first real user message text (truncated)
 }
 
 export type TranscriptContent =
@@ -124,8 +124,8 @@ export interface HookStatus {
 
 export interface SearchMatch {
   role: "user" | "assistant";
-  snippet: string;      // ~200 chars centred around the match
-  matchOffset: number;  // char offset of match start within snippet (adjusted for leading "…")
+  snippet: string; // ~200 chars centred around the match
+  matchOffset: number; // char offset of match start within snippet (adjusted for leading "…")
   matchLength: number;
   messageIndex: number; // 0-based index in the session messages array
 }
@@ -140,10 +140,10 @@ export interface SearchResult {
 // ── HISTORICAL STATISTICS TYPES ─────────────────────────────
 
 export interface DayStats {
-  date: string;    // "YYYY-MM-DD"
-  count: number;   // session count for that day
-  tokens: number;  // sum of totalTokens
-  cost: number;    // sum of costs (raw float)
+  date: string; // "YYYY-MM-DD"
+  count: number; // session count for that day
+  tokens: number; // sum of totalTokens
+  cost: number; // sum of costs (raw float)
 }
 
 export interface ModelStats {
@@ -164,7 +164,7 @@ export interface ProjectStats {
   totalCost: number;
   avgCostPerSession: number;
   avgTokensPerSession: number;
-  modelBreakdown: ModelStats[];   // sorted by cost desc
-  sessionsByDay: DayStats[];      // 30 entries oldest→newest, zeros filled in
-  toolCounts: ToolStat[];         // top 10 sorted by count desc
+  modelBreakdown: ModelStats[]; // sorted by cost desc
+  sessionsByDay: DayStats[]; // 30 entries oldest→newest, zeros filled in
+  toolCounts: ToolStat[]; // top 10 sorted by count desc
 }

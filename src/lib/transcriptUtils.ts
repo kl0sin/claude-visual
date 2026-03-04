@@ -57,9 +57,7 @@ export const SYSTEM_TAG_RE = /^<[a-z][a-z-]+[\s>]/;
 export const INVISIBLE_CHARS_RE = /[\u00a0\u200b\u200c\u200d\u2060\ufeff]/g;
 
 export function getFirstText(content: TranscriptContent[]): string {
-  const t = content.find(
-    (c): c is { type: "text"; text: string } => c.type === "text",
-  );
+  const t = content.find((c): c is { type: "text"; text: string } => c.type === "text");
   return t?.text ?? "";
 }
 
@@ -95,8 +93,7 @@ export function isSystemInstruction(
   // Short self-issued continuation notes:
   // ≤ 3 non-empty lines, ends with ":", contains backtick code references
   const nonEmptyLines = text.split("\n").filter((l) => l.trim()).length;
-  if (nonEmptyLines <= 3 && text.endsWith(":") && text.includes("`"))
-    return true;
+  if (nonEmptyLines <= 3 && text.endsWith(":") && text.includes("`")) return true;
 
   return false;
 }
@@ -122,8 +119,7 @@ export function parseInstructionName(text: string): string {
       .split("\n")
       .find((l) => l.trim())
       ?.trim() ?? "";
-  if (firstLine)
-    return firstLine.length <= 80 ? firstLine : firstLine.slice(0, 77) + "…";
+  if (firstLine) return firstLine.length <= 80 ? firstLine : firstLine.slice(0, 77) + "…";
 
   return "SYSTEM CONTEXT";
 }
@@ -168,8 +164,7 @@ export function groupIntoTurns(messages: TranscriptMessage[]): ConversationTurn[
     const input = messages[start];
     if (input == null) continue;
 
-    const betweenEntries: Array<{ msg: TranscriptMessage; origIdx: number }> =
-      [];
+    const betweenEntries: Array<{ msg: TranscriptMessage; origIdx: number }> = [];
     for (let i = start + 1; i < end; i++) {
       const m = messages[i];
       if (m != null && !isSystemInstruction(m.role, m.content)) {

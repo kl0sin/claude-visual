@@ -60,20 +60,13 @@ function ServerCard({
         </div>
       </div>
       <div className="server-row-actions">
-        {testState === "ok"    && <span className="server-test-ok">OK</span>}
+        {testState === "ok" && <span className="server-test-ok">OK</span>}
         {testState === "error" && <span className="server-test-err">FAIL</span>}
-        <button
-          className="server-action-btn"
-          onClick={test}
-          disabled={testState === "checking"}
-        >
+        <button className="server-action-btn" onClick={test} disabled={testState === "checking"}>
           {testState === "checking" ? "…" : "TEST"}
         </button>
         {!isActive && (
-          <button
-            className="server-action-btn primary"
-            onClick={() => onSelect(server.id)}
-          >
+          <button className="server-action-btn primary" onClick={() => onSelect(server.id)}>
             CONNECT
           </button>
         )}
@@ -93,20 +86,27 @@ function ServerCard({
 
 function AddServerForm({ onAdd }: { onAdd: (s: Omit<ServerInstance, "id">) => void }) {
   const [name, setName] = useState("");
-  const [url, setUrl]   = useState("http://");
+  const [url, setUrl] = useState("http://");
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
 
   const submit = () => {
     setError("");
     const trimmedUrl = url.trim().replace(/\/$/, "");
-    if (!name.trim()) { setError("Name is required"); return; }
-    try { new URL(trimmedUrl); } catch {
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+    try {
+      new URL(trimmedUrl);
+    } catch {
       setError("Enter a valid URL, e.g. http://192.168.1.5:3200");
       return;
     }
     onAdd({ name: name.trim(), url: trimmedUrl, token: token.trim() || undefined });
-    setName(""); setUrl("http://"); setToken("");
+    setName("");
+    setUrl("http://");
+    setToken("");
   };
 
   return (
@@ -115,11 +115,21 @@ function AddServerForm({ onAdd }: { onAdd: (s: Omit<ServerInstance, "id">) => vo
       <div className="add-server-fields">
         <div className="add-server-field">
           <label className="add-server-label">Name</label>
-          <input className="add-server-input" placeholder="e.g. Work laptop" value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            className="add-server-input"
+            placeholder="e.g. Work laptop"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
         </div>
         <div className="add-server-field">
           <label className="add-server-label">URL</label>
-          <input className="add-server-input" placeholder="http://192.168.1.5:3200" value={url} onChange={(e) => setUrl(e.target.value)} />
+          <input
+            className="add-server-input"
+            placeholder="http://192.168.1.5:3200"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
         </div>
         <div className="add-server-field">
           <label className="add-server-label">
@@ -135,9 +145,12 @@ function AddServerForm({ onAdd }: { onAdd: (s: Omit<ServerInstance, "id">) => vo
         </div>
       </div>
       {error && <div className="add-server-error">{error}</div>}
-      <button className="add-server-btn" onClick={submit}>ADD SERVER</button>
+      <button className="add-server-btn" onClick={submit}>
+        ADD SERVER
+      </button>
       <p className="settings-hint">
-        To enable remote access on a server set <code>CLAUDE_VISUAL_TOKEN</code> before starting Claude Visual.
+        To enable remote access on a server set <code>CLAUDE_VISUAL_TOKEN</code> before starting
+        Claude Visual.
       </p>
     </div>
   );
@@ -352,8 +365,8 @@ function AlertsSection({ settings, onUpdate }: AlertsSectionProps) {
 type Tab = "servers" | "alerts";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "servers", label: "Servers",  icon: "◈" },
-  { id: "alerts",  label: "Alerts",   icon: "◆" },
+  { id: "servers", label: "Servers", icon: "◈" },
+  { id: "alerts", label: "Alerts", icon: "◆" },
 ];
 
 interface SettingsPageProps {
@@ -375,7 +388,9 @@ export function SettingsPage({ alertSettings, onUpdateAlerts }: SettingsPageProp
             onClick={() => setTab(t.id)}
             aria-current={tab === t.id ? "page" : undefined}
           >
-            <span className="settings-nav-icon" aria-hidden="true">{t.icon}</span>
+            <span className="settings-nav-icon" aria-hidden="true">
+              {t.icon}
+            </span>
             {t.label}
           </button>
         ))}
@@ -383,7 +398,7 @@ export function SettingsPage({ alertSettings, onUpdateAlerts }: SettingsPageProp
 
       <div className="settings-content">
         {tab === "servers" && <ServersSection />}
-        {tab === "alerts"  && <AlertsSection settings={alertSettings} onUpdate={onUpdateAlerts} />}
+        {tab === "alerts" && <AlertsSection settings={alertSettings} onUpdate={onUpdateAlerts} />}
       </div>
     </div>
   );

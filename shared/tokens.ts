@@ -1,16 +1,16 @@
 import type { TokenUsage } from "./types";
 
 export interface ModelPricing {
-  input: number;    // $/MTok
-  output: number;   // $/MTok
+  input: number; // $/MTok
+  output: number; // $/MTok
   cacheWrite: number; // $/MTok
-  cacheRead: number;  // $/MTok
+  cacheRead: number; // $/MTok
 }
 
 export const MODEL_PRICING: Record<string, ModelPricing> = {
-  "claude-opus-4":   { input: 15,  output: 75, cacheWrite: 18.75, cacheRead: 1.5  },
-  "claude-sonnet-4": { input: 3,   output: 15, cacheWrite: 3.75,  cacheRead: 0.3  },
-  "claude-haiku-4":  { input: 0.8, output: 4,  cacheWrite: 1,     cacheRead: 0.08 },
+  "claude-opus-4": { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5 },
+  "claude-sonnet-4": { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
+  "claude-haiku-4": { input: 0.8, output: 4, cacheWrite: 1, cacheRead: 0.08 },
 };
 
 const DEFAULT_FAMILY = "claude-sonnet-4";

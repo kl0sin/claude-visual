@@ -11,16 +11,26 @@
     "start": "NODE_ENV=production bun server/index.ts",
     "tauri:sidecar": "TRIPLE=$(rustc -vV | grep '^host:' | awk '{print $2}') && bun build --compile --outfile src-tauri/binaries/server-$TRIPLE server/index.ts",
     "tauri:dev": "bunx tauri dev",
-    "tauri:build": "bun run tauri:sidecar && bunx tauri build"
+    "tauri:build": "bun run tauri:sidecar && bunx tauri build",
+    "lint": "eslint src server shared",
+    "lint:fix": "eslint src server shared --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"shared/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"server/**/*.ts\" \"shared/**/*.ts\""
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.1",
     "@tauri-apps/cli": "^2",
     "@types/bun": "latest",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",
+    "eslint": "^10.0.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.8.1",
     "tailwindcss": "^4.2.1",
+    "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1"
   },
   "peerDependencies": {
