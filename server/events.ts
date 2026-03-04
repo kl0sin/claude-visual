@@ -536,6 +536,10 @@ export class EventStore {
     this.idCounter = 0;
   }
 
+  close(): void {
+    this.db.close();
+  }
+
   // ── Private helpers ──────────────────────────────────────────────────────
 
   private _persistEvent(event: ClaudeEvent): void {

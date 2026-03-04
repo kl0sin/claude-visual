@@ -84,7 +84,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **No ESLint / Prettier configured**: Add `eslint` + `prettier` for consistent code style enforcement.
 
-- [ ] **SQLite `Database` never explicitly closed**: `EventStore` opens a DB connection that is never explicitly closed (relies on Bun cleanup on process exit). Add a `close()` method and call it on shutdown signals.
+- [x] **SQLite `Database` never explicitly closed**: `EventStore` opens a DB connection that is never explicitly closed (relies on Bun cleanup on process exit). Add a `close()` method and call it on shutdown signals.
 
 ### Missing Features (carry-over)
 

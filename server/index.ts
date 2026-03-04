@@ -382,3 +382,11 @@ console.log(`
 \x1b[35m▸ WebSocket:\x1b[0m ws://localhost:${PORT}/ws
 \x1b[33m▸ API:\x1b[0m      http://localhost:${PORT}/api/events
 `);
+
+// Graceful shutdown — flush WAL and close the DB before the process exits
+const shutdown = () => {
+  eventStore.close();
+  process.exit(0);
+};
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
