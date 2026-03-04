@@ -40,6 +40,14 @@ function formatTime(ts: number): string {
   });
 }
 
+function shortParentPath(fullPath: string): string {
+  const parts = fullPath.replace(/\\/g, "/").split("/").filter(Boolean);
+  if (parts.length <= 1) return "/";
+  parts.pop();
+  if (parts.length > 3) return "…/" + parts.slice(-2).join("/");
+  return "/" + parts.join("/");
+}
+
 function shortModel(model?: string): string {
   if (!model) return "";
   if (model.includes("opus")) return "Opus";
@@ -1342,22 +1350,21 @@ function SessionList({
           className={`history-item ${selectedSessionId === s.id ? "active" : ""}`}
           onClick={() => onSelect(s)}
         >
-          <div className="history-item-top">
-            <span className="history-item-id">{s.id.slice(0, 8)}…</span>
-            <span className="history-item-time">
-              {formatTime(s.lastModified)}
-            </span>
+          <div className="history-item-snippet">
+            {s.snippet ?? <span className="history-item-snippet--empty">no messages</span>}
           </div>
           <div className="history-item-middle">
-            <span className="history-item-meta">{formatDate(s.lastModified)}</span>
+            <span className="history-item-meta">
+              {formatDate(s.lastModified)} · {formatTime(s.lastModified)}
+            </span>
             {s.model && <span className="history-item-model">{shortModel(s.model)}</span>}
           </div>
           <div className="history-item-bottom">
-            <span className="history-item-turns">{s.userTurns} events</span>
             <span className="history-item-tokens">
-              {formatTokenCount(s.tokens.totalTokens)} tokens
+              {formatTokenCount(s.tokens.totalTokens)} tok
               <span className="history-item-cost-inline"> ({estimateCost(s.tokens, s.model)})</span>
             </span>
+            <span className="history-item-session-id">{s.id.slice(0, 8)}</span>
           </div>
         </button>
       ))}
@@ -1743,16 +1750,16 @@ export function SessionViewer({
                     key={p.id}
                     className={`history-item ${selectedProject?.id === p.id ? "active" : ""}`}
                     onClick={() => handleProjectSelect(p)}
+                    title={p.fullPath}
                   >
                     <div className="history-item-top">
                       <span className="history-item-name">{p.name}</span>
+                      <span className="history-item-turns">{p.sessionCount}</span>
                     </div>
+                    <div className="history-item-path">{shortParentPath(p.fullPath)}</div>
                     <div className="history-item-bottom">
                       <span className="history-item-meta">
                         {p.lastActivity ? formatDate(p.lastActivity) : "—"}
-                      </span>
-                      <span className="history-item-turns">
-                        {p.sessionCount} sessions
                       </span>
                     </div>
                   </button>

@@ -90,6 +90,7 @@ export interface HistorySession {
   tokens: TokenUsage;
   model?: string;
   lastModified: number;
+  snippet?: string;     // first real user message text (truncated)
 }
 
 export type TranscriptContent =

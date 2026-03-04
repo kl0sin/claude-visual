@@ -256,6 +256,8 @@ export async function listSessions(projectId: string): Promise<HistorySession[]>
         } catch {}
       }
 
+      const snippet = extractFirstUserSnippet(lines);
+
       sessions.push({
         id: sessionId,
         projectId,
@@ -265,6 +267,7 @@ export async function listSessions(projectId: string): Promise<HistorySession[]>
         tokens,
         model,
         lastModified: fstat.mtime.getTime(),
+        snippet,
       });
     } catch {}
   }
@@ -360,6 +363,38 @@ export async function readSession(
   } catch {
     return null;
   }
+}
+
+/** Mirror of frontend isSystemInstruction — skips injected context */
+function isSystemText(text: string): boolean {
+  const t = text.trim();
+  if (!t) return true;
+  if (t.startsWith("---\n") || t.startsWith("---\r\n")) return true;
+  if (/^<[a-z][a-z-]+[\s>]/.test(t)) return true;
+  if (t.startsWith("# ") && t.length > 500) return true;
+  const lines = t.split("\n").filter((l) => l.trim());
+  if (lines.length <= 3 && t.endsWith(":") && t.includes("`")) return true;
+  return false;
+}
+
+/** Extract first real user-typed message text from parsed JSONL lines */
+function extractFirstUserSnippet(lines: string[]): string | undefined {
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line);
+      if (entry.type !== "user") continue;
+      const content = parseContent(entry.message?.content);
+      if (content.some((c) => c.type === "tool_result")) continue;
+      const textBlock = content.find(
+        (c): c is { type: "text"; text: string } => c.type === "text",
+      );
+      if (!textBlock) continue;
+      const text = textBlock.text.trim();
+      if (!text || isSystemText(text)) continue;
+      return text.slice(0, 160).replace(/\s+/g, " ");
+    } catch {}
+  }
+  return undefined;
 }
 
 function parseContent(raw: unknown): TranscriptContent[] {
