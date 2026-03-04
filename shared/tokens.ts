@@ -50,17 +50,25 @@ export function formatCost(total: number): string {
 }
 
 /**
- * Estimate cost based on token usage and model.
+ * Compute raw cost in USD based on token usage and model.
  * Falls back to Sonnet pricing if model is unknown.
  */
-export function estimateCost(tokens: TokenUsage, modelId?: string): string {
+export function computeCost(tokens: TokenUsage, modelId?: string): number {
   const pricing = getPricing(modelId);
-  const total =
+  return (
     (tokens.inputTokens / 1_000_000) * pricing.input +
     (tokens.outputTokens / 1_000_000) * pricing.output +
     (tokens.cacheCreationTokens / 1_000_000) * pricing.cacheWrite +
-    (tokens.cacheReadTokens / 1_000_000) * pricing.cacheRead;
-  return formatCost(total);
+    (tokens.cacheReadTokens / 1_000_000) * pricing.cacheRead
+  );
+}
+
+/**
+ * Estimate cost based on token usage and model, formatted as a string.
+ * Falls back to Sonnet pricing if model is unknown.
+ */
+export function estimateCost(tokens: TokenUsage, modelId?: string): string {
+  return formatCost(computeCost(tokens, modelId));
 }
 
 /**

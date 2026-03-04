@@ -70,7 +70,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **`server/history.ts` — search result limit**: `searchTranscripts()` returns all matching sessions without an upper bound. Common search terms can produce MB-scale responses. Add `maxSessions = 50` parameter.
 
-- [ ] **Duplicated cost calculation logic**: Cost calculation exists in 3 places: `useNotifications.ts`, `HistoricalStatsPanel.tsx`, and `server/history.ts`. Consolidate around the shared `estimateCost()` in `shared/tokens.ts`.
+- [x] **Duplicated cost calculation logic**: Cost calculation exists in 3 places: `useNotifications.ts`, `HistoricalStatsPanel.tsx`, and `server/history.ts`. Consolidate around the shared `estimateCost()` in `shared/tokens.ts`.
 
 - [ ] **Hardcoded 2000-event limit**: The max-events cap is baked into SQL queries and frontend logic. Make it configurable via `MAX_EVENTS` env var.
 

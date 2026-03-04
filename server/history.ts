@@ -12,7 +12,7 @@ import type {
   ProjectStats,
 } from "../shared/types";
 import { EMPTY_TOKENS } from "../shared/types";
-import { getPricing, resolveModelFamily } from "../shared/tokens";
+import { resolveModelFamily, computeCost } from "../shared/tokens";
 
 const CLAUDE_DIR = path.join(process.env.HOME || "~", ".claude");
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects");
@@ -680,13 +680,7 @@ export async function getProjectStats(projectId: string): Promise<ProjectStats |
 
   // Pass 1 — aggregate from session metadata
   for (const s of sessions) {
-    const p = getPricing(s.model);
-    const cost =
-      (s.tokens.inputTokens * p.input +
-        s.tokens.outputTokens * p.output +
-        s.tokens.cacheCreationTokens * p.cacheWrite +
-        s.tokens.cacheReadTokens * p.cacheRead) /
-      1_000_000;
+    const cost = computeCost(s.tokens, s.model);
 
     totalCost += cost;
     totalTokens.inputTokens += s.tokens.inputTokens;

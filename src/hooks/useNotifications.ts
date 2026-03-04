@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ClaudeEvent, SessionStats, SessionInfo } from "../types";
-import { getPricing } from "../../shared/tokens";
+import { computeCost } from "../../shared/tokens";
 
 export interface AlertSettings {
   enabled: boolean;
@@ -43,15 +43,6 @@ function saveAlertSettings(s: AlertSettings): void {
   } catch {}
 }
 
-function computeCost(tokens: SessionStats["tokens"], modelId?: string): number {
-  const pricing = getPricing(modelId);
-  return (
-    (tokens.inputTokens / 1_000_000) * pricing.input +
-    (tokens.outputTokens / 1_000_000) * pricing.output +
-    (tokens.cacheCreationTokens / 1_000_000) * pricing.cacheWrite +
-    (tokens.cacheReadTokens / 1_000_000) * pricing.cacheRead
-  );
-}
 
 let toastSeq = 0;
 
