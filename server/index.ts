@@ -10,6 +10,10 @@ const eventStore = new EventStore();
 const transcriptReader = new TranscriptTokenReader();
 const clients = new Set<ServerWebSocket<unknown>>();
 
+// Per-transcriptPath debounce timers for delayed transcript re-reads on Stop/SessionEnd.
+// Prevents accumulation of fire-and-forget setTimeouts under high load.
+const catchUpTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
 const isProduction = process.env.NODE_ENV === "production";
 
 // Optional auth token — set CLAUDE_VISUAL_TOKEN env var to enable
@@ -81,14 +85,6 @@ app.post("/api/events", async (c) => {
       }
     };
 
-    const broadcastEventPatch = (patched: ReturnType<typeof eventStore.patchEventData>) => {
-      if (!patched) return;
-      const msg = JSON.stringify({ type: "eventPatch", events: [patched] });
-      for (const ws of clients) {
-        try { ws.send(msg); } catch { clients.delete(ws); }
-      }
-    };
-
     const broadcastStats = () => {
       const msg = JSON.stringify({
         type: "stats",
@@ -117,16 +113,19 @@ app.post("/api/events", async (c) => {
       }
     }
 
-    // On Stop/SessionEnd, schedule delayed re-reads to catch final transcript entries
-    // that may not have been flushed when the hook fired
+    // On Stop/SessionEnd, schedule a single debounced re-read to catch final transcript
+    // entries that may not have been flushed when the hook fired.
+    // Per-path debounce prevents timer accumulation under high load.
     if (
       (event.type === "Stop" || event.type === "SessionEnd") &&
       transcriptPath &&
       typeof transcriptPath === "string"
     ) {
-      const eventId = event.id;
       const sessionId = event.sessionId;
-      const catchUp = async () => {
+      const existing = catchUpTimers.get(transcriptPath);
+      if (existing) clearTimeout(existing);
+      const timer = setTimeout(async () => {
+        catchUpTimers.delete(transcriptPath);
         const extra = await transcriptReader.readNewData(transcriptPath);
         if (extra) {
           eventStore.addTranscriptData(extra, sessionId);
@@ -134,9 +133,8 @@ app.post("/api/events", async (c) => {
           if (extra.latestResponse) broadcastSynthetic("Output", { output_text: extra.latestResponse });
           broadcastStats();
         }
-      };
-      setTimeout(catchUp, 1000);
-      setTimeout(catchUp, 3000);
+      }, 3000);
+      catchUpTimers.set(transcriptPath, timer);
     }
 
     // Broadcast retroactively-fixed events (adopted/synthetic SubagentStart) first
@@ -259,7 +257,7 @@ app.post("/api/hooks/install", async (c) => {
 
 const PORT = Number(process.env.PORT) || 3200;
 
-const server = Bun.serve({
+Bun.serve({
   port: PORT,
   async fetch(req, server) {
     const url = new URL(req.url);
@@ -301,7 +299,7 @@ const server = Bun.serve({
         stats: eventStore.getStats(),
         sessions: eventStore.getSessions(),
       });
-      ws.send(snapshot);
+      try { ws.send(snapshot); } catch { clients.delete(ws); return; }
       console.log(`\x1b[36m[NEURAL LINK]\x1b[0m Client connected (${clients.size} active)`);
     },
     close(ws) {
