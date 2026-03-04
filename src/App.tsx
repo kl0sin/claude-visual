@@ -8,6 +8,7 @@ import { TokenPanel } from "./components/TokenPanel";
 import { SessionSelector } from "./components/SessionSelector";
 import { HookInstallBanner } from "./components/HookInstallBanner";
 import { SessionViewer } from "./components/SessionViewer";
+import { ReplayViewer } from "./components/ReplayViewer";
 import { SettingsPage } from "./components/SettingsPage";
 import { ToastContainer } from "./components/ToastContainer";
 import { TooltipOverlay } from "./components/TooltipOverlay";
@@ -95,6 +96,7 @@ export default function App() {
               sessions={sessions}
               selectedSession={selectedSession}
               onSelect={setSelectedSession}
+              onReplay={(id) => navigate({ mode: "replay", sessionId: id })}
             />
           )}
 
@@ -138,6 +140,15 @@ export default function App() {
         />
       )}
 
+      {mode === "replay" && "sessionId" in route && (
+        <ReplayViewer
+          sessionId={route.sessionId}
+          onBack={() => navigate({ mode: "live" })}
+          apiBase={apiBase}
+          authHeaders={authHeaders}
+        />
+      )}
+
       {mode === "settings" && (
         <SettingsPage alertSettings={alertSettings} onUpdateAlerts={updateAlertSettings} />
       )}
@@ -157,7 +168,9 @@ export default function App() {
               : "◎ AWAITING CONNECTION"
             : mode === "settings"
               ? "◈ SETTINGS"
-              : "◉ SESSIONS"}
+              : mode === "replay"
+                ? "◉ REPLAY"
+                : "◉ SESSIONS"}
         </span>
       </footer>
     </div>

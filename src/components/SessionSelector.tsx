@@ -5,6 +5,7 @@ interface SessionSelectorProps {
   sessions: SessionInfo[];
   selectedSession: string | null;
   onSelect: (id: string | null) => void;
+  onReplay?: (sessionId: string) => void;
 }
 
 /** Fallback threshold in ms — treat session as processing if very recent events arrived */
@@ -54,7 +55,7 @@ function formatDuration(from: number, to: number): string {
   return `${s}s`;
 }
 
-export function SessionSelector({ sessions, selectedSession, onSelect }: SessionSelectorProps) {
+export function SessionSelector({ sessions, selectedSession, onSelect, onReplay }: SessionSelectorProps) {
   const [now, setNow] = useState(Date.now());
 
   // Tick every 2s to update processing/idle states
@@ -103,6 +104,19 @@ export function SessionSelector({ sessions, selectedSession, onSelect }: Session
                 {formatDuration(session.firstEvent, state === "ended" ? session.lastEvent : now)}
               </span>
               <span className="session-tab-count">{session.eventCount}</span>
+              {state === "ended" && onReplay && (
+                <button
+                  className="session-replay-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReplay(session.id);
+                  }}
+                  title="Replay session"
+                  aria-label="Replay session"
+                >
+                  ▶
+                </button>
+              )}
             </button>
           );
         })}

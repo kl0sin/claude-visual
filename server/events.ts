@@ -314,6 +314,14 @@ export class EventStore {
     );
   }
 
+  /** Returns ALL events for a session ordered by timestamp (no cap). */
+  getSessionEvents(sessionId: string): ClaudeEvent[] {
+    const rows = this.db
+      .query("SELECT * FROM events WHERE session_id = ? ORDER BY timestamp ASC")
+      .all(sessionId) as DbEvent[];
+    return rows.map((r) => rowToEvent(r));
+  }
+
   /** Returns up to MAX_EVENTS most recent events (optionally filtered by session). */
   getAll(sessionId?: string): ClaudeEvent[] {
     const rows = (

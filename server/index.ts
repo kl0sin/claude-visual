@@ -226,6 +226,13 @@ app.get("/api/sessions", (c) => {
   return c.json(eventStore.getSessions());
 });
 
+// Get all events for a specific session (for replay)
+app.get("/api/sessions/:sessionId/events", (c) => {
+  const { sessionId } = c.req.param();
+  const events = eventStore.getSessionEvents(sessionId);
+  return c.json({ events });
+});
+
 // Clear all events
 app.post("/api/clear", (c) => {
   eventStore.clear();

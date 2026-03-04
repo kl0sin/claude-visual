@@ -8,7 +8,7 @@ interface HeaderProps {
   pendingTools: PendingTool[];
   isProcessing: boolean;
   onClear: () => void;
-  mode: "live" | "history" | "settings";
+  mode: "live" | "history" | "settings" | "replay";
   onModeChange: (mode: "live" | "history" | "settings") => void;
   isRemoteServer: boolean;
   hasAlerts: boolean;

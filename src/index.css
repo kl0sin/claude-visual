@@ -5444,6 +5444,195 @@ button:focus-visible,
   font-size: 10px;
 }
 
+/* ── REPLAY MODE ──────────────────────────────────────── */
+
+.replay-viewer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-cyber-border);
+  background: var(--color-cyber-panel);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.replay-session-id {
+  font-size: 11px;
+  color: var(--color-cyber-text);
+  letter-spacing: 0.05em;
+  font-family: inherit;
+}
+
+.replay-controls-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--color-cyber-border);
+  margin: 0 4px;
+}
+
+.replay-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  background: transparent;
+  border: 1px solid var(--color-cyber-border);
+  color: var(--color-cyber-text-bright);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.replay-btn:hover:not(:disabled) {
+  border-color: var(--color-cyber-cyan);
+  color: var(--color-cyber-cyan);
+}
+
+.replay-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.replay-back-btn {
+  border-color: var(--color-cyber-border-bright);
+}
+
+.replay-play-btn {
+  border-color: var(--color-cyber-cyan);
+  color: var(--color-cyber-cyan);
+  min-width: 88px;
+}
+
+.replay-play-btn:hover:not(:disabled) {
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.replay-speed-group {
+  display: flex;
+  gap: 2px;
+}
+
+.replay-speed-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: transparent;
+  border: 1px solid var(--color-cyber-border);
+  color: var(--color-cyber-text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+
+.replay-speed-btn:hover:not(:disabled) {
+  border-color: var(--color-cyber-cyan);
+  color: var(--color-cyber-cyan);
+}
+
+.replay-speed-btn.active {
+  border-color: var(--color-cyber-cyan);
+  color: var(--color-cyber-cyan);
+  background: rgba(0, 240, 255, 0.1);
+}
+
+.replay-speed-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.replay-progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 120px;
+  max-width: 300px;
+}
+
+.replay-progress {
+  flex: 1;
+  height: 8px;
+  background: var(--color-cyber-border);
+  cursor: pointer;
+  position: relative;
+  border: 1px solid var(--color-cyber-border-bright);
+}
+
+.replay-progress:hover {
+  border-color: var(--color-cyber-cyan);
+}
+
+.replay-progress-bar {
+  height: 100%;
+  background: var(--color-cyber-cyan);
+  transition: width 0.1s linear;
+  box-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+}
+
+.replay-progress-text {
+  font-size: 11px;
+  color: var(--color-cyber-text);
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: right;
+}
+
+/* Session tab replay button */
+.session-replay-btn {
+  padding: 1px 5px;
+  font-size: 10px;
+  background: transparent;
+  border: 1px solid var(--color-cyber-border);
+  color: var(--color-cyber-cyan);
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1.4;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.session-replay-btn:hover {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--color-cyber-cyan);
+}
+
+/* Replay info panel */
+.replay-info-panel {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.replay-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.replay-state-loading { color: var(--color-cyber-yellow); }
+.replay-state-idle { color: var(--color-cyber-text); }
+.replay-state-playing { color: var(--color-cyber-green); }
+.replay-state-paused { color: var(--color-cyber-orange); }
+.replay-state-completed { color: var(--color-cyber-cyan); }
+
 /* ── REDUCED MOTION ───────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
