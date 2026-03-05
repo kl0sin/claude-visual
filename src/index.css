@@ -707,9 +707,55 @@ body {
   background: var(--color-cyber-text-dim);
 }
 
+/* Animated scan line on the selector bar when any session is processing */
+@keyframes session-scan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100vw); }
+}
+
+.session-selector.has-processing::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-cyber-green),
+    transparent
+  );
+  box-shadow: 0 0 8px var(--color-cyber-green), 0 0 20px rgba(0, 255, 159, 0.3);
+  animation: session-scan 2.4s linear infinite;
+  z-index: 10;
+}
+
 /* Tab-level state styling */
+@keyframes tab-glow-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(0, 255, 159, 0.4), inset 0 0 12px rgba(0, 255, 159, 0.05); }
+  50%       { box-shadow: 0 0 14px rgba(0, 255, 159, 0.7), inset 0 0 20px rgba(0, 255, 159, 0.12); }
+}
+
+@keyframes tab-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
 .session-tab.session-processing {
-  border-bottom-color: rgba(0, 255, 159, 0.3);
+  border-bottom-color: var(--color-cyber-green);
+  color: var(--color-cyber-green);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 255, 159, 0.06) 40%,
+    rgba(0, 255, 159, 0.14) 50%,
+    rgba(0, 255, 159, 0.06) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: tab-shimmer 2s linear infinite, tab-glow-pulse 1.6s ease-in-out infinite;
+  text-shadow: 0 0 8px rgba(0, 255, 159, 0.6);
 }
 
 .session-tab.session-ended {

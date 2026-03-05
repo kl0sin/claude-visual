@@ -10,13 +10,19 @@ interface SessionSelectorProps {
 
 /** Fallback threshold in ms — treat session as processing if very recent events arrived */
 const RECENT_EVENT_THRESHOLD = 5_000;
+/** If isProcessing but no events for this long, assume the process was killed */
+const STALE_PROCESSING_THRESHOLD = 60_000;
 
 type SessionState = "processing" | "idle" | "ended";
 
 function getSessionState(session: SessionInfo, now: number): SessionState {
   if (session.status === "ended") return "ended";
   // Primary signal: server tracks whether Claude is actively handling a request
-  if (session.isProcessing) return "processing";
+  if (session.isProcessing) {
+    // Guard: if no events for a long time, the process was likely killed without sending Stop
+    if (now - session.lastEvent > STALE_PROCESSING_THRESHOLD) return "idle";
+    return "processing";
+  }
   // Fallback: very recent events (e.g. hook fired but UserPromptSubmit not yet received)
   if (now - session.lastEvent < RECENT_EVENT_THRESHOLD) return "processing";
   return "idle";
@@ -36,6 +42,7 @@ function shortId(id: string): string {
 }
 
 function projectLabel(session: { id: string; cwd?: string }): string {
+  if (session.id === "__global__") return "—";
   if (session.cwd) {
     const parts = session.cwd.replace(/\\/g, "/").split("/").filter(Boolean);
     const name = parts[parts.length - 1];
@@ -68,8 +75,10 @@ export function SessionSelector({ sessions, selectedSession, onSelect, onReplay 
 
   if (sessions.length === 0) return null;
 
+  const hasProcessing = sessions.some((s) => getSessionState(s, now) === "processing");
+
   return (
-    <div className="session-selector">
+    <div className={`session-selector${hasProcessing ? " has-processing" : ""}`}>
       <button
         className={`session-tab ${selectedSession === null ? "active" : ""}`}
         aria-pressed={selectedSession === null}

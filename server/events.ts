@@ -146,7 +146,8 @@ export class EventStore {
     }
 
     const eventType: string = raw.event_type ?? raw.type ?? "unknown";
-    const sessionId: string | undefined = raw.session_id || undefined;
+    // Treat empty/missing session_id (sent by Claude Code before session is assigned) as __global__
+    const sessionId: string = raw.session_id || "__global__";
     const agentType: string | undefined =
       raw.agent_type || raw.subagent_type || raw.tool_input?.subagent_type || undefined;
 
@@ -161,7 +162,7 @@ export class EventStore {
     };
 
     // ── Session tracking ──────────────────────────────────────────────────
-    if (sessionId) {
+    {
       const existing = this.sessions.get(sessionId);
       if (existing) {
         existing.lastEvent = event.timestamp;
@@ -190,22 +191,6 @@ export class EventStore {
         };
         this.sessions.set(sessionId, s);
         this._persistSession(s);
-      }
-    } else if (eventType === "SessionEnd") {
-      // Assign to most recent active session
-      let latest: SessionInfo | null = null;
-      for (const s of this.sessions.values()) {
-        if (s.status === "active" && (!latest || s.lastEvent > latest.lastEvent)) {
-          latest = s;
-        }
-      }
-      if (latest) {
-        latest.status = "ended";
-        latest.isProcessing = false;
-        latest.lastEvent = event.timestamp;
-        latest.eventCount++;
-        event.sessionId = latest.id;
-        this._persistSession(latest);
       }
     }
 
