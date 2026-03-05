@@ -38,7 +38,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Historical statistics** — in History Browser: token and session count charts over time, most frequently used tools per project, average session cost. Fixed: `getProjectStats()` w `server/history.ts` agreguje dane z metadanych sesji (dwa przebiegi: tokeny/koszty/model + skan JSONL dla narzędzi). Endpoint `/api/history/stats?project=`. Komponent `HistoricalStatsPanel` z KPI cards (sesje, tokeny, koszt, avg/sesja), sparkline 30 dni, model breakdown z barami, top 10 tools. Panel pojawia się w prawym obszarze gdy projekt wybrany bez sesji; przycisk STATS/TRANSCRIPT w nagłówku pozwala przełączyć widok gdy sesja jest otwarta.
 
-- [ ] **Replay mode** — replay a live session at ×1/×5/×10 speed (throttled EventStream), useful for step-by-step analysis of exactly what happened.
+- [x] **Replay mode** — replay a live session at ×1/×5/×10 speed (throttled EventStream), useful for step-by-step analysis of exactly what happened.
 
 - [x] **Multi-instance / remote** — fixed: `useServerConfig` hook manages a list of server instances (local + user-added remote) persisted in `localStorage`. Derives `wsUrl`, `apiBase`, `authHeaders` from the active server. `ServerConfigModal` (button in Header showing active server name) lists saved servers with TEST/CONNECT/remove buttons and an Add Server form (name, URL, optional auth token). Server-side: `CLAUDE_VISUAL_TOKEN` env var enables Bearer token auth on all API routes + `?token=` query param for WebSocket; CORS widened to `*` when auth is active. `GET /api/info` and `GET /api/health` remain public. All fetch calls across `useWebSocket`, `HistoryBrowser`, `HistoricalStatsPanel`, `HookInstallBanner`, `App` thread the dynamic `apiBase`/`authHeaders`. Switching server resets WebSocket state and reconnects to the new instance.
 
@@ -90,7 +90,7 @@ Priorities set after the 2026-02-28 session. Implement in order.
 
 - [x] **Session export** — download JSON/CSV of all events from the selected session. *(already tracked above, repeated for visibility)*
 
-- [ ] **Replay mode** — replay a session at ×1/×5/×10 speed. *(already tracked above)*
+- [x] **Replay mode** — replay a session at ×1/×5/×10 speed. *(already tracked above)*
 
 ---
 
