@@ -55,7 +55,7 @@ if [ -f "$SETTINGS_FILE" ]; then
     HOOKS_CONTENT=$(cat "$HOOKS_FILE")
     EXISTING=$(cat "$SETTINGS_FILE")
 
-    echo "$EXISTING" | jq --argjson hooks "$(echo "$HOOKS_CONTENT" | jq '.hooks')" '.hooks = ($hooks + (.hooks // {}))' > "$SETTINGS_FILE"
+    echo "$EXISTING" | jq --argjson hooks "$(echo "$HOOKS_CONTENT" | jq '.hooks')" '.hooks = ((.hooks // {}) + $hooks)' > "$SETTINGS_FILE"
     echo -e "${GREEN}▸ Merged hooks into existing settings${NC}"
 else
     # Create new settings file with hooks
