@@ -16,7 +16,8 @@ const STORAGE_KEY = "claude-visual:servers";
 const LOCAL_ID = "local";
 
 function isInTauri(): boolean {
-  return !!(window as any).__TAURI__;
+  // Tauri v1 sets window.__TAURI__; Tauri v2 sets window.__TAURI_INTERNALS__
+  return !!(window as any).__TAURI__ || !!(window as any).__TAURI_INTERNALS__;
 }
 
 function makeLocalServer(): ServerInstance {

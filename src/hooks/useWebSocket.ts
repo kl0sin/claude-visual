@@ -44,7 +44,15 @@ export function useWebSocket(
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(url);
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(url);
+    } catch (err) {
+      // WebKit can throw synchronously (e.g. CSP violation) — schedule retry
+      console.error("[NEURAL LINK] WebSocket creation failed:", err);
+      reconnectTimeout.current = setTimeout(connect, 2000);
+      return;
+    }
     wsRef.current = ws;
 
     ws.onopen = () => {
