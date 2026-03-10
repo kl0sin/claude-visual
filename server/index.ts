@@ -233,6 +233,22 @@ app.get("/api/sessions/:sessionId/events", (c) => {
   return c.json({ events });
 });
 
+// Delete a single session and all its data
+app.delete("/api/sessions/:sessionId", (c) => {
+  const { sessionId } = c.req.param();
+  const deleted = eventStore.deleteSession(sessionId);
+  if (!deleted) return c.json({ error: "Session not found" }, 404);
+
+  // Broadcast updated stats so all clients refresh immediately
+  const stats = eventStore.getStats();
+  const sessions = eventStore.getSessions();
+  const message = JSON.stringify({ type: "stats", stats, sessions });
+  for (const ws of clients) {
+    try { ws.send(message); } catch { /* ignore */ }
+  }
+  return c.json({ ok: true });
+});
+
 // Clear all events
 app.post("/api/clear", (c) => {
   eventStore.clear();

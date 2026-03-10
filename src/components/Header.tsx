@@ -35,8 +35,6 @@ export function Header({
 }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const [bannerVisible, setBannerVisible] = useState(false);
-
   useEffect(() => {
     const interval = setInterval(
       () => {
@@ -51,35 +49,47 @@ export function Header({
     };
   }, []);
 
+  const [bannerVisible, setBannerVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
   useEffect(() => {
+    // Reset dismissed state whenever the set of pending tools changes
+    setDismissed(false);
+
     if (pendingTools.length === 0) {
       setBannerVisible(false);
       return;
     }
-    const STALL_THRESHOLD = 15_000;
+    // Show after 5s — avoids flashing for fast tools
+    const SHOW_DELAY = 5_000;
     const check = () => {
       const now = Date.now();
-      const stalled = pendingTools.some((p) => now - p.since >= STALL_THRESHOLD);
-      setBannerVisible(stalled);
+      const hasLong = pendingTools.some((p) => now - p.since >= SHOW_DELAY);
+      setBannerVisible(hasLong);
     };
     check();
     const interval = setInterval(check, 2000);
     return () => clearInterval(interval);
   }, [pendingTools]);
 
-  const toolNames = pendingTools.map((p) => p.tool).join(", ");
+  const runningNames = pendingTools.map((p) => p.tool).join(", ");
 
   // Dot indicators on the gear: remote server or alerts enabled
   const gearDot = isRemoteServer || hasAlerts;
 
   return (
     <header className="header">
-      {bannerVisible && pendingTools.length > 0 && (
-        <div className="attention-banner" role="alert" aria-live="assertive">
-          <span className="attention-icon" aria-hidden="true">
-            &#9888;
-          </span>
-          <span className="attention-text">AWAITING ACTION — {toolNames}</span>
+      {bannerVisible && !dismissed && (
+        <div className="attention-banner attention-banner-agent" role="status" aria-live="polite">
+          <span className="attention-icon" aria-hidden="true">◈</span>
+          <span className="attention-text">RUNNING — {runningNames}</span>
+          <button
+            className="attention-dismiss"
+            onClick={() => setDismissed(true)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
         </div>
       )}
 

@@ -53,6 +53,13 @@ export default function App() {
     updateSettings: updateAlertSettings,
   } = useNotifications(allEvents, globalStats, sessions);
 
+  const dismissSession = (sessionId: string) => {
+    fetch(`${apiBase}/api/sessions/${encodeURIComponent(sessionId)}`, {
+      method: "DELETE",
+      headers: authHeaders,
+    }).catch((err) => console.error("[NEURAL LINK] Dismiss session failed:", err));
+  };
+
   const checkHookStatus = () => {
     fetch(`${apiBase}/api/hooks/status`, { headers: authHeaders })
       .then((r) => r.json())
@@ -97,6 +104,7 @@ export default function App() {
               selectedSession={selectedSession}
               onSelect={setSelectedSession}
               onReplay={(id) => navigate({ mode: "replay", sessionId: id })}
+              onDismiss={dismissSession}
             />
           )}
 

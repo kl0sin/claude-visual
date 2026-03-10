@@ -538,6 +538,22 @@ export class EventStore {
     return result;
   }
 
+  deleteSession(sessionId: string): boolean {
+    if (!this.sessions.has(sessionId)) return false;
+    this.db.transaction(() => {
+      this.db.query("DELETE FROM events WHERE session_id = ?").run(sessionId);
+      this.db.query("DELETE FROM agents WHERE session_id = ?").run(sessionId);
+      this.db.query("DELETE FROM session_tokens WHERE session_id = ?").run(sessionId);
+      this.db.query("DELETE FROM sessions WHERE id = ?").run(sessionId);
+    })();
+    this.sessions.delete(sessionId);
+    for (const [id, agent] of this.agents) {
+      if (agent.sessionId === sessionId) this.agents.delete(id);
+    }
+    this.pendingTools.delete(sessionId);
+    return true;
+  }
+
   clear(): void {
     this.db.transaction(() => {
       this.db.query("DELETE FROM events").run();

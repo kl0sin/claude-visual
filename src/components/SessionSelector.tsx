@@ -6,6 +6,7 @@ interface SessionSelectorProps {
   selectedSession: string | null;
   onSelect: (id: string | null) => void;
   onReplay?: (sessionId: string) => void;
+  onDismiss?: (sessionId: string) => void;
 }
 
 /** Fallback threshold in ms — treat session as processing if very recent events arrived */
@@ -48,7 +49,7 @@ function projectLabel(session: { id: string; cwd?: string }): string {
     const name = parts[parts.length - 1];
     if (name) return name;
   }
-  return shortId(session.id);
+  return "Session";
 }
 
 function formatDuration(from: number, to: number): string {
@@ -62,7 +63,7 @@ function formatDuration(from: number, to: number): string {
   return `${s}s`;
 }
 
-export function SessionSelector({ sessions, selectedSession, onSelect, onReplay }: SessionSelectorProps) {
+export function SessionSelector({ sessions, selectedSession, onSelect, onReplay, onDismiss }: SessionSelectorProps) {
   const [now, setNow] = useState(Date.now());
 
   // Tick every 2s to update processing/idle states
@@ -104,11 +105,12 @@ export function SessionSelector({ sessions, selectedSession, onSelect, onReplay 
               className={`session-tab ${isSelected ? "active" : ""} session-${state}`}
               aria-pressed={isSelected}
               onClick={() => onSelect(isSelected ? null : session.id)}
-              data-tooltip={`${session.cwd ?? session.id}\nStatus: ${state} · Events: ${session.eventCount}\nStarted: ${new Date(session.firstEvent).toLocaleString()}`}
             >
               <span className={`session-status-dot ${state}`} aria-hidden="true" />
-              <span className="session-tab-label">{projectLabel(session)}</span>
-              <span className="session-tab-time">{formatTime(session.firstEvent)}</span>
+              <span
+                className="session-tab-label"
+                data-tooltip={`ID: ${session.id}${session.cwd ? `\nPath: ${session.cwd}` : ""}\nStatus: ${state} · Events: ${session.eventCount}\nStarted: ${new Date(session.firstEvent).toLocaleString()}`}
+              >{projectLabel(session)}</span>
               <span className="session-tab-duration">
                 {formatDuration(session.firstEvent, state === "ended" ? session.lastEvent : now)}
               </span>
@@ -120,10 +122,24 @@ export function SessionSelector({ sessions, selectedSession, onSelect, onReplay 
                     e.stopPropagation();
                     onReplay(session.id);
                   }}
-                  title="Replay session"
+                  data-tooltip="Replay session"
                   aria-label="Replay session"
                 >
                   ▶
+                </button>
+              )}
+              {state === "ended" && onDismiss && (
+                <button
+                  className="session-dismiss-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isSelected) onSelect(null);
+                    onDismiss(session.id);
+                  }}
+                  data-tooltip="Remove session from view"
+                  aria-label="Remove session from view"
+                >
+                  ×
                 </button>
               )}
             </button>

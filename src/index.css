@@ -193,6 +193,51 @@ body {
     0 0 30px rgba(255, 0, 64, 0.2);
 }
 
+.attention-dismiss {
+  margin-left: 8px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 0, 64, 0.3);
+  color: var(--color-cyber-red);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.attention-dismiss:hover {
+  background: rgba(255, 0, 64, 0.15);
+  border-color: rgba(255, 0, 64, 0.6);
+}
+
+/* Agent-running variant: cyan/informational, no alarm */
+.attention-banner-agent {
+  border-color: rgba(0, 240, 255, 0.35);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 240, 255, 0.08),
+    rgba(139, 92, 246, 0.08),
+    rgba(0, 240, 255, 0.08)
+  );
+  animation: attention-pulse-agent 3s ease-in-out infinite;
+}
+.attention-banner-agent .attention-icon,
+.attention-banner-agent .attention-text {
+  color: var(--color-cyber-cyan);
+  text-shadow:
+    0 0 10px rgba(0, 240, 255, 0.4),
+    0 0 30px rgba(0, 240, 255, 0.15);
+  animation: none;
+}
+
+@keyframes attention-pulse-agent {
+  0%, 100% { border-color: rgba(0, 240, 255, 0.25); }
+  50%       { border-color: rgba(0, 240, 255, 0.55); }
+}
+
 @keyframes attention-pulse {
   0%,
   100% {
@@ -621,17 +666,15 @@ body {
 }
 
 .session-tab-time {
-  font-size: 9px;
-  color: var(--color-cyber-text-dim);
+  font-size: 10px;
+  color: var(--color-cyber-text);
   font-variant-numeric: tabular-nums;
-  opacity: 0.7;
 }
 
 .session-tab-duration {
-  font-size: 9px;
-  color: var(--color-cyber-text-dim);
+  font-size: 10px;
+  color: var(--color-cyber-text);
   font-variant-numeric: tabular-nums;
-  opacity: 0.6;
 }
 
 .session-tab-count {
@@ -4704,7 +4747,6 @@ button:focus-visible,
   position: fixed;
   z-index: 99999;
   pointer-events: none;
-  transform: translateX(-50%) translateY(calc(-100% - 8px));
   background: var(--color-cyber-panel);
   border: 1px solid var(--color-cyber-border);
   color: var(--color-cyber-text-bright);
@@ -4721,8 +4763,8 @@ button:focus-visible,
 }
 
 @keyframes tooltip-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(calc(-100% - 4px)); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(calc(-100% - 8px)); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ── TOAST NOTIFICATIONS ──────────────────────────────── */
@@ -5657,6 +5699,28 @@ button:focus-visible,
 .session-replay-btn:hover {
   background: rgba(0, 240, 255, 0.12);
   border-color: var(--color-cyber-cyan);
+}
+
+.session-dismiss-btn {
+  padding: 1px 5px;
+  font-size: 12px;
+  line-height: 1.3;
+  background: transparent;
+  border: 1px solid rgba(255, 0, 64, 0.25);
+  color: var(--color-cyber-text);
+  cursor: pointer;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.session-dismiss-btn:hover {
+  color: var(--color-cyber-red);
+  border-color: rgba(255, 0, 64, 0.5);
+  background: rgba(255, 0, 64, 0.08);
 }
 
 /* Replay info panel */
