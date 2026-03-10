@@ -78,13 +78,71 @@ function formatDuration(ms: number): string {
   return `${(ms / 60000).toFixed(1)}m`;
 }
 
+type ToolGroup = {
+  tool: string;
+  count: number;
+  failed: number;
+  totalMs: number;
+};
+
+function groupToolActions(actions: ToolAction[]): ToolGroup[] {
+  const map = new Map<string, ToolGroup>();
+  for (const a of actions) {
+    const g = map.get(a.tool) ?? { tool: a.tool, count: 0, failed: 0, totalMs: 0 };
+    g.count++;
+    if (a.status === "failed") g.failed++;
+    if (a.endTime) g.totalMs += a.endTime - a.startTime;
+    map.set(a.tool, g);
+  }
+  return Array.from(map.values()).sort((a, b) => b.count - a.count);
+}
+
 function formatAgentType(type: string): string {
   if (!type || type === "unknown") return "agent";
   return type;
 }
 
+function ToolActionRow({ action, now, maxDur }: { action: ToolAction; now: number; maxDur: number }) {
+  const toolColor = TOOL_COLORS[action.tool] ?? "#8892a8";
+  const dur = action.endTime ? action.endTime - action.startTime : now - action.startTime;
+  const barPct =
+    action.status === "running"
+      ? 100
+      : Math.max(4, Math.min(100, (dur / maxDur) * 100));
+
+  return (
+    <div className={`agent-action agent-action-${action.status}`}>
+      <span className="agent-action-icon" aria-hidden="true">
+        {action.status === "running" ? "●" : action.status === "failed" ? "✗" : "✓"}
+      </span>
+      <span className="agent-action-name" style={{ color: toolColor }} data-tooltip={action.tool}>
+        {action.tool}
+      </span>
+      <div className="agent-action-bar">
+        <div
+          className={`agent-action-fill${action.status === "running" ? " scanning" : ""}`}
+          style={
+            action.status === "running"
+              ? { background: toolColor, boxShadow: `0 0 5px ${toolColor}88` }
+              : {
+                  width: `${barPct}%`,
+                  background:
+                    action.status === "failed" ? "var(--color-cyber-red)" : `${toolColor}99`,
+                }
+          }
+        />
+      </div>
+      <span className="agent-action-dur">
+        {formatDuration(action.status === "running" ? dur : action.endTime ? action.endTime - action.startTime : 0)}
+      </span>
+    </div>
+  );
+}
+
 export function AgentTimeline({ agents, events }: AgentTimelineProps) {
   const [now, setNow] = useState(Date.now());
+  const [expandedAgentId, setExpandedAgentId] = useState<string | null>(null);
+
   // "session" agents are synthetic markers for the main session, not real subagents
   const subagents = agents.filter((a) => a.type !== "session");
   const activeAgents = subagents.filter((a) => a.status === "active");
@@ -96,19 +154,24 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
     return () => clearInterval(interval);
   }, [activeAgents.length]);
 
-  // Pair PreToolUse → PostToolUse for each active agent's session
+  // Compute tool actions for active agents + currently expanded completed agent
   const actionsBySession = useMemo(() => {
     const map = new Map<string, ToolAction[]>();
-    const sessionIds = new Set(
-      activeAgents
-        .map((a) => a.sessionId)
-        .filter(Boolean) as string[],
-    );
+    const sessionIds = new Set<string>();
+
+    for (const a of activeAgents) {
+      if (a.sessionId) sessionIds.add(a.sessionId);
+    }
+
+    // Also compute for the expanded completed agent so its detail renders instantly
+    const expanded = completedAgents.find((a) => a.id === expandedAgentId);
+    if (expanded?.sessionId) sessionIds.add(expanded.sessionId);
+
     for (const sid of sessionIds) {
       map.set(sid, computeToolActions(events.filter((e) => e.sessionId === sid)));
     }
     return map;
-  }, [activeAgents, events]);
+  }, [activeAgents, completedAgents, expandedAgentId, events]);
 
   const totalCount = activeAgents.length + completedAgents.length;
 
@@ -116,9 +179,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
     <div className="panel agent-timeline" role="region" aria-label="Agent Processes">
       <div className="panel-header">
         <div className="flex gap-2 items-center">
-          <span className="panel-icon" aria-hidden="true">
-            ◈
-          </span>
+          <span className="panel-icon" aria-hidden="true">◈</span>
           AGENT PROCESSES
           {totalCount > 0 && <span className="panel-count">({totalCount})</span>}
         </div>
@@ -132,6 +193,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
           <div className="agent-empty">NO AGENTS DEPLOYED</div>
         ) : (
           <>
+            {/* ── Active agents ── */}
             {activeAgents.map((agent) => {
               const type = formatAgentType(agent.type);
               const color = AGENT_COLORS[agent.type] ?? AGENT_COLORS[type] ?? "#00f0ff";
@@ -164,66 +226,11 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                       {agent.description}
                     </div>
                   )}
-
                   {recent.length > 0 ? (
                     <div className="agent-actions">
-                      {recent.map((action) => {
-                        const toolColor = TOOL_COLORS[action.tool] ?? "#8892a8";
-                        const dur = action.endTime
-                          ? action.endTime - action.startTime
-                          : now - action.startTime;
-                        const barPct =
-                          action.status === "running"
-                            ? 100
-                            : Math.max(4, Math.min(100, (dur / maxDur) * 100));
-
-                        return (
-                          <div
-                            key={action.id}
-                            className={`agent-action agent-action-${action.status}`}
-                          >
-                            <span className="agent-action-icon" aria-hidden="true">
-                              {action.status === "running"
-                                ? "●"
-                                : action.status === "failed"
-                                  ? "✗"
-                                  : "✓"}
-                            </span>
-                            <span
-                              className="agent-action-name"
-                              style={{ color: toolColor }}
-                              data-tooltip={action.tool}
-                            >
-                              {action.tool}
-                            </span>
-                            <div className="agent-action-bar">
-                              <div
-                                className={`agent-action-fill${action.status === "running" ? " scanning" : ""}`}
-                                style={
-                                  action.status === "running"
-                                    ? { background: toolColor, boxShadow: `0 0 5px ${toolColor}88` }
-                                    : {
-                                        width: `${barPct}%`,
-                                        background:
-                                          action.status === "failed"
-                                            ? "var(--color-cyber-red)"
-                                            : `${toolColor}99`,
-                                      }
-                                }
-                              />
-                            </div>
-                            <span className="agent-action-dur">
-                              {formatDuration(
-                                action.status === "running"
-                                  ? dur
-                                  : action.endTime
-                                    ? action.endTime - action.startTime
-                                    : 0,
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })}
+                      {recent.map((action) => (
+                        <ToolActionRow key={action.id} action={action} now={now} maxDur={maxDur} />
+                      ))}
                     </div>
                   ) : (
                     <div className="agent-progress-bar">
@@ -234,6 +241,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
               );
             })}
 
+            {/* ── Completed agents ── */}
             {completedAgents.length > 0 && (
               <div className="agent-section-label">
                 {activeAgents.length > 0 ? "COMPLETED" : "RECENT"}
@@ -244,12 +252,27 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
               const type = formatAgentType(agent.type);
               const color = AGENT_COLORS[agent.type] ?? AGENT_COLORS[type] ?? "#00f0ff";
               const duration = agent.endTime ? agent.endTime - agent.startTime : 0;
+              const isExpanded = expandedAgentId === agent.id;
+              const actions =
+                isExpanded && agent.sessionId
+                  ? (actionsBySession.get(agent.sessionId) ?? [])
+                  : [];
+              const maxDur = Math.max(
+                ...actions.map((a) => (a.endTime ? a.endTime - a.startTime : 0)),
+                500,
+              );
+              const hasActions = !!(agent.sessionId && events.some((e) => e.sessionId === agent.sessionId && e.type === "PreToolUse"));
 
               return (
                 <div
                   key={agent.id}
-                  className="agent-card completed"
+                  className={`agent-card completed${isExpanded ? " expanded" : ""}${hasActions ? " expandable" : ""}`}
                   style={{ "--agent-color": color } as React.CSSProperties}
+                  onClick={hasActions ? () => setExpandedAgentId(isExpanded ? null : agent.id) : undefined}
+                  role={hasActions ? "button" : undefined}
+                  aria-expanded={hasActions ? isExpanded : undefined}
+                  tabIndex={hasActions ? 0 : undefined}
+                  onKeyDown={hasActions ? (e) => e.key === "Enter" && setExpandedAgentId(isExpanded ? null : agent.id) : undefined}
                 >
                   <div className="agent-card-header">
                     <span
@@ -261,11 +284,65 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                     <span className="agent-duration">
                       {duration > 0 ? formatDuration(duration) : "—"}
                     </span>
+                    {hasActions && (
+                      <span className="agent-expand-icon" aria-hidden="true">
+                        {isExpanded ? "▾" : "▸"}
+                      </span>
+                    )}
                   </div>
                   {agent.description && (
                     <div className="agent-description" title={agent.description}>
                       {agent.description}
                     </div>
+                  )}
+                  {isExpanded && actions.length > 0 && (
+                    <div className="agent-actions agent-actions-history">
+                      {groupToolActions(actions).map((g) => {
+                        const toolColor = TOOL_COLORS[g.tool] ?? "#8892a8";
+                        const maxCount = Math.max(
+                          ...groupToolActions(actions).map((x) => x.count),
+                        );
+                        const barPct = Math.max(6, Math.round((g.count / maxCount) * 100));
+                        return (
+                          <div key={g.tool} className="agent-tool-group">
+                            <span className="agent-action-icon" aria-hidden="true">
+                              {g.failed > 0 && g.failed === g.count ? "✗" : g.failed > 0 ? "⚠" : "✓"}
+                            </span>
+                            <span
+                              className="agent-action-name"
+                              style={{ color: toolColor }}
+                              data-tooltip={g.tool}
+                            >
+                              {g.tool}
+                            </span>
+                            <div className="agent-action-bar">
+                              <div
+                                className="agent-action-fill"
+                                style={{
+                                  width: `${barPct}%`,
+                                  background: g.failed === g.count
+                                    ? "var(--color-cyber-red)"
+                                    : g.failed > 0
+                                      ? "var(--color-cyber-orange)"
+                                      : `${toolColor}99`,
+                                }}
+                              />
+                            </div>
+                            <span className="agent-tool-group-count" style={{ color: toolColor }}>
+                              ×{g.count}
+                            </span>
+                            {g.totalMs > 0 && (
+                              <span className="agent-action-dur">
+                                {formatDuration(g.totalMs)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {isExpanded && actions.length === 0 && (
+                    <div className="agent-no-actions">No tool activity recorded</div>
                   )}
                 </div>
               );

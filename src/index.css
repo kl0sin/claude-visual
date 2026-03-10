@@ -1750,6 +1750,54 @@ body {
 
 .agent-card.completed {
   opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.agent-card.completed.expandable {
+  cursor: pointer;
+}
+
+.agent-card.completed.expandable:hover,
+.agent-card.completed.expanded {
+  opacity: 0.85;
+  border-color: rgba(var(--agent-color, 0, 240, 255), 0.25);
+}
+
+.agent-expand-icon {
+  font-size: 10px;
+  color: var(--color-cyber-text-dim);
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.agent-actions-history {
+  margin-top: 6px;
+  border-top: 1px solid var(--color-cyber-border);
+  padding-top: 6px;
+}
+
+.agent-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.agent-tool-group-count {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 24px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.agent-no-actions {
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--color-cyber-text-dim);
+  text-align: center;
+  padding: 4px 0;
 }
 
 .agent-card-header {
@@ -1880,7 +1928,7 @@ body {
 
 .agent-action-name {
   flex-shrink: 0;
-  width: 60px;
+  width: 80px;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.3px;
