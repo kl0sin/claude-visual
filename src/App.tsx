@@ -16,6 +16,8 @@ import { useWebSocket } from "./hooks/useWebSocket";
 import { useRouter } from "./hooks/useRouter";
 import { useNotifications } from "./hooks/useNotifications";
 import { useServerConfig } from "./hooks/useServerConfig";
+import { useUpdateCheck } from "./hooks/useUpdateCheck";
+import { UpdateBanner } from "./components/UpdateBanner";
 
 const DEFAULT_TOKENS = {
   inputTokens: 0,
@@ -43,6 +45,8 @@ export default function App() {
 
   const { route, navigate } = useRouter();
   const mode = route.mode;
+
+  const { update, dismiss: dismissUpdate } = useUpdateCheck();
 
   const [hooksInstalled, setHooksInstalled] = useState<boolean | null>(null);
 
@@ -74,6 +78,8 @@ export default function App() {
   return (
     <div className="app">
       <div className="scanlines" />
+
+      {update && <UpdateBanner update={update} onDismiss={dismissUpdate} />}
 
       <Header
         connected={connected}
