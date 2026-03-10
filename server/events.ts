@@ -220,18 +220,40 @@ export class EventStore {
         if (!agent.description && raw.description) agent.description = raw.description;
         event.duration = agent.endTime - agent.startTime;
         this._persistAgent(agent);
-      } else if (agentId) {
-        const newAgent: AgentProcess = {
-          id: agentId,
-          type: agentType ?? "unknown",
-          description: raw.description ?? undefined,
-          startTime: event.timestamp,
-          endTime: event.timestamp,
-          status: "completed",
-          sessionId: event.sessionId,
-        };
-        this.agents.set(agentId, newAgent);
-        this._persistAgent(newAgent);
+      } else {
+        // Fallback: match by session + type when agent_id is missing or unrecognised.
+        // Take the earliest active non-session agent in this session with the same type.
+        const sid = event.sessionId;
+        const matchType = agentType ?? "unknown";
+        const fallback = Array.from(this.agents.values())
+          .filter(
+            (a) =>
+              a.sessionId === sid &&
+              a.status === "active" &&
+              a.type !== "session" &&
+              (a.type === matchType || matchType === "unknown"),
+          )
+          .sort((a, b) => a.startTime - b.startTime)[0];
+
+        if (fallback) {
+          fallback.endTime = event.timestamp;
+          fallback.status = "completed";
+          if (fallback.type === "unknown" && agentType) fallback.type = agentType;
+          event.duration = fallback.endTime - fallback.startTime;
+          this._persistAgent(fallback);
+        } else if (agentId) {
+          const newAgent: AgentProcess = {
+            id: agentId,
+            type: agentType ?? "unknown",
+            description: raw.description ?? undefined,
+            startTime: event.timestamp,
+            endTime: event.timestamp,
+            status: "completed",
+            sessionId: event.sessionId,
+          };
+          this.agents.set(agentId, newAgent);
+          this._persistAgent(newAgent);
+        }
       }
 
       // Ensure every SubagentStop has a visible SubagentStart in the same session

@@ -85,8 +85,10 @@ function formatAgentType(type: string): string {
 
 export function AgentTimeline({ agents, events }: AgentTimelineProps) {
   const [now, setNow] = useState(Date.now());
-  const activeAgents = agents.filter((a) => a.status === "active");
-  const completedAgents = agents.filter((a) => a.status === "completed").slice(-15);
+  // "session" agents are synthetic markers for the main session, not real subagents
+  const subagents = agents.filter((a) => a.type !== "session");
+  const activeAgents = subagents.filter((a) => a.status === "active");
+  const completedAgents = subagents.filter((a) => a.status === "completed").slice(-15);
 
   useEffect(() => {
     if (activeAgents.length === 0) return;
@@ -98,8 +100,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
   const actionsBySession = useMemo(() => {
     const map = new Map<string, ToolAction[]>();
     const sessionIds = new Set(
-      agents
-        .filter((a) => a.status === "active")
+      activeAgents
         .map((a) => a.sessionId)
         .filter(Boolean) as string[],
     );
@@ -107,7 +108,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
       map.set(sid, computeToolActions(events.filter((e) => e.sessionId === sid)));
     }
     return map;
-  }, [agents, events]);
+  }, [activeAgents, events]);
 
   const totalCount = activeAgents.length + completedAgents.length;
 
@@ -127,7 +128,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
       </div>
 
       <div className="agent-list">
-        {agents.length === 0 ? (
+        {subagents.length === 0 ? (
           <div className="agent-empty">NO AGENTS DEPLOYED</div>
         ) : (
           <>
