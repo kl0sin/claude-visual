@@ -747,6 +747,12 @@ body {
   box-shadow: 0 0 4px rgba(240, 255, 0, 0.3);
 }
 
+/* Interrupted — stopped by user */
+.session-status-dot.interrupted {
+  background: var(--color-cyber-orange);
+  box-shadow: 0 0 4px rgba(255, 107, 0, 0.4);
+}
+
 /* Ended — session terminated */
 .session-status-dot.ended {
   background: var(--color-cyber-text-dim);

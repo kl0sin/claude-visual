@@ -20,6 +20,7 @@ export interface DbSession {
   event_count: number;
   status: string;
   is_processing: number;
+  stop_reason: string | null;
   cwd: string | null;
 }
 

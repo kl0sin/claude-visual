@@ -63,13 +63,14 @@ export class EventStore {
     `);
 
     this.stmtUpsertSession = this.db.prepare(`
-      INSERT INTO sessions (id, first_event, last_event, event_count, status, is_processing, cwd)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO sessions (id, first_event, last_event, event_count, status, is_processing, stop_reason, cwd)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         last_event    = excluded.last_event,
         event_count   = excluded.event_count,
         status        = excluded.status,
         is_processing = excluded.is_processing,
+        stop_reason   = excluded.stop_reason,
         cwd           = COALESCE(excluded.cwd, cwd)
     `);
 
@@ -120,6 +121,7 @@ export class EventStore {
         eventCount: r.event_count,
         status: r.status as "active" | "ended",
         isProcessing: r.is_processing === 1,
+        stopReason: r.stop_reason ?? undefined,
         cwd: r.cwd ?? undefined,
       });
     }
@@ -170,10 +172,13 @@ export class EventStore {
         if (eventType === "SessionEnd") {
           existing.status = "ended";
           existing.isProcessing = false;
+          existing.stopReason = undefined;
         } else if (eventType === "UserPromptSubmit") {
           existing.isProcessing = true;
+          existing.stopReason = undefined;
         } else if (eventType === "Stop") {
           existing.isProcessing = false;
+          existing.stopReason = typeof raw.stop_reason === "string" ? raw.stop_reason : undefined;
         }
         if (!existing.cwd && typeof raw.cwd === "string") {
           existing.cwd = raw.cwd;
@@ -345,7 +350,7 @@ export class EventStore {
   }
 
   getSessions(): SessionInfo[] {
-    return Array.from(this.sessions.values()).sort((a, b) => b.lastEvent - a.lastEvent);
+    return Array.from(this.sessions.values()).sort((a, b) => b.firstEvent - a.firstEvent);
   }
 
   getStats(sessionId?: string): SessionStats {
@@ -594,6 +599,7 @@ export class EventStore {
       s.eventCount,
       s.status,
       s.isProcessing ? 1 : 0,
+      s.stopReason ?? null,
       s.cwd ?? null,
     );
   }

@@ -34,6 +34,7 @@ export interface SessionInfo {
   eventCount: number;
   status: "active" | "ended";
   isProcessing: boolean;
+  stopReason?: string;
   cwd?: string;
 }
 

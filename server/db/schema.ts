@@ -40,12 +40,13 @@ export function initSchema(db: Database): void {
       )
     `,
     ).run();
-    // Migration: add cwd to existing databases that predate this column
+    // Migrations: add columns to existing databases that predate them
     try {
       db.query("ALTER TABLE sessions ADD COLUMN cwd TEXT").run();
-    } catch {
-      /* already exists */
-    }
+    } catch { /* already exists */ }
+    try {
+      db.query("ALTER TABLE sessions ADD COLUMN stop_reason TEXT").run();
+    } catch { /* already exists */ }
 
     db.query(
       `

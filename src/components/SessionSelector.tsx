@@ -14,17 +14,15 @@ const RECENT_EVENT_THRESHOLD = 5_000;
 /** If isProcessing but no events for this long, assume the process was killed */
 const STALE_PROCESSING_THRESHOLD = 60_000;
 
-type SessionState = "processing" | "idle" | "ended";
+type SessionState = "processing" | "interrupted" | "idle" | "ended";
 
 function getSessionState(session: SessionInfo, now: number): SessionState {
   if (session.status === "ended") return "ended";
-  // Primary signal: server tracks whether Claude is actively handling a request
+  if (session.stopReason === "user_interrupted") return "interrupted";
   if (session.isProcessing) {
-    // Guard: if no events for a long time, the process was likely killed without sending Stop
     if (now - session.lastEvent > STALE_PROCESSING_THRESHOLD) return "idle";
     return "processing";
   }
-  // Fallback: very recent events (e.g. hook fired but UserPromptSubmit not yet received)
   if (now - session.lastEvent < RECENT_EVENT_THRESHOLD) return "processing";
   return "idle";
 }
@@ -76,7 +74,11 @@ export function SessionSelector({ sessions, selectedSession, onSelect, onReplay,
 
   if (sessions.length === 0) return null;
 
-  const hasProcessing = sessions.some((s) => getSessionState(s, now) === "processing");
+  // Sort newest-first by creation time — stable order regardless of incoming events
+  const sorted = sessions.slice().sort((a, b) => b.firstEvent - a.firstEvent);
+  const hasProcessing = sorted.some(
+    (s) => getSessionState(s, now) === "processing",
+  );
 
   return (
     <div className={`session-selector${hasProcessing ? " has-processing" : ""}`}>
@@ -89,13 +91,13 @@ export function SessionSelector({ sessions, selectedSession, onSelect, onReplay,
           ◈
         </span>
         <span className="session-tab-label">ALL</span>
-        <span className="session-tab-count">{sessions.reduce((s, x) => s + x.eventCount, 0)}</span>
+        <span className="session-tab-count">{sorted.reduce((s, x) => s + x.eventCount, 0)}</span>
       </button>
 
       <div className="session-divider" />
 
       <div className="session-list">
-        {sessions.map((session) => {
+        {sorted.map((session) => {
           const isSelected = selectedSession === session.id;
           const state = getSessionState(session, now);
 
