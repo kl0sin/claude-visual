@@ -1,5 +1,5 @@
 import path from "path";
-import { readdir, stat } from "fs/promises";
+import { readdir, stat, mkdir, copyFile } from "fs/promises";
 import type {
   HistoryProject,
   HistorySession,
@@ -17,8 +17,6 @@ import { resolveModelFamily, computeCost } from "../shared/tokens";
 const CLAUDE_DIR = path.join(process.env.HOME || "~", ".claude");
 const PROJECTS_DIR = path.join(CLAUDE_DIR, "projects");
 const SETTINGS_FILE = path.join(CLAUDE_DIR, "settings.json");
-// Resolve relative to this file at runtime
-const HOOKS_INSTALL_SCRIPT = path.join(import.meta.dir, "../hooks/install.sh");
 
 /**
  * Naive decode — replaces all `-` with `/` and `--` with `/_`.
@@ -612,17 +610,42 @@ export async function getHookStatus(): Promise<{ installed: boolean }> {
   }
 }
 
+/** Hooks config embedded directly so it works in compiled sidecar binaries. */
+const CLAUDE_VISUAL_HOOKS: Record<string, unknown> = {
+  SessionStart: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStart\", agent_type: \"session\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  SessionEnd: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionEnd\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  UserPromptSubmit: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"UserPromptSubmit\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  PreToolUse: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PreToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  PostToolUse: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  PostToolUseFailure: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUseFailure\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  SubagentStart: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  SubagentStop: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  Stop: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Stop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  Notification: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Notification\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+  TaskCompleted: [{ hooks: [{ type: "command", command: "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TaskCompleted\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1" }] }],
+};
+
 export async function installHooks(): Promise<{ ok: boolean; error?: string }> {
   try {
-    const proc = Bun.spawn(["bash", HOOKS_INSTALL_SCRIPT], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const exitCode = await proc.exited;
-    if (exitCode !== 0) {
-      const stderr = await new Response(proc.stderr).text();
-      return { ok: false, error: stderr };
+    // Ensure ~/.claude exists
+    await mkdir(CLAUDE_DIR, { recursive: true });
+
+    // Backup existing settings
+    const settingsFile = Bun.file(SETTINGS_FILE);
+    let settings: Record<string, unknown> = {};
+
+    if (await settingsFile.exists()) {
+      const text = await settingsFile.text();
+      settings = JSON.parse(text);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      await copyFile(SETTINGS_FILE, `${SETTINGS_FILE}.backup.${timestamp}`);
     }
+
+    // Merge hooks into settings
+    const existingHooks = (settings.hooks as Record<string, unknown>) || {};
+    settings.hooks = { ...existingHooks, ...CLAUDE_VISUAL_HOOKS };
+
+    await Bun.write(SETTINGS_FILE, JSON.stringify(settings, null, 2) + "\n");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
