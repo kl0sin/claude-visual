@@ -99,7 +99,7 @@ export function Header({
           <span className="header-title-main">CLAUDE</span>
           <span className="header-title-accent">VISUAL</span>
         </h1>
-        <span className="header-subtitle">// NEURAL MONITOR v0.4.1</span>
+        <span className="header-subtitle">// NEURAL MONITOR v0.4.2</span>
 
         <div className="mode-toggle">
           <button
