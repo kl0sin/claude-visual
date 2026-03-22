@@ -3387,13 +3387,17 @@ body {
   font-size: 11px;
 }
 
+.history-item-id-row {
+  margin-top: 4px;
+}
+
 .history-item-session-id {
   font-size: 9px;
+  font-family: monospace;
   color: var(--color-cyber-text-dim);
-  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
   letter-spacing: 0.3px;
-  margin-left: auto;
-  flex-shrink: 0;
+  word-break: break-all;
 }
 
 .history-item-path {

@@ -88,10 +88,12 @@ export function SessionList({
           </div>
           <div className="history-item-bottom">
             <span className="history-item-tokens">
-              {formatTokenCount(s.tokens.totalTokens)} tok
+              {formatTokenCount(s.tokens.totalTokens)} tokens
               <span className="history-item-cost-inline"> ({estimateCost(s.tokens, s.model)})</span>
             </span>
-            <span className="history-item-session-id">{s.id.slice(0, 8)}</span>
+          </div>
+          <div className="history-item-id-row">
+            <span className="history-item-session-id">{s.id}</span>
           </div>
         </button>
       ))}

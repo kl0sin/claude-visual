@@ -730,12 +730,20 @@ function buildMarkdown(session: HistorySession, detail: HistorySessionDetail): s
     if (turn.steps.length > 0) {
       for (const step of turn.steps) {
         const tools = step.content.filter(
-          (c): c is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
+          (
+            c,
+          ): c is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
             c.type === "tool_use",
         );
         const results = step.content.filter(
-          (c): c is { type: "tool_result"; tool_use_id: string; content: unknown; is_error?: boolean } =>
-            c.type === "tool_result",
+          (
+            c,
+          ): c is {
+            type: "tool_result";
+            tool_use_id: string;
+            content: unknown;
+            is_error?: boolean;
+          } => c.type === "tool_result",
         );
         for (const t of tools) {
           const param = getToolKeyParam(t.name, t.input);
@@ -972,7 +980,15 @@ export function TranscriptPanel({
       const slug = session.id.slice(0, 8);
       if (format === "json") {
         const payload = JSON.stringify(
-          { id: session.id, model: session.model, lastModified: session.lastModified, tokens: session.tokens, totalMessages: detail.totalMessages, messages: detail.messages, exportedAt: new Date().toISOString() },
+          {
+            id: session.id,
+            model: session.model,
+            lastModified: session.lastModified,
+            tokens: session.tokens,
+            totalMessages: detail.totalMessages,
+            messages: detail.messages,
+            exportedAt: new Date().toISOString(),
+          },
           null,
           2,
         );
@@ -1031,7 +1047,6 @@ export function TranscriptPanel({
     <div className="transcript-view">
       <div className="transcript-header">
         <div className="transcript-meta">
-          <span className="transcript-id">{session.id.slice(0, 8)}…</span>
           <span className="transcript-date">{formatDate(session.lastModified)}</span>
           {session.model && <span className="msg-model">{shortModel(session.model)}</span>}
           <div className="transcript-export-btns">
@@ -1067,7 +1082,10 @@ export function TranscriptPanel({
             <span className="stat-value yellow">{estimateCost(session.tokens, session.model)}</span>
           </span>
           {liveStatus !== "idle" && (
-            <span className={`live-badge${liveStatus === "thinking" ? " thinking" : ""}`} style={{ marginLeft: "auto" }}>
+            <span
+              className={`live-badge${liveStatus === "thinking" ? " thinking" : ""}`}
+              style={{ marginLeft: "auto" }}
+            >
               {liveStatus === "thinking" ? "◈ THINKING" : "● LIVE"}
             </span>
           )}

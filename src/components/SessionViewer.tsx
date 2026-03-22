@@ -342,7 +342,7 @@ export function SessionViewer({
               {showStats && selectedProject ? (
                 <span className="panel-subtitle">{selectedProject.name}</span>
               ) : selectedSession && !showStats ? (
-                <span className="panel-subtitle">{selectedSession.id.slice(0, 8)}…</span>
+                <span className="panel-subtitle">{selectedSession.id}</span>
               ) : null}
               {selectedProject && selectedSession && (
                 <button
