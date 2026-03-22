@@ -43,6 +43,14 @@ export function HookInstallBanner({ onInstalled, apiBase, authHeaders }: HookIns
             Claude Code hooks are required for live monitoring. Install them to start capturing
             events.
           </span>
+          <span className="hook-install-req">
+            Requires{" "}
+            <code className="hook-install-req-code">jq</code>
+            {" "}— install with:{" "}
+            <code className="hook-install-req-code">brew install jq</code>
+            {" "}or{" "}
+            <code className="hook-install-req-code">apt install jq</code>
+          </span>
         </div>
         <button
           className="hook-install-btn"
@@ -58,7 +66,9 @@ export function HookInstallBanner({ onInstalled, apiBase, authHeaders }: HookIns
           INSTALL FAILED —{" "}
           {error.startsWith("TypeError") || error.startsWith("SyntaxError")
             ? "Could not reach server. Is Claude Visual running?"
-            : error}
+            : /jq/.test(error)
+              ? "jq is not installed. Run: brew install jq  or  apt install jq"
+              : error}
         </div>
       )}
     </div>

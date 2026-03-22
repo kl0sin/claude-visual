@@ -3010,6 +3010,20 @@ body {
   color: var(--color-cyber-text);
 }
 
+.hook-install-req {
+  font-size: 10px;
+  color: var(--color-cyber-text-dim);
+  margin-top: 4px;
+}
+
+.hook-install-req-code {
+  font-family: monospace;
+  color: var(--color-cyber-cyan);
+  background: rgba(0, 240, 255, 0.08);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
 .hook-install-btn {
   background: transparent;
   border: 1px solid var(--color-cyber-orange);
