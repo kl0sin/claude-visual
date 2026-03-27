@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { PendingTool } from "../types";
+import type { ClaudeEvent, PendingTool } from "../types";
 
 interface HeaderProps {
   connected: boolean;
@@ -12,7 +12,13 @@ interface HeaderProps {
   onModeChange: (mode: "live" | "history" | "settings") => void;
   isRemoteServer: boolean;
   hasAlerts: boolean;
+  pendingTerminalAction: ClaudeEvent | null;
 }
+
+const TERMINAL_ACTION_LABELS: Record<string, string> = {
+  PermissionRequest: "PERMISSION REQUIRED",
+  Elicitation: "INPUT REQUIRED",
+};
 
 function formatTokens(n: number): string {
   if (n === 0) return "0";
@@ -32,6 +38,7 @@ export function Header({
   onModeChange,
   isRemoteServer,
   hasAlerts,
+  pendingTerminalAction,
 }: HeaderProps) {
   const [glitch, setGlitch] = useState(false);
   const glitchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -51,6 +58,15 @@ export function Header({
 
   const [bannerVisible, setBannerVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+
+  const [terminalDismissed, setTerminalDismissed] = useState(false);
+  const prevTerminalActionId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (pendingTerminalAction?.id !== prevTerminalActionId.current) {
+      prevTerminalActionId.current = pendingTerminalAction?.id;
+      setTerminalDismissed(false);
+    }
+  }, [pendingTerminalAction]);
 
   useEffect(() => {
     // Reset dismissed state whenever the set of pending tools changes
@@ -79,6 +95,22 @@ export function Header({
 
   return (
     <header className="header">
+      {pendingTerminalAction && !terminalDismissed && (
+        <div className="attention-banner attention-banner-terminal" role="alert" aria-live="assertive">
+          <span className="attention-icon" aria-hidden="true">⚠</span>
+          <span className="attention-text">
+            {TERMINAL_ACTION_LABELS[pendingTerminalAction.type] ?? "ACTION REQUIRED"} — CHECK TERMINAL
+          </span>
+          <button
+            className="attention-dismiss"
+            onClick={() => setTerminalDismissed(true)}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {bannerVisible && !dismissed && (
         <div className="attention-banner attention-banner-agent" role="status" aria-live="polite">
           <span className="attention-icon" aria-hidden="true">◈</span>

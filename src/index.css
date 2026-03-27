@@ -240,6 +240,31 @@ body {
   50%       { border-color: rgba(0, 240, 255, 0.55); }
 }
 
+/* Terminal action required variant: magenta/yellow — urgent, needs user input */
+.attention-banner-terminal {
+  border-color: rgba(255, 45, 149, 0.5);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 45, 149, 0.12),
+    rgba(240, 255, 0, 0.06),
+    rgba(255, 45, 149, 0.12)
+  );
+  animation: attention-pulse-terminal 1.5s ease-in-out infinite;
+}
+.attention-banner-terminal .attention-icon,
+.attention-banner-terminal .attention-text {
+  color: var(--color-cyber-magenta);
+  text-shadow:
+    0 0 10px rgba(255, 45, 149, 0.5),
+    0 0 30px rgba(255, 45, 149, 0.2);
+  animation: none;
+}
+
+@keyframes attention-pulse-terminal {
+  0%, 100% { border-color: rgba(255, 45, 149, 0.35); }
+  50%       { border-color: rgba(255, 45, 149, 0.7); box-shadow: 0 0 20px rgba(255, 45, 149, 0.15); }
+}
+
 @keyframes attention-pulse {
   0%,
   100% {

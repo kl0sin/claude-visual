@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Header } from "./components/Header";
 import { EventFeed } from "./components/EventFeed";
 import { AgentTimeline } from "./components/AgentTimeline";
@@ -18,6 +18,12 @@ import { useNotifications } from "./hooks/useNotifications";
 import { useServerConfig } from "./hooks/useServerConfig";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { UpdateBanner } from "./components/UpdateBanner";
+
+const TERMINAL_TRIGGERS = new Set(["PermissionRequest", "Elicitation"]);
+const TERMINAL_RESOLVERS = new Set([
+  "PreToolUse", "PostToolUse", "PostToolUseFailure",
+  "Stop", "StopFailure", "ElicitationResult", "SessionEnd",
+]);
 
 const DEFAULT_TOKENS = {
   inputTokens: 0,
@@ -47,6 +53,19 @@ export default function App() {
   const mode = route.mode;
 
   const { update, dismiss: dismissUpdate } = useUpdateCheck();
+
+  const pendingTerminalAction = useMemo(() => {
+    for (const session of sessions) {
+      if (!session.isProcessing) continue;
+      const sessionEvents = allEvents.filter((e) => e.sessionId === session.id);
+      for (let i = sessionEvents.length - 1; i >= 0; i--) {
+        const { type } = sessionEvents[i]!;
+        if (TERMINAL_TRIGGERS.has(type)) return sessionEvents[i]!;
+        if (TERMINAL_RESOLVERS.has(type)) break;
+      }
+    }
+    return null;
+  }, [allEvents, sessions]);
 
   const [hooksInstalled, setHooksInstalled] = useState<boolean | null>(null);
 
@@ -92,6 +111,7 @@ export default function App() {
         onModeChange={(m) => navigate({ mode: m })}
         isRemoteServer={activeServerId !== "local"}
         hasAlerts={alertSettings.enabled}
+        pendingTerminalAction={pendingTerminalAction}
       />
 
       {mode === "live" && (
