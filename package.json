@@ -1,5 +1,6 @@
 {
   "name": "claude-visual",
+  "version": "0.4.3",
   "module": "index.ts",
   "type": "module",
   "private": true,

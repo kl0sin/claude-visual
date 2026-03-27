@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 const REPO = "kl0sin/claude-visual";
-const CURRENT_VERSION = "0.4.2";
+const CURRENT_VERSION = "0.4.3";
 const CHECK_DELAY_MS = 5_000; // wait a bit after app start before hitting GitHub API
 
 export interface UpdateInfo {

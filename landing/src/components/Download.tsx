@@ -1,6 +1,6 @@
 const REPO_URL = "https://github.com/kl0sin/claude-visual";
 const RELEASES_URL = `${REPO_URL}/releases`;
-const VERSION = "0.4.2";
+const VERSION = "0.4.3";
 const VERSION_URL = `${RELEASES_URL}/download/v${VERSION}`;
 
 interface Platform {
