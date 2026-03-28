@@ -104,7 +104,6 @@ export default function App() {
         connected={connected}
         totalEvents={globalStats?.totalEvents || 0}
         totalTokens={globalStats?.tokens.totalTokens || 0}
-        pendingTools={globalStats?.pendingTools || []}
         isProcessing={sessions.some((s) => s.isProcessing)}
         onClear={clearEvents}
         mode={mode}
@@ -112,6 +111,7 @@ export default function App() {
         isRemoteServer={activeServerId !== "local"}
         hasAlerts={alertSettings.enabled}
         pendingTerminalAction={pendingTerminalAction}
+        sessions={sessions}
       />
 
       {mode === "live" && (

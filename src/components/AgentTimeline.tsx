@@ -13,6 +13,7 @@ const AGENT_COLORS: Record<string, string> = {
   "claude-code-guide": "#00ff9f",
   "test-runner": "#ffaa00",
   "build-validator": "#8b5cf6",
+  "statusline-setup": "#06b6d4",
   session: "#8892a8",
 };
 
@@ -23,11 +24,13 @@ const TOOL_COLORS: Record<string, string> = {
   Edit: "#00ff9f",
   Glob: "#8b5cf6",
   Grep: "#06b6d4",
+  Agent: "#ff6b00",
   Task: "#ffaa00",
   TaskUpdate: "#ff6b00",
   TaskCreate: "#ff6b00",
   WebSearch: "#ff0040",
   WebFetch: "#ff0040",
+  NotebookEdit: "#8b5cf6",
 };
 
 type ToolAction = {
@@ -95,6 +98,35 @@ function groupToolActions(actions: ToolAction[]): ToolGroup[] {
     map.set(a.tool, g);
   }
   return Array.from(map.values()).sort((a, b) => b.count - a.count);
+}
+
+type AgentMeta = {
+  tasksCreated: number;
+  tasksCompleted: number;
+  isWorktree: boolean;
+  isCompacting: boolean;
+  compactCount: number;
+};
+
+function computeAgentMeta(events: ClaudeEvent[], sessionId: string): AgentMeta {
+  let tasksCreated = 0;
+  let tasksCompleted = 0;
+  let isWorktree = false;
+  let isCompacting = false;
+  let compactCount = 0;
+
+  for (const e of events) {
+    if (e.sessionId !== sessionId) continue;
+    switch (e.type) {
+      case "TaskCreated": tasksCreated++; break;
+      case "TaskCompleted": tasksCompleted++; break;
+      case "WorktreeCreate": isWorktree = true; break;
+      case "PreCompact": isCompacting = true; compactCount++; break;
+      case "PostCompact": isCompacting = false; break;
+    }
+  }
+
+  return { tasksCreated, tasksCompleted, isWorktree, isCompacting, compactCount };
 }
 
 function formatAgentType(type: string): string {
@@ -173,6 +205,17 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
     return map;
   }, [activeAgents, completedAgents, expandedAgentId, events]);
 
+  // Compute meta (tasks, worktree, compaction) for all visible agents
+  const metaBySession = useMemo(() => {
+    const map = new Map<string, AgentMeta>();
+    for (const a of [...activeAgents, ...completedAgents]) {
+      if (a.sessionId && !map.has(a.sessionId)) {
+        map.set(a.sessionId, computeAgentMeta(events, a.sessionId));
+      }
+    }
+    return map;
+  }, [activeAgents, completedAgents, events]);
+
   const totalCount = activeAgents.length + completedAgents.length;
 
   return (
@@ -198,6 +241,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
               const type = formatAgentType(agent.type);
               const color = AGENT_COLORS[agent.type] ?? AGENT_COLORS[type] ?? "#00f0ff";
               const elapsed = now - agent.startTime;
+              const meta = agent.sessionId ? metaBySession.get(agent.sessionId) : undefined;
               const actions =
                 (agent.sessionId ? actionsBySession.get(agent.sessionId) : undefined) ?? [];
               const recent = actions.slice(-5);
@@ -226,6 +270,25 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                       {agent.description}
                     </div>
                   )}
+                  {meta && (meta.tasksCreated > 0 || meta.isWorktree || meta.isCompacting) && (
+                    <div className="agent-badges">
+                      {meta.tasksCreated > 0 && (
+                        <span className="agent-badge agent-badge-tasks" title="Tasks progress">
+                          {meta.tasksCompleted}/{meta.tasksCreated} tasks
+                        </span>
+                      )}
+                      {meta.isWorktree && (
+                        <span className="agent-badge agent-badge-worktree" title="Running in isolated worktree">
+                          worktree
+                        </span>
+                      )}
+                      {meta.isCompacting && (
+                        <span className="agent-badge agent-badge-compact pulse" title="Context compaction in progress">
+                          compacting
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {recent.length > 0 ? (
                     <div className="agent-actions">
                       {recent.map((action) => (
@@ -252,6 +315,7 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
               const type = formatAgentType(agent.type);
               const color = AGENT_COLORS[agent.type] ?? AGENT_COLORS[type] ?? "#00f0ff";
               const duration = agent.endTime ? agent.endTime - agent.startTime : 0;
+              const meta = agent.sessionId ? metaBySession.get(agent.sessionId) : undefined;
               const isExpanded = expandedAgentId === agent.id;
               const actions =
                 isExpanded && agent.sessionId
@@ -293,6 +357,25 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                   {agent.description && (
                     <div className="agent-description" title={agent.description}>
                       {agent.description}
+                    </div>
+                  )}
+                  {meta && (meta.tasksCreated > 0 || meta.isWorktree || meta.compactCount > 0) && (
+                    <div className="agent-badges">
+                      {meta.tasksCreated > 0 && (
+                        <span className="agent-badge agent-badge-tasks" title="Tasks completed">
+                          {meta.tasksCompleted}/{meta.tasksCreated} tasks
+                        </span>
+                      )}
+                      {meta.isWorktree && (
+                        <span className="agent-badge agent-badge-worktree" title="Ran in isolated worktree">
+                          worktree
+                        </span>
+                      )}
+                      {meta.compactCount > 0 && (
+                        <span className="agent-badge agent-badge-compact" title={`Context compacted ${meta.compactCount}x`}>
+                          {meta.compactCount}x compact
+                        </span>
+                      )}
                     </div>
                   )}
                   {isExpanded && actions.length > 0 && (

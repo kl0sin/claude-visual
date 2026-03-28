@@ -215,31 +215,6 @@ body {
   border-color: rgba(255, 0, 64, 0.6);
 }
 
-/* Agent-running variant: cyan/informational, no alarm */
-.attention-banner-agent {
-  border-color: rgba(0, 240, 255, 0.35);
-  background: linear-gradient(
-    90deg,
-    rgba(0, 240, 255, 0.08),
-    rgba(139, 92, 246, 0.08),
-    rgba(0, 240, 255, 0.08)
-  );
-  animation: attention-pulse-agent 3s ease-in-out infinite;
-}
-.attention-banner-agent .attention-icon,
-.attention-banner-agent .attention-text {
-  color: var(--color-cyber-cyan);
-  text-shadow:
-    0 0 10px rgba(0, 240, 255, 0.4),
-    0 0 30px rgba(0, 240, 255, 0.15);
-  animation: none;
-}
-
-@keyframes attention-pulse-agent {
-  0%, 100% { border-color: rgba(0, 240, 255, 0.25); }
-  50%       { border-color: rgba(0, 240, 255, 0.55); }
-}
-
 /* Terminal action required variant: magenta/yellow — urgent, needs user input */
 .attention-banner-terminal {
   border-color: rgba(255, 45, 149, 0.5);
@@ -258,6 +233,12 @@ body {
     0 0 10px rgba(255, 45, 149, 0.5),
     0 0 30px rgba(255, 45, 149, 0.2);
   animation: none;
+}
+
+.attention-project {
+  color: var(--color-cyber-yellow);
+  font-weight: 600;
+  margin-left: 4px;
 }
 
 @keyframes attention-pulse-terminal {
@@ -1871,6 +1852,50 @@ body {
   -webkit-box-orient: vertical;
   white-space: normal;
   line-height: 1.4;
+}
+
+.agent-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.agent-badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+
+.agent-badge-tasks {
+  color: var(--color-cyber-yellow);
+  border-color: rgba(240, 255, 0, 0.3);
+  background: rgba(240, 255, 0, 0.08);
+}
+
+.agent-badge-worktree {
+  color: var(--color-cyber-purple);
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.agent-badge-compact {
+  color: var(--color-cyber-orange);
+  border-color: rgba(255, 107, 0, 0.3);
+  background: rgba(255, 107, 0, 0.08);
+}
+
+.agent-badge-compact.pulse {
+  animation: badge-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .agent-section-label {
