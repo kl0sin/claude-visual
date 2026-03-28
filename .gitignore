@@ -40,5 +40,6 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/binaries/server-*
 .claude/*
+!.claude/commands/
 .agents/*
 skills-lock.json

@@ -43,6 +43,20 @@ jobs:
       - name: Install JS dependencies
         run: bun install
 
+      - name: Read release notes
+        id: notes
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          NOTES_FILE="releases/${VERSION}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            # Use GitHub Actions delimiter for multiline output
+            echo "body<<NOTES_EOF" >> "$GITHUB_OUTPUT"
+            cat "$NOTES_FILE" >> "$GITHUB_OUTPUT"
+            echo "NOTES_EOF" >> "$GITHUB_OUTPUT"
+          else
+            echo "body=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build sidecar (Linux)
         if: matrix.platform == 'ubuntu-22.04'
         run: bun build --compile --outfile src-tauri/binaries/server-x86_64-unknown-linux-gnu server/index.ts
@@ -66,7 +80,8 @@ jobs:
           APPIMAGE_EXTRACT_AND_RUN: '1'
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'Claude Visual ${{ github.ref_name }}'
+          releaseName: '${{ github.ref_name }}'
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
