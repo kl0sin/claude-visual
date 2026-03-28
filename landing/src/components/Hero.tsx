@@ -20,7 +20,7 @@ export function Hero() {
 
   return (
     <section className="hero">
-      <p className="hero-eyebrow">// v0.4.3 — OPEN SOURCE DESKTOP APP</p>
+      <p className="hero-eyebrow">// v0.4.4 — OPEN SOURCE DESKTOP APP</p>
 
       <h1 className={`hero-title ${glitch ? "glitch" : ""}`}>
         <span className="hero-title-main">CLAUDE</span>

@@ -101,16 +101,12 @@ function groupToolActions(actions: ToolAction[]): ToolGroup[] {
 }
 
 type AgentMeta = {
-  tasksCreated: number;
-  tasksCompleted: number;
   isWorktree: boolean;
   isCompacting: boolean;
   compactCount: number;
 };
 
 function computeAgentMeta(events: ClaudeEvent[], sessionId: string): AgentMeta {
-  let tasksCreated = 0;
-  let tasksCompleted = 0;
   let isWorktree = false;
   let isCompacting = false;
   let compactCount = 0;
@@ -118,15 +114,13 @@ function computeAgentMeta(events: ClaudeEvent[], sessionId: string): AgentMeta {
   for (const e of events) {
     if (e.sessionId !== sessionId) continue;
     switch (e.type) {
-      case "TaskCreated": tasksCreated++; break;
-      case "TaskCompleted": tasksCompleted++; break;
       case "WorktreeCreate": isWorktree = true; break;
       case "PreCompact": isCompacting = true; compactCount++; break;
       case "PostCompact": isCompacting = false; break;
     }
   }
 
-  return { tasksCreated, tasksCompleted, isWorktree, isCompacting, compactCount };
+  return { isWorktree, isCompacting, compactCount };
 }
 
 function formatAgentType(type: string): string {
@@ -270,13 +264,8 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                       {agent.description}
                     </div>
                   )}
-                  {meta && (meta.tasksCreated > 0 || meta.isWorktree || meta.isCompacting) && (
+                  {meta && (meta.isWorktree || meta.isCompacting) && (
                     <div className="agent-badges">
-                      {meta.tasksCreated > 0 && (
-                        <span className="agent-badge agent-badge-tasks" title="Tasks progress">
-                          {meta.tasksCompleted}/{meta.tasksCreated} tasks
-                        </span>
-                      )}
                       {meta.isWorktree && (
                         <span className="agent-badge agent-badge-worktree" title="Running in isolated worktree">
                           worktree
@@ -359,13 +348,8 @@ export function AgentTimeline({ agents, events }: AgentTimelineProps) {
                       {agent.description}
                     </div>
                   )}
-                  {meta && (meta.tasksCreated > 0 || meta.isWorktree || meta.compactCount > 0) && (
+                  {meta && (meta.isWorktree || meta.compactCount > 0) && (
                     <div className="agent-badges">
-                      {meta.tasksCreated > 0 && (
-                        <span className="agent-badge agent-badge-tasks" title="Tasks completed">
-                          {meta.tasksCompleted}/{meta.tasksCreated} tasks
-                        </span>
-                      )}
                       {meta.isWorktree && (
                         <span className="agent-badge agent-badge-worktree" title="Ran in isolated worktree">
                           worktree
