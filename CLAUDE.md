@@ -75,17 +75,31 @@ Events tracked from Claude Code hooks (defined in `hooks/claude-hooks.json`):
 
 | Event | Description |
 |-------|-------------|
-| `SessionStart` | Session begins |
-| `SessionEnd` | Session ends |
-| `UserPromptSubmit` | User submits a prompt |
-| `PreToolUse` | Before tool invocation |
+| `SessionStart` | Session begins or resumes |
+| `SessionEnd` | Session terminates |
+| `UserPromptSubmit` | User submits a prompt, before Claude processes it |
+| `InstructionsLoaded` | CLAUDE.md or `.claude/rules/*.md` file loaded into context |
+| `PreToolUse` | Before tool invocation (can block it) |
 | `PostToolUse` | After successful tool invocation |
 | `PostToolUseFailure` | Tool execution failed |
+| `PermissionRequest` | Permission dialog appears |
 | `SubagentStart` | Subagent spawned |
 | `SubagentStop` | Subagent finished |
-| `Stop` | Response generation complete |
+| `TaskCreated` | Task created via `TaskCreate` |
+| `TaskCompleted` | Task marked as completed |
+| `Stop` | Claude finishes responding |
+| `StopFailure` | Turn ends due to an API error |
 | `Notification` | System notification |
-| `TaskCompleted` | Task completed |
+| `TeammateIdle` | Agent team teammate about to go idle |
+| `ConfigChange` | Configuration file changes during session |
+| `CwdChanged` | Working directory changes (e.g., after `cd`) |
+| `FileChanged` | Watched file changes on disk |
+| `PreCompact` | Before context compaction |
+| `PostCompact` | After context compaction completes |
+| `Elicitation` | MCP server requests user input during a tool call |
+| `ElicitationResult` | User responds to an MCP elicitation |
+| `WorktreeCreate` | Worktree created via `--worktree` or `isolation: "worktree"` |
+| `WorktreeRemove` | Worktree removed at session exit or subagent finish |
 
 Event colors and icons are mapped in `src/types.ts` (`EVENT_COLORS`, `EVENT_ICONS`).
 
@@ -132,6 +146,7 @@ The server uses **Bun's built-in SQLite** (`bun:sqlite`) — no separate sqlite3
 | `PORT` | `3200` | HTTP server + WebSocket port |
 | `NODE_ENV` | — | Set to `production` for static file serving from `dist/` |
 | `CLAUDE_VISUAL_DB` | `~/.claude/claude-visual.db` | SQLite database path |
+| `CLAUDE_VISUAL_URL` | `http://localhost:3200` | Server URL used by hooks (set when Claude Code runs in a container/sandbox) |
 | `DEBUG_TOKENS` | — | Set to `1` to enable token extraction debug logging |
 
 ### Tauri Desktop Integration

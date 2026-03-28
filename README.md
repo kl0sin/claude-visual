@@ -179,13 +179,55 @@ Artifacts are uploaded to a draft GitHub Release.
 
 Pushing to `main` (with changes in `landing/`) automatically builds and deploys the landing page to GitHub Pages at `https://kl0sin.github.io/claude-visual/`.
 
+## Docker & Container Usage
+
+When Claude Code runs inside a Docker container (e.g., via [cleat](https://github.com/cleatdev/cleat)), the hooks need to reach the Claude Visual server on the host machine.
+
+### With cleat
+
+Cleat does not support custom environment variables out of the box. You need to edit `bin/cleat` in two places:
+
+1. **Add to the `CLAUDE_ENV` array** (used by `docker exec`):
+   ```bash
+   CLAUDE_ENV=(-e HOME=/home/coder -e PATH="..." -e CLAUDE_VISUAL_URL=http://host.docker.internal:3200)
+   ```
+
+2. **Add to the `docker run` command** (in `cmd_run()` function):
+   ```bash
+   -e "CLAUDE_VISUAL_URL=http://host.docker.internal:3200"
+   ```
+
+### With Docker Compose
+
+```yaml
+services:
+  claude:
+    environment:
+      - CLAUDE_VISUAL_URL=http://host.docker.internal:3200
+```
+
+### With docker run
+
+```bash
+docker run -e CLAUDE_VISUAL_URL=http://host.docker.internal:3200 ...
+```
+
+> **Note:** `host.docker.internal` resolves to the host machine from inside Docker containers on macOS and Windows. On Linux, you may need to add `--add-host=host.docker.internal:host-gateway` to your `docker run` command.
+
+### Hooks without the server
+
+The hooks are designed to work silently when Claude Visual is not running. Each hook uses `--connect-timeout 1` so curl fails fast if the server is unreachable, and all hooks exit with code 0 regardless — no errors will appear in Claude Code.
+
 ## Configuration
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `PORT` | `3200` | Server & WebSocket port |
 | `NODE_ENV` | — | Set to `production` for static file serving |
+| `CLAUDE_VISUAL_URL` | `http://localhost:3200` | Server URL used by hooks — set this when Claude Code runs in a container or sandbox |
 | `CLAUDE_VISUAL_DB` | `~/.claude/claude-visual.db` | Path to the SQLite database file |
+| `CLAUDE_VISUAL_TOKEN` | — | Optional authentication token for the API |
+| `MAX_EVENTS` | `2000` | Maximum number of events stored in the database |
 | `DEBUG_TOKENS` | — | Set to `1` to log token extraction to console |
 
 ## Scripts

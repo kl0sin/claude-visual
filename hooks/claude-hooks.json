@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStart\", agent_type: \"session\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStart\", agent_type: \"session\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionEnd\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SessionEnd\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -25,7 +25,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"UserPromptSubmit\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"UserPromptSubmit\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PreToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PreToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -45,7 +45,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUse\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -55,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUseFailure\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostToolUseFailure\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStart\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -75,7 +75,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"SubagentStop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -85,7 +85,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Stop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Stop\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -95,7 +95,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Notification\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Notification\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -105,7 +105,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TaskCompleted\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TaskCompleted\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -115,7 +115,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"StopFailure\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"StopFailure\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -125,7 +125,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"InstructionsLoaded\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"InstructionsLoaded\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -135,7 +135,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PermissionRequest\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PermissionRequest\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -145,7 +145,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TeammateIdle\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TeammateIdle\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -155,7 +155,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TaskCreated\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"TaskCreated\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -165,7 +165,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"FileChanged\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"FileChanged\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -175,7 +175,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"CwdChanged\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"CwdChanged\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -185,7 +185,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"ConfigChange\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"ConfigChange\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -195,7 +195,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"WorktreeCreate\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"WorktreeCreate\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -205,7 +205,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"WorktreeRemove\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"WorktreeRemove\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -215,7 +215,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PreCompact\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PreCompact\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -225,7 +225,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostCompact\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PostCompact\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -235,7 +235,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Elicitation\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"Elicitation\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
@@ -245,7 +245,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"ElicitationResult\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s -X POST -H 'Content-Type: application/json' -d @- http://localhost:3200/api/events > /dev/null 2>&1 ; exit 0"
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"ElicitationResult\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
           }
         ]
       }
