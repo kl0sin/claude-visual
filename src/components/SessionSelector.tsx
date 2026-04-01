@@ -11,8 +11,9 @@ interface SessionSelectorProps {
 
 /** Fallback threshold in ms — treat session as processing if very recent events arrived */
 const RECENT_EVENT_THRESHOLD = 5_000;
-/** If isProcessing but no events for this long, assume the process was killed */
-const STALE_PROCESSING_THRESHOLD = 60_000;
+/** If isProcessing but no events for this long, assume the process was killed.
+ *  3 minutes allows for long Claude thinking time between tool calls. */
+const STALE_PROCESSING_THRESHOLD = 180_000;
 
 type SessionState = "processing" | "interrupted" | "idle" | "ended";
 
