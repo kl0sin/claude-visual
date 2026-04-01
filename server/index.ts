@@ -72,7 +72,7 @@ app.use("/*", async (c, next) => {
 
 // Server info — no auth required (used by clients to probe a remote server)
 app.get("/api/info", (c) => {
-  return c.json({ name: "Claude Visual", version: "0.4.4", auth: !!AUTH_TOKEN });
+  return c.json({ name: "Claude Visual", version: "0.5.0", auth: !!AUTH_TOKEN });
 });
 
 // Receive events from Claude Code hooks
