@@ -45,6 +45,7 @@ jobs:
 
       - name: Read release notes
         id: notes
+        shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME}"
           NOTES_FILE="releases/${VERSION}.md"
