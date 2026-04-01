@@ -140,6 +140,16 @@
         ]
       }
     ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "INPUT=$(cat) && printf '%s' \"$INPUT\" | jq -c '. + {event_type: \"PermissionDenied\", session_id: (.session_id // env.CLAUDE_SESSION_ID)}' | curl -s --connect-timeout 1 -X POST -H 'Content-Type: application/json' -d @- ${CLAUDE_VISUAL_URL:-http://localhost:3200}/api/events > /dev/null 2>&1 ; exit 0"
+          }
+        ]
+      }
+    ],
     "TeammateIdle": [
       {
         "hooks": [

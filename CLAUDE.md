@@ -83,6 +83,7 @@ Events tracked from Claude Code hooks (defined in `hooks/claude-hooks.json`):
 | `PostToolUse` | After successful tool invocation |
 | `PostToolUseFailure` | Tool execution failed |
 | `PermissionRequest` | Permission dialog appears |
+| `PermissionDenied` | Auto mode classifier denied a tool |
 | `SubagentStart` | Subagent spawned |
 | `SubagentStop` | Subagent finished |
 | `TaskCreated` | Task created via `TaskCreate` |

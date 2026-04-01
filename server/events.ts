@@ -173,10 +173,10 @@ export class EventStore {
           existing.status = "ended";
           existing.isProcessing = false;
           existing.stopReason = undefined;
-        } else if (eventType === "UserPromptSubmit") {
+        } else if (eventType === "UserPromptSubmit" || eventType === "PermissionRequest" || eventType === "Elicitation") {
           existing.isProcessing = true;
           existing.stopReason = undefined;
-        } else if (eventType === "Stop") {
+        } else if (eventType === "Stop" || eventType === "StopFailure") {
           existing.isProcessing = false;
           existing.stopReason = typeof raw.stop_reason === "string" ? raw.stop_reason : undefined;
         }
@@ -301,6 +301,12 @@ export class EventStore {
           pending.splice(idx, 1);
         }
         if (pending.length === 0) this.pendingTools.delete(pendingKey);
+      }
+    } else if (eventType === "PermissionDenied" && raw.tool_name) {
+      const pending = this.pendingTools.get(pendingKey);
+      if (pending) {
+        const match = pending.find((p) => p.tool === raw.tool_name);
+        if (match) match.deferred = true;
       }
     } else if (eventType === "Stop" || eventType === "SessionEnd") {
       this.pendingTools.delete(pendingKey);

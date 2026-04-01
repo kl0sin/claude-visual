@@ -41,6 +41,7 @@ export interface SessionInfo {
 export interface PendingTool {
   tool: string;
   since: number;
+  deferred?: boolean;
 }
 
 export interface SessionStats {
