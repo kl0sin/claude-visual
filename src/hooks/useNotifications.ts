@@ -6,6 +6,7 @@ export interface AlertSettings {
   enabled: boolean;
   toolFailures: boolean;
   permissionRequests: boolean;
+  permissionDenied: boolean;
   sessionComplete: boolean;
   costThreshold: number; // USD, 0 = disabled
   sessionDurationMins: number; // minutes, 0 = disabled
@@ -24,6 +25,7 @@ const DEFAULTS: AlertSettings = {
   enabled: true,
   toolFailures: true,
   permissionRequests: true,
+  permissionDenied: true,
   sessionComplete: false,
   costThreshold: 1.0,
   sessionDurationMins: 30,
@@ -116,6 +118,11 @@ export function useNotifications(
       if (settings.permissionRequests && evt.type === "PermissionRequest") {
         const tool = evt.toolName ?? evt.data?.tool_name ?? "tool";
         notify("PERMISSION REQUIRED", `Awaiting permission for: ${tool}`, "#ff2d95");
+      }
+
+      if (settings.permissionDenied && evt.type === "PermissionDenied") {
+        const tool = evt.toolName ?? evt.data?.tool_name ?? "tool";
+        notify("PERMISSION DENIED", `Auto mode denied: ${tool}`, "#ff0040");
       }
 
       if (settings.sessionComplete && evt.type === "SessionEnd") {

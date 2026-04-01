@@ -17,6 +17,7 @@ interface HeaderProps {
 
 const TERMINAL_ACTION_LABELS: Record<string, string> = {
   PermissionRequest: "PERMISSION REQUIRED",
+  PermissionDenied: "PERMISSION DENIED",
   Elicitation: "INPUT REQUIRED",
 };
 

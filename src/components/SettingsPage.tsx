@@ -326,6 +326,13 @@ function AlertsSection({ settings, onUpdate }: AlertsSectionProps) {
         disabled={off}
       />
       <ToggleRow
+        label="Permission denied"
+        description="PermissionDenied events (auto mode)"
+        checked={settings.permissionDenied}
+        onChange={(v) => onUpdate({ permissionDenied: v })}
+        disabled={off}
+      />
+      <ToggleRow
         label="Session complete"
         description="SessionEnd events"
         checked={settings.sessionComplete}

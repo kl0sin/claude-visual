@@ -1078,9 +1078,15 @@ export function EventFeed({ events, truncated, isProcessing, pendingTools }: Eve
       {isProcessing && (
         <div className="feed-processing-banner" role="status" aria-live="polite">
           <span className="feed-processing-dot" aria-hidden="true" />
-          <span className="feed-processing-text" key={processingMsgIdx}>
+          <span
+            className="feed-processing-text"
+            key={processingMsgIdx}
+            style={pendingTools?.[0]?.deferred ? { color: "var(--color-cyber-yellow)" } : undefined}
+          >
             {pendingTools && pendingTools.length > 0
-              ? `Running ${pendingTools[0]!.tool}...`
+              ? pendingTools[0]!.deferred
+                ? `Deferred: ${pendingTools[0]!.tool}...`
+                : `Running ${pendingTools[0]!.tool}...`
               : PROCESSING_MESSAGES[processingMsgIdx % PROCESSING_MESSAGES.length]}
           </span>
         </div>

@@ -19,7 +19,7 @@ import { useServerConfig } from "./hooks/useServerConfig";
 import { useUpdateCheck } from "./hooks/useUpdateCheck";
 import { UpdateBanner } from "./components/UpdateBanner";
 
-const TERMINAL_TRIGGERS = new Set(["PermissionRequest", "Elicitation"]);
+const TERMINAL_TRIGGERS = new Set(["PermissionRequest", "PermissionDenied", "Elicitation"]);
 const TERMINAL_RESOLVERS = new Set([
   "PreToolUse", "PostToolUse", "PostToolUseFailure",
   "Stop", "StopFailure", "ElicitationResult", "SessionEnd",
